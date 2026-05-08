@@ -7414,14 +7414,15 @@ async function initFirebaseAuth() {
   const FB = window.FB;
   const googleBtn = document.getElementById('authGoogleBtn');
 
-  /* Processa resultado de redirect ANTES de tudo (crítico pra PWA iOS).
-     Se o usuário acabou de voltar de signInWithRedirect, isso completa o login.
-     onAuthStateChanged abaixo é quem vai disparar o boot do app. */
+  /* Processa resultado de redirect com timeout curto (crítico pra PWA iOS).
+     Se o usuário acabou de voltar de signInWithRedirect, completa o login.
+     Se não há redirect pendente, segue em frente sem travar. */
   setAuthStatus('verificando sessão…');
   try {
-    const result = await FB.getRedirectResult(FB.auth);
+    const redirectPromise = FB.getRedirectResult(FB.auth);
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 2500));
+    const result = await Promise.race([redirectPromise, timeoutPromise]);
     if (result && result.user) {
-      /* Login via redirect bem-sucedido — onAuthStateChanged vai cuidar do resto */
       setAuthStatus('login concluído, preparando app…');
     }
   } catch (err) {
@@ -7430,7 +7431,6 @@ async function initFirebaseAuth() {
       setAuthError('Erro ao processar login: ' + (err.message || err.code || ''));
     }
   }
-
   /* Listener de mudanças de auth */
 
   /* Click no botão de Google */
