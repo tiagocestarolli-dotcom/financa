@@ -262,6 +262,28 @@ body {
   line-height: 1.55;
   max-width: 320px;
 }
+.auth-footer-divider {
+  width: 32px;
+  height: 1px;
+  background: var(--line-strong);
+  margin: 14px auto;
+  opacity: 0.6;
+}
+.auth-footer-signature {
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-mute);
+}
+.auth-footer-signature .tc-name {
+  font-weight: 500;
+  color: var(--ink-soft);
+  letter-spacing: 0.06em;
+}
+.auth-footer-signature .tc-year {
+  font-style: italic;
+  color: var(--ink-faint);
+}
 
 /* ============== Indicador de sincronização (header) ============== */
 .sync-badge {
@@ -2657,7 +2679,11 @@ label {
     <div class="auth-help" id="authError" style="display:none;"></div>
 
     <div class="auth-footer">
-      seus dados ficam privados, criptografados e armazenados na sua conta Google Firebase
+      Dados privados, criptografados e armazenados em Google Firebase
+      <div class="auth-footer-divider"></div>
+      <div class="auth-footer-signature">
+        <span class="tc-name">TC Development</span> <span class="tc-year">· 2026</span>
+      </div>
     </div>
   </div>
 </div>
