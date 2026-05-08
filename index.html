@@ -7403,7 +7403,7 @@ function setAuthStatus(msg) {
 }
 
 /* Bootstrap quando Firebase carrega (módulo ESM, dispara evento) */
-function initFirebaseAuth() {
+async function initFirebaseAuth() {
   if (typeof window === 'undefined' || !window.addEventListener) return;
   if (!window.FB) {
     /* Firebase ainda não carregou — espera */
@@ -7414,62 +7414,24 @@ function initFirebaseAuth() {
   const FB = window.FB;
   const googleBtn = document.getElementById('authGoogleBtn');
 
-  /* Listener de mudanças de auth */
-  FB.onAuthStateChanged(FB.auth, async (user) => {
-    if (user) {
-      /* Logado */
-      setAuthStatus('preparando seus dados…');
-      setAuthError(null);
-      StorageAdapter.setCloudMode(user.uid, user.email || null);
-
-      /* Tenta puxar dados da nuvem */
-      const cloudState = await StorageAdapter.pullFromCloud();
-      if (cloudState) {
-        /* Já tem dados na nuvem — usa eles */
-        localStorage.setItem(`financa.v1.user.${user.uid}`, JSON.stringify(cloudState));
-      } else {
-        /* Primeira vez ou conta nova — cria estado padrão zerado e sobe */
-        const fresh = defaultState();
-        localStorage.setItem(`financa.v1.user.${user.uid}`, JSON.stringify(fresh));
-        StorageAdapter.save(fresh);
-      }
-
-      bootApp();
-
-      /* Inicia listener em tempo real para mudanças de outro dispositivo */
-      StorageAdapter.startRealtimeSync((remoteState) => {
-        /* Aplica mudança remota no state local sem disparar novo save */
-        const oldStr = JSON.stringify(state);
-        const newStr = JSON.stringify(remoteState);
-        if (oldStr === newStr) return;
-        state = remoteState;
-        try { localStorage.setItem(`financa.v1.user.${user.uid}`, newStr); } catch (e) {}
-        /* Re-renderiza a view ativa */
-        if (typeof activeView !== 'undefined') {
-          if (activeView === 'familia' && typeof renderFamiliaSubtabs === 'function') renderFamiliaSubtabs();
-          else if (activeView === 'tiago' && typeof renderTiagoView === 'function') renderTiagoView();
-          else if (activeView === 'entradas' && typeof renderEntradas === 'function') renderEntradas();
-          else if (activeView === 'contas' && typeof renderContas === 'function') renderContas();
-          else if (activeView === 'config' && typeof renderConfigCounts === 'function') renderConfigCounts();
-        }
-        if (typeof toast === 'function') toast('Dados atualizados de outro dispositivo', 'success');
-      });
-
-    } else {
-      /* Deslogado */
-      StorageAdapter.setLocalMode();
-      setAuthStatus('faça login para começar');
-      setAuthError(null);
-      if (googleBtn) googleBtn.style.display = 'inline-flex';
+  /* Processa resultado de redirect ANTES de tudo (crítico pra PWA iOS).
+     Se o usuário acabou de voltar de signInWithRedirect, isso completa o login.
+     onAuthStateChanged abaixo é quem vai disparar o boot do app. */
+  setAuthStatus('verificando sessão…');
+  try {
+    const result = await FB.getRedirectResult(FB.auth);
+    if (result && result.user) {
+      /* Login via redirect bem-sucedido — onAuthStateChanged vai cuidar do resto */
+      setAuthStatus('login concluído, preparando app…');
     }
-  });
-
-  /* Verifica resultado de redirect (caso tenha vindo de signInWithRedirect) */
-  FB.getRedirectResult(FB.auth).catch((err) => {
+  } catch (err) {
     if (err && err.code !== 'auth/no-auth-event') {
       console.error('Redirect error:', err);
+      setAuthError('Erro ao processar login: ' + (err.message || err.code || ''));
     }
-  });
+  }
+
+  /* Listener de mudanças de auth */
 
   /* Click no botão de Google */
   if (googleBtn) {
@@ -7480,7 +7442,10 @@ function initFirebaseAuth() {
       const provider = new FB.GoogleAuthProvider();
       try {
         /* Detecta iOS standalone (PWA) — usa redirect que funciona melhor lá */
-        const useRedirect = (window.navigator && window.navigator.standalone === true);
+        /* Detecta PWA standalone (iOS) ou ambientes que costumam bloquear popup */
+        const isStandalone = (window.navigator && window.navigator.standalone === true)
+          || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+        const useRedirect = isStandalone;
         if (useRedirect) {
           await FB.signInWithRedirect(FB.auth, provider);
         } else {
