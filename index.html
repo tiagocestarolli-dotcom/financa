@@ -7403,7 +7403,7 @@ function setAuthStatus(msg) {
 }
 
 /* Bootstrap quando Firebase carrega (módulo ESM, dispara evento) */
-async function initFirebaseAuth() {
+function initFirebaseAuth() {
   if (typeof window === 'undefined' || !window.addEventListener) return;
   if (!window.FB) {
     /* Firebase ainda não carregou — espera */
@@ -7432,6 +7432,46 @@ async function initFirebaseAuth() {
     }
   }
   /* Listener de mudanças de auth */
+  FB.onAuthStateChanged(FB.auth, async (user) => {
+    if (user) {
+      setAuthStatus('preparando seus dados…');
+      setAuthError(null);
+      StorageAdapter.setCloudMode(user.uid, user.email || null);
+
+      const cloudState = await StorageAdapter.pullFromCloud();
+      if (cloudState) {
+        localStorage.setItem(`financa.v1.user.${user.uid}`, JSON.stringify(cloudState));
+      } else {
+        const fresh = defaultState();
+        localStorage.setItem(`financa.v1.user.${user.uid}`, JSON.stringify(fresh));
+        StorageAdapter.save(fresh);
+      }
+
+      bootApp();
+
+      StorageAdapter.startRealtimeSync((remoteState) => {
+        const oldStr = JSON.stringify(state);
+        const newStr = JSON.stringify(remoteState);
+        if (oldStr === newStr) return;
+        state = remoteState;
+        try { localStorage.setItem(`financa.v1.user.${user.uid}`, newStr); } catch (e) {}
+        if (typeof activeView !== 'undefined') {
+          if (activeView === 'familia' && typeof renderFamiliaSubtabs === 'function') renderFamiliaSubtabs();
+          else if (activeView === 'tiago' && typeof renderTiagoView === 'function') renderTiagoView();
+          else if (activeView === 'entradas' && typeof renderEntradas === 'function') renderEntradas();
+          else if (activeView === 'contas' && typeof renderContas === 'function') renderContas();
+          else if (activeView === 'config' && typeof renderConfigCounts === 'function') renderConfigCounts();
+        }
+        if (typeof toast === 'function') toast('Dados atualizados de outro dispositivo', 'success');
+      });
+
+    } else {
+      StorageAdapter.setLocalMode();
+      setAuthStatus('faça login para começar');
+      setAuthError(null);
+      if (googleBtn) googleBtn.style.display = 'inline-flex';
+    }
+  });
 
   /* Click no botão de Google */
   if (googleBtn) {
