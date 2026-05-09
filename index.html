@@ -33,6 +33,152 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
 
+<!-- ========== Sistema de diagnóstico de auth (visível no rodapé do login) ========== -->
+<script>
+(function() {
+  /* Logger persistente: grava em sessionStorage (sobrevive ao redirect do Google)
+     e renderiza no painel #authDebugLines quando ele estiver no DOM.
+     Tudo isolado em window.authDebug pra não vazar nomes globais. */
+  var STORAGE_KEY = 'authDebugLog';
+  var MAX_LINES = 300;
+
+  function nowStamp() {
+    var d = new Date();
+    var hh = String(d.getHours()).padStart(2, '0');
+    var mm = String(d.getMinutes()).padStart(2, '0');
+    var ss = String(d.getSeconds()).padStart(2, '0');
+    var ms = String(d.getMilliseconds()).padStart(3, '0');
+    return hh + ':' + mm + ':' + ss + '.' + ms;
+  }
+
+  function loadLog() {
+    try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch (e) { return []; }
+  }
+
+  function saveLog(arr) {
+    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); } catch (e) {}
+  }
+
+  function appendDom(line) {
+    var panel = document.getElementById('authDebugLines');
+    if (!panel) return;
+    var div = document.createElement('div');
+    div.className = 'auth-debug-line';
+    div.textContent = line;
+    panel.appendChild(div);
+    panel.scrollTop = panel.scrollHeight;
+  }
+
+  window.authDebug = {
+    log: function(msg, data) {
+      var line = nowStamp() + ' ' + String(msg);
+      if (data !== undefined) {
+        try { line += ' ' + JSON.stringify(data); }
+        catch (e) { line += ' [unserializable]'; }
+      }
+      var arr = loadLog();
+      arr.push(line);
+      if (arr.length > MAX_LINES) arr = arr.slice(arr.length - MAX_LINES);
+      saveLog(arr);
+      appendDom(line);
+      try { console.log('[authDebug]', line); } catch (e) {}
+    },
+
+    render: function() {
+      var panel = document.getElementById('authDebugLines');
+      if (!panel) return;
+      panel.innerHTML = '';
+      var arr = loadLog();
+      for (var i = 0; i < arr.length; i++) {
+        var div = document.createElement('div');
+        div.className = 'auth-debug-line';
+        div.textContent = arr[i];
+        panel.appendChild(div);
+      }
+      panel.scrollTop = panel.scrollHeight;
+    },
+
+    clear: function() {
+      try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      var panel = document.getElementById('authDebugLines');
+      if (panel) panel.innerHTML = '';
+    },
+
+    copy: function() {
+      var arr = loadLog();
+      var txt = arr.join('\n');
+      var btn = document.getElementById('authDebugCopyBtn');
+      var done = function() {
+        if (!btn) return;
+        var orig = btn.textContent;
+        btn.textContent = 'copiado!';
+        setTimeout(function() { btn.textContent = orig || 'copiar'; }, 1500);
+      };
+      var fail = function() {
+        if (!btn) return;
+        btn.textContent = 'erro';
+        setTimeout(function() { btn.textContent = 'copiar'; }, 1500);
+      };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(done, function() {
+            /* fallback se Clipboard API falhar (iOS WebKit em alguns contextos) */
+            fallbackCopy(txt, done, fail);
+          });
+        } else {
+          fallbackCopy(txt, done, fail);
+        }
+      } catch (e) { fail(); }
+    },
+
+    toggle: function() {
+      var panel = document.getElementById('authDebugPanel');
+      if (panel) panel.classList.toggle('open');
+    }
+  };
+
+  function fallbackCopy(txt, done, fail) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = txt;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.setAttribute('readonly', 'true');
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, txt.length);
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      ok ? done() : fail();
+    } catch (e) { fail(); }
+  }
+
+  /* Renderiza linhas que já estavam no sessionStorage (sobrevivem ao redirect)
+     assim que o DOM ficar pronto */
+  function bootRender() {
+    if (window.authDebug && typeof window.authDebug.render === 'function') {
+      window.authDebug.render();
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootRender);
+  } else {
+    bootRender();
+  }
+
+  /* Log de carregamento da página — primeiro evento da timeline */
+  window.authDebug.log('page-load', {
+    href: location.href,
+    standalone: (window.navigator && window.navigator.standalone === true) ||
+                (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches),
+    iOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
+    referrer: document.referrer || '(none)'
+  });
+})();
+</script>
+
 <!-- ========== Firebase v10 (modular) — Auth + Firestore ========== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -60,15 +206,21 @@
   const fbApp = initializeApp(firebaseConfig);
   const fbAuth = getAuth(fbApp);
   const fbDb = getFirestore(fbApp);
+  if (window.authDebug) window.authDebug.log('fb-mod: app+auth+db inicializados');
 
   /* Persistência local da sessão (não pede login toda vez) */
-  setPersistence(fbAuth, browserLocalPersistence).catch(() => {});
+  setPersistence(fbAuth, browserLocalPersistence)
+    .then(() => { if (window.authDebug) window.authDebug.log('fb-mod: setPersistence OK (browserLocal)'); })
+    .catch((e) => { if (window.authDebug) window.authDebug.log('fb-mod: setPersistence ERRO', { code: e && e.code, msg: e && e.message }); });
 
   /* Persistência offline do Firestore (cache local automático) */
-  enableIndexedDbPersistence(fbDb).catch(err => {
-    /* Pode falhar em múltiplas abas — não é crítico */
-    console.warn('Persistência offline limitada:', err.code);
-  });
+  enableIndexedDbPersistence(fbDb)
+    .then(() => { if (window.authDebug) window.authDebug.log('fb-mod: IndexedDB Firestore OK'); })
+    .catch(err => {
+      /* Pode falhar em múltiplas abas — não é crítico */
+      console.warn('Persistência offline limitada:', err.code);
+      if (window.authDebug) window.authDebug.log('fb-mod: IndexedDB Firestore aviso', { code: err && err.code });
+    });
 
   /* Expõe as APIs Firebase no window pra serem usadas pelo restante do código */
   window.FB = {
@@ -79,6 +231,7 @@
   };
 
   /* Sinaliza que Firebase está pronto */
+  if (window.authDebug) window.authDebug.log('fb-mod: window.FB pronto, disparando firebase-ready');
   window.dispatchEvent(new CustomEvent('firebase-ready'));
 </script>
 
@@ -284,6 +437,73 @@ body {
   font-style: italic;
   color: var(--ink-faint);
 }
+
+/* ============== Painel de diagnóstico de auth (temporário) ============== */
+.auth-debug-panel {
+  margin-top: 20px;
+  width: 100%;
+  max-width: 380px;
+  border-top: 1px dashed var(--line-strong);
+  padding-top: 10px;
+  font-family: var(--font-mono);
+}
+.auth-debug-toggle {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  padding: 4px 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.auth-debug-toggle::before { content: '▸ '; }
+.auth-debug-panel.open .auth-debug-toggle::before { content: '▾ '; }
+.auth-debug-body {
+  display: none;
+  margin-top: 8px;
+  text-align: left;
+}
+.auth-debug-panel.open .auth-debug-body { display: block; }
+.auth-debug-lines {
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  color: var(--ink-soft);
+  font-size: 10px;
+  line-height: 1.45;
+  word-break: break-word;
+  -webkit-overflow-scrolling: touch;
+}
+.auth-debug-line {
+  padding: 1px 0;
+  white-space: pre-wrap;
+}
+.auth-debug-actions {
+  display: flex;
+  gap: 6px;
+}
+.auth-debug-action {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s, border-color .12s;
+}
+.auth-debug-action:active { background: var(--bg-sunken); }
 
 /* ============== Indicador de sincronização (header) ============== */
 .sync-badge {
@@ -2683,6 +2903,18 @@ label {
       <div class="auth-footer-divider"></div>
       <div class="auth-footer-signature">
         <span class="tc-name">TC Development</span> <span class="tc-year">· 2026</span>
+      </div>
+    </div>
+
+    <!-- Painel de diagnóstico (temporário, pra debugar login no PWA iOS) -->
+    <div class="auth-debug-panel" id="authDebugPanel">
+      <button class="auth-debug-toggle" type="button" onclick="window.authDebug && window.authDebug.toggle()">diagnóstico</button>
+      <div class="auth-debug-body">
+        <div class="auth-debug-lines" id="authDebugLines"></div>
+        <div class="auth-debug-actions">
+          <button class="auth-debug-action" id="authDebugCopyBtn" type="button" onclick="window.authDebug && window.authDebug.copy()">copiar</button>
+          <button class="auth-debug-action" type="button" onclick="window.authDebug && window.authDebug.clear()">limpar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -7405,40 +7637,55 @@ function setAuthStatus(msg) {
 /* Bootstrap quando Firebase carrega (módulo ESM, dispara evento) */
 async function initFirebaseAuth() {
   if (typeof window === 'undefined' || !window.addEventListener) return;
+  if (window.authDebug) window.authDebug.log('init: chamado');
   if (!window.FB) {
     /* Firebase ainda não carregou — espera */
+    if (window.authDebug) window.authDebug.log('init: window.FB ainda não existe — esperando firebase-ready');
     window.addEventListener('firebase-ready', initFirebaseAuth, { once: true });
     return;
   }
+  if (window.authDebug) window.authDebug.log('init: window.FB OK, prosseguindo');
 
   const FB = window.FB;
   const googleBtn = document.getElementById('authGoogleBtn');
+  if (window.authDebug) window.authDebug.log('init: googleBtn no DOM = ' + !!googleBtn);
 
   /* Processa resultado de redirect com timeout curto (crítico pra PWA iOS).
      Se o usuário acabou de voltar de signInWithRedirect, completa o login.
      Se não há redirect pendente, segue em frente sem travar. */
   setAuthStatus('verificando sessão…');
   try {
+    if (window.authDebug) window.authDebug.log('redirect: chamando getRedirectResult (timeout 2.5s)');
     const redirectPromise = FB.getRedirectResult(FB.auth);
-    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 2500));
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve('__TIMEOUT__'), 2500));
     const result = await Promise.race([redirectPromise, timeoutPromise]);
-    if (result && result.user) {
+    if (result === '__TIMEOUT__') {
+      if (window.authDebug) window.authDebug.log('redirect: TIMEOUT (sem resposta em 2.5s)');
+    } else if (result && result.user) {
+      if (window.authDebug) window.authDebug.log('redirect: SUCESSO', { email: result.user.email, uid: (result.user.uid || '').slice(0, 8) + '…' });
       setAuthStatus('login concluído, preparando app…');
+    } else {
+      if (window.authDebug) window.authDebug.log('redirect: resolvido sem user (sem redirect pendente)');
     }
   } catch (err) {
+    if (window.authDebug) window.authDebug.log('redirect: ERRO', { code: err && err.code, msg: err && err.message });
     if (err && err.code !== 'auth/no-auth-event') {
       console.error('Redirect error:', err);
       setAuthError('Erro ao processar login: ' + (err.message || err.code || ''));
     }
   }
   /* Listener de mudanças de auth */
+  if (window.authDebug) window.authDebug.log('listener: armando onAuthStateChanged');
   FB.onAuthStateChanged(FB.auth, async (user) => {
+    if (window.authDebug) window.authDebug.log('listener: disparou', user ? { email: user.email, uid: (user.uid || '').slice(0, 8) + '…' } : { user: null });
     if (user) {
       setAuthStatus('preparando seus dados…');
       setAuthError(null);
       StorageAdapter.setCloudMode(user.uid, user.email || null);
 
+      if (window.authDebug) window.authDebug.log('cloud: pullFromCloud iniciado');
       const cloudState = await StorageAdapter.pullFromCloud();
+      if (window.authDebug) window.authDebug.log('cloud: pullFromCloud retornou ' + (cloudState ? 'state existente' : 'null (primeira vez)'));
       if (cloudState) {
         localStorage.setItem(`financa.v1.user.${user.uid}`, JSON.stringify(cloudState));
       } else {
@@ -7447,6 +7694,7 @@ async function initFirebaseAuth() {
         StorageAdapter.save(fresh);
       }
 
+      if (window.authDebug) window.authDebug.log('app: bootApp chamado');
       bootApp();
 
       StorageAdapter.startRealtimeSync((remoteState) => {
@@ -7466,6 +7714,7 @@ async function initFirebaseAuth() {
       });
 
     } else {
+      if (window.authDebug) window.authDebug.log('listener: sem user → mostrando botão de login');
       StorageAdapter.setLocalMode();
       setAuthStatus('faça login para começar');
       setAuthError(null);
@@ -7486,12 +7735,17 @@ async function initFirebaseAuth() {
         const isStandalone = (window.navigator && window.navigator.standalone === true)
           || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
         const useRedirect = isStandalone;
+        if (window.authDebug) window.authDebug.log('click: usuário tocou Google', { standalone: isStandalone, modo: useRedirect ? 'redirect' : 'popup' });
         if (useRedirect) {
+          if (window.authDebug) window.authDebug.log('click: chamando signInWithRedirect (página vai navegar)');
           await FB.signInWithRedirect(FB.auth, provider);
         } else {
+          if (window.authDebug) window.authDebug.log('click: chamando signInWithPopup');
           await FB.signInWithPopup(FB.auth, provider);
+          if (window.authDebug) window.authDebug.log('click: signInWithPopup concluído');
         }
       } catch (err) {
+        if (window.authDebug) window.authDebug.log('click: ERRO', { code: err && err.code, msg: err && err.message });
         console.error('Login error:', err);
         setAuthStatus('faça login para começar');
         let msg = 'Erro ao fazer login. ';
