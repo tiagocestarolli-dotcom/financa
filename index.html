@@ -33,152 +33,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
 
-<!-- ========== Sistema de diagnóstico de auth (visível no rodapé do login) ========== -->
-<script>
-(function() {
-  /* Logger persistente: grava em sessionStorage (sobrevive ao redirect do Google)
-     e renderiza no painel #authDebugLines quando ele estiver no DOM.
-     Tudo isolado em window.authDebug pra não vazar nomes globais. */
-  var STORAGE_KEY = 'authDebugLog';
-  var MAX_LINES = 300;
-
-  function nowStamp() {
-    var d = new Date();
-    var hh = String(d.getHours()).padStart(2, '0');
-    var mm = String(d.getMinutes()).padStart(2, '0');
-    var ss = String(d.getSeconds()).padStart(2, '0');
-    var ms = String(d.getMilliseconds()).padStart(3, '0');
-    return hh + ':' + mm + ':' + ss + '.' + ms;
-  }
-
-  function loadLog() {
-    try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]'); }
-    catch (e) { return []; }
-  }
-
-  function saveLog(arr) {
-    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); } catch (e) {}
-  }
-
-  function appendDom(line) {
-    var panel = document.getElementById('authDebugLines');
-    if (!panel) return;
-    var div = document.createElement('div');
-    div.className = 'auth-debug-line';
-    div.textContent = line;
-    panel.appendChild(div);
-    panel.scrollTop = panel.scrollHeight;
-  }
-
-  window.authDebug = {
-    log: function(msg, data) {
-      var line = nowStamp() + ' ' + String(msg);
-      if (data !== undefined) {
-        try { line += ' ' + JSON.stringify(data); }
-        catch (e) { line += ' [unserializable]'; }
-      }
-      var arr = loadLog();
-      arr.push(line);
-      if (arr.length > MAX_LINES) arr = arr.slice(arr.length - MAX_LINES);
-      saveLog(arr);
-      appendDom(line);
-      try { console.log('[authDebug]', line); } catch (e) {}
-    },
-
-    render: function() {
-      var panel = document.getElementById('authDebugLines');
-      if (!panel) return;
-      panel.innerHTML = '';
-      var arr = loadLog();
-      for (var i = 0; i < arr.length; i++) {
-        var div = document.createElement('div');
-        div.className = 'auth-debug-line';
-        div.textContent = arr[i];
-        panel.appendChild(div);
-      }
-      panel.scrollTop = panel.scrollHeight;
-    },
-
-    clear: function() {
-      try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {}
-      var panel = document.getElementById('authDebugLines');
-      if (panel) panel.innerHTML = '';
-    },
-
-    copy: function() {
-      var arr = loadLog();
-      var txt = arr.join('\n');
-      var btn = document.getElementById('authDebugCopyBtn');
-      var done = function() {
-        if (!btn) return;
-        var orig = btn.textContent;
-        btn.textContent = 'copiado!';
-        setTimeout(function() { btn.textContent = orig || 'copiar'; }, 1500);
-      };
-      var fail = function() {
-        if (!btn) return;
-        btn.textContent = 'erro';
-        setTimeout(function() { btn.textContent = 'copiar'; }, 1500);
-      };
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(txt).then(done, function() {
-            /* fallback se Clipboard API falhar (iOS WebKit em alguns contextos) */
-            fallbackCopy(txt, done, fail);
-          });
-        } else {
-          fallbackCopy(txt, done, fail);
-        }
-      } catch (e) { fail(); }
-    },
-
-    toggle: function() {
-      var panel = document.getElementById('authDebugPanel');
-      if (panel) panel.classList.toggle('open');
-    }
-  };
-
-  function fallbackCopy(txt, done, fail) {
-    try {
-      var ta = document.createElement('textarea');
-      ta.value = txt;
-      ta.style.position = 'fixed';
-      ta.style.left = '-9999px';
-      ta.setAttribute('readonly', 'true');
-      document.body.appendChild(ta);
-      ta.select();
-      ta.setSelectionRange(0, txt.length);
-      var ok = false;
-      try { ok = document.execCommand('copy'); } catch (e) {}
-      document.body.removeChild(ta);
-      ok ? done() : fail();
-    } catch (e) { fail(); }
-  }
-
-  /* Renderiza linhas que já estavam no sessionStorage (sobrevivem ao redirect)
-     assim que o DOM ficar pronto */
-  function bootRender() {
-    if (window.authDebug && typeof window.authDebug.render === 'function') {
-      window.authDebug.render();
-    }
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootRender);
-  } else {
-    bootRender();
-  }
-
-  /* Log de carregamento da página — primeiro evento da timeline */
-  window.authDebug.log('page-load', {
-    href: location.href,
-    standalone: (window.navigator && window.navigator.standalone === true) ||
-                (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches),
-    iOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
-    referrer: document.referrer || '(none)'
-  });
-})();
-</script>
-
 <!-- ========== Firebase v10 (modular) — Auth + Firestore ========== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -206,21 +60,15 @@
   const fbApp = initializeApp(firebaseConfig);
   const fbAuth = getAuth(fbApp);
   const fbDb = getFirestore(fbApp);
-  if (window.authDebug) window.authDebug.log('fb-mod: app+auth+db inicializados');
 
   /* Persistência local da sessão (não pede login toda vez) */
-  setPersistence(fbAuth, browserLocalPersistence)
-    .then(() => { if (window.authDebug) window.authDebug.log('fb-mod: setPersistence OK (browserLocal)'); })
-    .catch((e) => { if (window.authDebug) window.authDebug.log('fb-mod: setPersistence ERRO', { code: e && e.code, msg: e && e.message }); });
+  setPersistence(fbAuth, browserLocalPersistence).catch(() => {});
 
   /* Persistência offline do Firestore (cache local automático) */
-  enableIndexedDbPersistence(fbDb)
-    .then(() => { if (window.authDebug) window.authDebug.log('fb-mod: IndexedDB Firestore OK'); })
-    .catch(err => {
-      /* Pode falhar em múltiplas abas — não é crítico */
-      console.warn('Persistência offline limitada:', err.code);
-      if (window.authDebug) window.authDebug.log('fb-mod: IndexedDB Firestore aviso', { code: err && err.code });
-    });
+  enableIndexedDbPersistence(fbDb).catch(err => {
+    /* Pode falhar em múltiplas abas — não é crítico */
+    console.warn('Persistência offline limitada:', err.code);
+  });
 
   /* Expõe as APIs Firebase no window pra serem usadas pelo restante do código */
   window.FB = {
@@ -231,7 +79,6 @@
   };
 
   /* Sinaliza que Firebase está pronto */
-  if (window.authDebug) window.authDebug.log('fb-mod: window.FB pronto, disparando firebase-ready');
   window.dispatchEvent(new CustomEvent('firebase-ready'));
 </script>
 
@@ -437,73 +284,6 @@ body {
   font-style: italic;
   color: var(--ink-faint);
 }
-
-/* ============== Painel de diagnóstico de auth (temporário) ============== */
-.auth-debug-panel {
-  margin-top: 20px;
-  width: 100%;
-  max-width: 380px;
-  border-top: 1px dashed var(--line-strong);
-  padding-top: 10px;
-  font-family: var(--font-mono);
-}
-.auth-debug-toggle {
-  background: none;
-  border: none;
-  color: var(--ink-faint);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: lowercase;
-  padding: 4px 6px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.auth-debug-toggle::before { content: '▸ '; }
-.auth-debug-panel.open .auth-debug-toggle::before { content: '▾ '; }
-.auth-debug-body {
-  display: none;
-  margin-top: 8px;
-  text-align: left;
-}
-.auth-debug-panel.open .auth-debug-body { display: block; }
-.auth-debug-lines {
-  max-height: 220px;
-  overflow-y: auto;
-  background: var(--bg-sunken);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 8px 10px;
-  margin-bottom: 8px;
-  color: var(--ink-soft);
-  font-size: 10px;
-  line-height: 1.45;
-  word-break: break-word;
-  -webkit-overflow-scrolling: touch;
-}
-.auth-debug-line {
-  padding: 1px 0;
-  white-space: pre-wrap;
-}
-.auth-debug-actions {
-  display: flex;
-  gap: 6px;
-}
-.auth-debug-action {
-  flex: 1;
-  background: var(--bg-elevated);
-  border: 1px solid var(--line);
-  color: var(--ink-soft);
-  padding: 7px 8px;
-  border-radius: 6px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: background .12s, border-color .12s;
-}
-.auth-debug-action:active { background: var(--bg-sunken); }
 
 /* ============== Indicador de sincronização (header) ============== */
 .sync-badge {
@@ -2046,6 +1826,24 @@ label {
   background: color-mix(in srgb, var(--flow-in) 14%, white);
   color: var(--flow-in);
 }
+.gasto-row .gr-flag.pendente {
+  background: color-mix(in srgb, #C28846 16%, white);
+  color: #8A5A1F;
+  font-weight: 600;
+}
+.gasto-row .gr-flag.auto {
+  background: color-mix(in srgb, var(--ink) 4%, white);
+  color: var(--ink-faint);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  font-weight: 500;
+}
+.gasto-row.is-pendente .gr-value {
+  color: var(--ink-mute);
+  opacity: 0.85;
+}
 .gasto-row .gr-flag.parcela {
   background: color-mix(in srgb, var(--flow-out) 12%, white);
   color: var(--flow-out);
@@ -2685,6 +2483,75 @@ label {
   flex: 0 0 auto;
 }
 
+/* ====== Fatia 3: banner de contas a pagar ====== */
+.pendencias-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: color-mix(in srgb, #C28846 12%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, #C28846 30%, transparent);
+  border-radius: var(--r);
+  padding: 11px 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: background .12s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pendencias-banner:active { transform: scale(0.99); background: color-mix(in srgb, #C28846 18%, var(--bg-elevated)); }
+.pendencias-banner .pb-ico {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #C28846 22%, white);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  flex: 0 0 auto;
+}
+.pendencias-banner .pb-body {
+  flex: 1; min-width: 0;
+}
+.pendencias-banner .pb-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #8A5A1F;
+  letter-spacing: -0.005em;
+}
+.pendencias-banner .pb-sub {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+  margin-top: 1px;
+  font-family: var(--font-mono);
+}
+.pendencias-banner .pb-chev {
+  color: #8A5A1F;
+  font-size: 14px;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+/* ====== Fatia 3: hero da categoria com "pago + previsto" ====== */
+.cat-hero .ch-previsto {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-left: 12px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink-mute);
+  letter-spacing: -0.005em;
+}
+.cat-hero .ch-previsto .ch-prev-prefix {
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-style: normal;
+}
+.cat-hero .ch-previsto .ch-prev-val {
+  color: #8A5A1F;
+  font-weight: 500;
+}
+
 /* Floating Action Button */
 .fab {
   position: fixed;
@@ -2903,18 +2770,6 @@ label {
       <div class="auth-footer-divider"></div>
       <div class="auth-footer-signature">
         <span class="tc-name">TC Development</span> <span class="tc-year">· 2026</span>
-      </div>
-    </div>
-
-    <!-- Painel de diagnóstico (temporário, pra debugar login no PWA iOS) -->
-    <div class="auth-debug-panel" id="authDebugPanel">
-      <button class="auth-debug-toggle" type="button" onclick="window.authDebug && window.authDebug.toggle()">diagnóstico</button>
-      <div class="auth-debug-body">
-        <div class="auth-debug-lines" id="authDebugLines"></div>
-        <div class="auth-debug-actions">
-          <button class="auth-debug-action" id="authDebugCopyBtn" type="button" onclick="window.authDebug && window.authDebug.copy()">copiar</button>
-          <button class="auth-debug-action" type="button" onclick="window.authDebug && window.authDebug.clear()">limpar</button>
-        </div>
       </div>
     </div>
   </div>
@@ -3176,7 +3031,7 @@ label {
 
     <div style="height: 28px;"></div>
     <div class="center muted" style="font-size:12px;">
-      Finança · Etapa 1 de 6 · v0.1
+      Finança · v0.5 · gastos fixos com check-in
     </div>
   </section>
 
@@ -3312,7 +3167,7 @@ function defaultState() {
     fontesRenda: structuredClone(FONTES_RENDA_DEFAULT),
     /* Lançamentos */
     entradas: [],       /* {id, fonteId, contaId, valor, data, ym} */
-    gastos: [],         /* {id, categoria, subcategoria, grupoId, nome, valor, data, ym, cardId, contaId, isFixo, parentFixoId, isInvest, isAjuste} */
+    gastos: [],         /* {id, categoria, subcategoria, grupoId, nome, valor, data, ym, cardId, contaId, pagamento, isFixo, parentFixoId, isInvest, isAjuste, observacao, pago, dataPagamento} */
     transferencias: [], /* {id, contaOrigemId, contaDestinoId, valor, data, ym, observacao} */
     /* Preferências de UI persistidas */
     uiPrefs: {
@@ -3535,6 +3390,17 @@ const StorageAdapter = {
     ['casa', 'marina', 'heitor', 'juliana', 'tiago'].forEach(k => {
       if (!Array.isArray(merged.grupos[k])) merged.grupos[k] = [];
     });
+    /* Migração v0.5: campos pago/dataPagamento em gastos (check-in de pagamento).
+       Todo gasto antigo nasce como pago=true (já saiu da conta no momento que foi lançado);
+       a data de pagamento é a própria data do gasto. */
+    if (Array.isArray(merged.gastos)) {
+      merged.gastos.forEach(g => {
+        if (typeof g.pago === 'undefined') {
+          g.pago = true;
+          g.dataPagamento = g.dataPagamento || g.data || null;
+        }
+      });
+    }
     /* Migrações de ícone */
     const LEGACY_ICONS = {
       marina:  { from: '👧', to: '👧🏻' },
@@ -3767,27 +3633,23 @@ function renderFamiliaTotalConsolidado() {
   const ym = famCurrentYM;
   const mesLabel = MESES_PT[Number(ym.split('-')[1]) - 1];
 
-  /* Total e breakdown — TIAGO NÃO ENTRA */
+  /* Total e breakdown — TIAGO NÃO ENTRA. Fatia 4: contabiliza só PAGO (consistência com hero da categoria). */
   const familyKeys = ['casa', 'marina', 'heitor', 'juliana'];
   const breakdown = {};
   let total = 0;
+  let totalPrevistoFam = 0;
   let totalLanc = 0;
   familyKeys.forEach(k => {
-    const subtotal = state.gastos
-      .filter(g => g.categoria === k && g.ym === ym && !g.isInvest && !g.isAjuste)
-      .reduce((s, g) => s + (Number(g.valor) || 0), 0);
-    breakdown[k] = subtotal;
-    total += subtotal;
+    const tot = totaisCategoriaMes(k, ym);
+    breakdown[k] = tot.pago;
+    total += tot.pago;
+    totalPrevistoFam += tot.previsto;
     totalLanc += state.gastos.filter(g => g.categoria === k && g.ym === ym && !g.isAjuste).length;
   });
 
-  /* Comparativo mês anterior */
+  /* Comparativo mês anterior (pago vs pago) */
   const ymAnt = ymPrev(ym);
-  const totalAnt = familyKeys.reduce((s, k) => {
-    return s + state.gastos
-      .filter(g => g.categoria === k && g.ym === ymAnt && !g.isInvest && !g.isAjuste)
-      .reduce((acc, g) => acc + (Number(g.valor) || 0), 0);
-  }, 0);
+  const totalAnt = familyKeys.reduce((s, k) => s + totaisCategoriaMes(k, ymAnt).pago, 0);
   const delta = totalAnt > 0 ? ((total - totalAnt) / totalAnt) * 100 : (total > 0 ? 100 : 0);
   let deltaCls = 'flat', deltaTxt = '— vs mês anterior';
   if (totalAnt === 0 && total > 0) { deltaCls = 'up'; deltaTxt = '↑ novo mês'; }
@@ -3825,6 +3687,7 @@ function renderFamiliaTotalConsolidado() {
         </div>
         <div class="ft-meta-row">
           <span class="delta ${deltaCls}">${deltaTxt}</span>
+          ${totalPrevistoFam > 0 ? `<span style="color:#8A5A1F;font-weight:600;">+ ${fmtBRL(totalPrevistoFam)} a pagar</span>` : ''}
           <span>${totalLanc} ${totalLanc === 1 ? 'lançamento' : 'lançamentos'}</span>
           <span style="font-style:italic;color:var(--ink-faint);">tiago à parte</span>
         </div>
@@ -5427,6 +5290,29 @@ function isInvest(catKey, subc) {
   return state.subcatsInvestimento && state.subcatsInvestimento.includes(subc);
 }
 
+/* ===== Fatia 3: totais pago/previsto/pendente por categoria + mês =====
+   Retorna apenas consumo (sem investimentos, sem ajustes).
+   - pago      = lançamentos com pago=true
+   - previsto  = lançamentos com pago=false (a pagar)
+   - total     = pago + previsto (o que aparecia antes)
+   - pendentes = lista de gastos pendentes (pra banner e filtros)         */
+function totaisCategoriaMes(catKey, ym) {
+  let pago = 0, previsto = 0;
+  const pendentes = [];
+  state.gastos.forEach(g => {
+    if (g.categoria !== catKey || g.ym !== ym) return;
+    if (g.isInvest || g.isAjuste) return;
+    const v = Number(g.valor) || 0;
+    if (g.pago === false) {
+      previsto += v;
+      pendentes.push(g);
+    } else {
+      pago += v;
+    }
+  });
+  return { pago, previsto, total: pago + previsto, pendentes };
+}
+
 function isExclusiva(catKey, subc) {
   return (state.subcatsExclusivas[catKey] || []).includes(subc);
 }
@@ -5536,8 +5422,8 @@ function processarGastosFixosDoMes(ym) {
       parentFixoId: f.id,
       isInvest: isInvest(f.categoria, f.subcategoria),
       observacao: f.observacao || '',
-      pago: true,
-      dataPagamento: data
+      pago: f.pagamento !== 'manual',
+      dataPagamento: f.pagamento !== 'manual' ? data : null
     });
     added++;
   });
@@ -5558,25 +5444,31 @@ function renderFamiliaContent() {
   const cat = activeFamiliaTab;
   const member = state.members[cat];
 
+  /* Fatia 3: usa totais pago/previsto/pendentes pra mostrar hero "pago grande, previsto pequeno" */
+  const totaisMes = totaisCategoriaMes(cat, famCurrentYM);
+
   /* Filtra gastos da categoria + mês — exclui ajustes técnicos */
   const gastosCat = state.gastos
     .filter(g => g.categoria === cat && g.ym === famCurrentYM && !g.isAjuste)
     .filter(g => {
-      if (famFilter === 'fixos') return g.isFixo === true;
+      if (famFilter === 'fixos')     return g.isFixo === true;
       if (famFilter === 'variaveis') return g.isFixo !== true;
+      if (famFilter === 'pendentes') return g.pago === false;
+      if (famFilter === 'pagos')     return g.pago !== false;
       return true;
     })
     .sort((a, b) => b.data.localeCompare(a.data));
 
-  /* Totais */
-  const totalCat = gastosCat.reduce((s, g) => s + (g.isInvest ? 0 : Number(g.valor) || 0), 0);
-  const totalInvest = gastosCat.reduce((s, g) => s + (g.isInvest ? Number(g.valor) || 0 : 0), 0);
-
-  /* Comparativo mês anterior (apenas consumo, não-invest, não-ajuste) */
-  const ymAnt = ymPrev(famCurrentYM);
-  const totalAnt = state.gastos
-    .filter(g => g.categoria === cat && g.ym === ymAnt && !g.isInvest && !g.isAjuste)
+  /* Totais — número grande = só PAGO (decisão Fatia 3) */
+  const totalCat = totaisMes.pago;
+  const totalPrevisto = totaisMes.previsto;
+  const totalInvest = state.gastos
+    .filter(g => g.categoria === cat && g.ym === famCurrentYM && g.isInvest && !g.isAjuste)
     .reduce((s, g) => s + (Number(g.valor) || 0), 0);
+
+  /* Comparativo mês anterior (apenas pago de consumo, pra comparar maçã com maçã) */
+  const ymAnt = ymPrev(famCurrentYM);
+  const totalAnt = totaisCategoriaMes(cat, ymAnt).pago;
   const delta = totalAnt > 0 ? ((totalCat - totalAnt) / totalAnt) * 100 : (totalCat > 0 ? 100 : 0);
 
   /* Header */
@@ -5604,6 +5496,7 @@ function renderFamiliaContent() {
         <div class="ch-value">
           <span class="currency">R$</span>${split.intl}<span class="cents">,${split.cents}</span>
         </div>
+        ${totalPrevisto > 0 ? `<div class="ch-previsto"><span class="ch-prev-prefix">a pagar</span><span class="ch-prev-val">+ ${fmtBRL(totalPrevisto)}</span></div>` : ''}
       </div>
       <div class="ch-meta">
         <span class="delta ${deltaCls}">${deltaTxt}</span>
@@ -5630,16 +5523,37 @@ function renderFamiliaContent() {
     </div>
   `;
 
-  /* Filtros */
+  /* Filtros — Fatia 3 adiciona ⏳ a pagar e ✓ pagos */
   const totalFixos = state.gastos.filter(g => g.categoria === cat && g.ym === famCurrentYM && g.isFixo && !g.isAjuste).length;
   const totalVar = state.gastos.filter(g => g.categoria === cat && g.ym === famCurrentYM && !g.isFixo && !g.isAjuste).length;
+  const totalPend = totaisMes.pendentes.length;
+  const totalPagos = state.gastos.filter(g => g.categoria === cat && g.ym === famCurrentYM && g.pago !== false && !g.isAjuste).length;
   const filtersHtml = `
     <div class="filter-row">
       <button class="filter ${famFilter === 'todos' ? 'active' : ''}" data-f="todos">todos · ${totalFixos + totalVar}</button>
+      ${totalPend > 0 ? `<button class="filter ${famFilter === 'pendentes' ? 'active' : ''}" data-f="pendentes">⏳ a pagar · ${totalPend}</button>` : ''}
+      <button class="filter ${famFilter === 'pagos' ? 'active' : ''}" data-f="pagos">✓ pagos · ${totalPagos}</button>
       <button class="filter ${famFilter === 'fixos' ? 'active' : ''}" data-f="fixos">🔁 fixos · ${totalFixos}</button>
       <button class="filter ${famFilter === 'variaveis' ? 'active' : ''}" data-f="variaveis">variáveis · ${totalVar}</button>
     </div>
   `;
+
+  /* Banner de pendências — só aparece se houver pendências (decisão travada) */
+  let banner = '';
+  if (totaisMes.pendentes.length > 0) {
+    const totalAPagar = totaisMes.previsto;
+    const n = totaisMes.pendentes.length;
+    banner = `
+      <div class="pendencias-banner" id="pendBanner">
+        <div class="pb-ico">⏳</div>
+        <div class="pb-body">
+          <div class="pb-title">${n} ${n === 1 ? 'conta a pagar' : 'contas a pagar'} este mês</div>
+          <div class="pb-sub">${fmtBRL(totalAPagar)} pendente${n === 1 ? '' : 's'} de confirmação</div>
+        </div>
+        <div class="pb-chev">›</div>
+      </div>
+    `;
+  }
 
   /* Empty */
   let bodyHtml = '';
@@ -5701,7 +5615,13 @@ function renderFamiliaContent() {
     </div>
   `;
 
-  host.innerHTML = monthNavHtml + quickLaunchHtml + heroHtml + filtersHtml + bodyHtml;
+  host.innerHTML = monthNavHtml + quickLaunchHtml + heroHtml + banner + filtersHtml + bodyHtml;
+
+  /* Banner: toque pra filtrar por pendentes */
+  const _pendBanner = document.getElementById('pendBanner');
+  if (_pendBanner) {
+    _pendBanner.onclick = () => { famFilter = 'pendentes'; renderFamiliaContent(); };
+  }
 
   /* Hooks */
   document.getElementById('famPrev').onclick = () => { famCurrentYM = ymPrev(famCurrentYM); renderFamiliaTotalConsolidado(); renderFamiliaContent(); };
@@ -5868,6 +5788,11 @@ function renderNomeTotals(items) {
 function renderGastoRow(g) {
   const [y, mm, dd] = g.data.split('-');
   const flags = [];
+  if (g.pago === false) flags.push('<span class="gr-flag pendente">⏳ a pagar</span>');
+  /* Tag "auto" suave para fixos que não precisam de check-in (cartão / débito automático) */
+  if (g.isFixo && (g.pagamento === 'cartao' || g.pagamento === 'debito')) {
+    flags.push('<span class="gr-flag auto">auto</span>');
+  }
   if (g.isFixo) flags.push('<span class="gr-flag fixo">🔁 fixo</span>');
   if (g.pagamento === 'debito') flags.push('<span class="gr-flag deb">⚡ débito</span>');
   if (g.pagamento === 'cartao' && g.cardId) {
@@ -5885,7 +5810,7 @@ function renderGastoRow(g) {
   }
 
   return `
-    <div class="gasto-row" data-edit-gasto="${g.id}">
+    <div class="gasto-row ${g.pago === false ? 'is-pendente' : ''}" data-edit-gasto="${g.id}">
       <div class="gr-date">
         <span class="gd-day">${dd}</span>
         <span class="gd-mon">${MESES_PT_ABBR[Number(mm) - 1]}</span>
@@ -5935,8 +5860,34 @@ function openGastoForm(id, defaultCategoria, opts) {
        </div>`
     : '';
 
+  /* Painel de check-in (Fatia 2): aparece quando é um clone de fixo MANUAL,
+     mostrando se está pago ou pendente, com botão pra alternar o estado. */
+  const checkinPanel = (() => {
+    if (!editing || !editing.parentFixoId || editing.pagamento !== 'manual') return '';
+    if (editing.pago === false) {
+      return `
+        <div class="card-flat" style="background:color-mix(in srgb,#C28846 12%,white);border:1px solid color-mix(in srgb,#C28846 26%,transparent);">
+          <strong style="color:#8A5A1F;">⏳ Ainda não foi pago</strong>
+          <div class="muted" style="font-size:13px;margin-top:4px;line-height:1.5;">
+            Enquanto não for marcado como pago, este lançamento não debita o saldo bancário.
+          </div>
+          <button class="btn btn-primary" id="g_marcarPago" style="margin-top:10px;">✓ Marcar como pago</button>
+        </div>
+      `;
+    }
+    const dataLbl = editing.dataPagamento ? ' em ' + editing.dataPagamento.split('-').reverse().join('/') : '';
+    return `
+      <div class="card-flat" style="background:color-mix(in srgb,var(--flow-in) 8%,white);border:1px solid color-mix(in srgb,var(--flow-in) 20%,transparent);">
+        <strong style="color:var(--flow-in);">✓ Pago${dataLbl}</strong>
+        <div class="muted" style="font-size:13px;margin-top:4px;">Já foi debitado do saldo bancário.</div>
+        <button class="btn btn-ghost" id="g_desfazerPago" style="margin-top:6px;font-size:13px;padding:8px;width:auto;">Desfazer pagamento</button>
+      </div>
+    `;
+  })();
+
   const html = `
     ${cloneNotice}
+    ${checkinPanel}
     <div class="form-grid">
       <div>
         <label>Valor</label>
@@ -6066,6 +6017,31 @@ function openGastoForm(id, defaultCategoria, opts) {
   `;
 
   sheet.open(editing ? 'Editar gasto' : 'Novo gasto', html, footer);
+
+  /* Handlers do painel de check-in (Fatia 2) */
+  const _btnMarcarPago = document.getElementById('g_marcarPago');
+  if (_btnMarcarPago) {
+    _btnMarcarPago.onclick = () => { abrirDialogoCheckin(editing); };
+  }
+  const _btnDesfazer = document.getElementById('g_desfazerPago');
+  if (_btnDesfazer) {
+    _btnDesfazer.onclick = async () => {
+      const ok = await askConfirm({
+        title: 'Desfazer pagamento?',
+        message: 'O gasto voltará a ficar pendente e deixará de debitar o saldo bancário.',
+        confirmLabel: 'Desfazer'
+      });
+      if (!ok) return;
+      editing.pago = false;
+      editing.dataPagamento = null;
+      saveState(state);
+      sheet.close();
+      if (activeView === 'tiago') renderTiagoView();
+      else if (activeView === 'familia') renderFamiliaContent();
+      if (activeView === 'contas') renderContas();
+      toast('Pagamento desfeito');
+    };
+  }
 
   /* Estado local */
   let state_categoria = g.categoria;
@@ -6468,7 +6444,7 @@ function openGastoForm(id, defaultCategoria, opts) {
           cardId: state_pagamento === 'cartao' ? state_cardId : null,
           contaId: contaIdFinal,
           pagamento: state_pagamento,
-isFixo: false,
+          isFixo: false,
           isInvest: investFlag,
           observacao: obs,
           pago: true,
@@ -6680,6 +6656,84 @@ function openFixedEditor(id) {
 }
 
 /* =========================================================================
+   CHECK-IN — confirmar pagamento de gasto fixo manual (Fatia 2)
+   Diálogo customizado: pergunta data do pagamento e conta utilizada.
+   Default: data = hoje; conta = a configurada no fixo (ou principal).
+   ========================================================================= */
+function abrirDialogoCheckin(gasto) {
+  return new Promise((resolve) => {
+    const contasAtivas = (state.contas || []).filter(c => !c.arquivado);
+    let selectedConta = gasto.contaId || (getContaPrincipal()?.id || '');
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position:fixed; inset:0; background:rgba(20,18,14,0.5);
+      z-index:200; display:flex; align-items:center; justify-content:center;
+      padding:20px; animation:fadeIn .2s ease;
+    `;
+    const chipsHtml = contasAtivas.map(c => {
+      const sel = c.id === selectedConta;
+      const styleSel = sel ? `background:${c.cor};border-color:${c.cor};color:#fff;` : '';
+      return `<button type="button" class="chip ${sel ? 'selected' : ''}" data-conta="${c.id}" style="${styleSel}">${c.icone || '🏦'} ${escapeHtml(c.nome)}</button>`;
+    }).join('');
+    overlay.innerHTML = `
+      <div style="background:var(--bg);border-radius:var(--r-lg);padding:22px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;">
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:500;margin-bottom:4px;letter-spacing:-0.01em;">Confirmar pagamento</div>
+        <div style="color:var(--ink-soft);font-size:13.5px;margin-bottom:16px;line-height:1.45;">${escapeHtml(gasto.nome || gasto.subcategoria)} · <strong>${fmtBRL(gasto.valor)}</strong></div>
+
+        <label style="display:block;font-size:12px;font-weight:500;color:var(--ink-mute);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;">Data do pagamento</label>
+        <input type="date" id="__chkData" value="${todayISO()}" style="width:100%;">
+
+        <label style="display:block;font-size:12px;font-weight:500;color:var(--ink-mute);letter-spacing:0.04em;text-transform:uppercase;margin-top:14px;margin-bottom:6px;">Conta utilizada</label>
+        <div class="chip-row" id="__chkContas">${chipsHtml}</div>
+
+        <div style="display:flex;gap:10px;margin-top:18px;">
+          <button class="btn btn-secondary" id="__chkCancel">Cancelar</button>
+          <button class="btn btn-primary" id="__chkOk">✓ Confirmar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelectorAll('#__chkContas .chip').forEach(c => {
+      c.onclick = () => {
+        selectedConta = c.dataset.conta;
+        overlay.querySelectorAll('#__chkContas .chip').forEach(x => {
+          x.classList.remove('selected');
+          x.style.background = ''; x.style.borderColor = ''; x.style.color = '';
+        });
+        const conta = getContaById(selectedConta);
+        c.classList.add('selected');
+        if (conta) {
+          c.style.background = conta.cor;
+          c.style.borderColor = conta.cor;
+          c.style.color = '#fff';
+        }
+      };
+    });
+
+    overlay.querySelector('#__chkOk').onclick = () => {
+      const dataPagto = overlay.querySelector('#__chkData').value;
+      if (!dataPagto) { toast('Informe a data', 'error'); return; }
+      if (!selectedConta) { toast('Selecione uma conta', 'error'); return; }
+      gasto.pago = true;
+      gasto.dataPagamento = dataPagto;
+      gasto.contaId = selectedConta;
+      saveState(state);
+      overlay.remove();
+      sheet.close();
+      if (activeView === 'tiago') renderTiagoView();
+      else if (activeView === 'familia') renderFamiliaContent();
+      if (activeView === 'contas') renderContas();
+      toast('Pagamento confirmado', 'success');
+      resolve(true);
+    };
+    overlay.querySelector('#__chkCancel').onclick = () => { overlay.remove(); resolve(false); };
+    overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
+  });
+}
+
+/* =========================================================================
    MÓDULO — CONTAS BANCÁRIAS, SALDOS, TRANSFERÊNCIAS, AJUSTES
    ========================================================================= */
 
@@ -6710,11 +6764,14 @@ function calcSaldoConta(contaId) {
     saldo += Number(e.valor) || 0;
   });
 
-  /* Saídas pagas direto desta conta (manual ou debito), excluindo cartão (que vai pra fatura) */
+  /* Saídas pagas direto desta conta (manual ou debito), excluindo cartão (que vai pra fatura).
+     Gastos com pago=false (pendentes) ainda não debitam o saldo bancário. */
   state.gastos.forEach(g => {
     if (g.contaId !== contaId) return;
     if (g.pagamento === 'cartao') return;
-    if (dataInicial && g.data < dataInicial) return;
+    if (g.pago === false) return;
+    const dataRef = g.dataPagamento || g.data;
+    if (dataInicial && dataRef < dataInicial) return;
     saldo -= Number(g.valor) || 0;
   });
 
@@ -7361,25 +7418,31 @@ function renderTiagoView() {
 
   const host = document.getElementById('tiagoContent');
 
+  /* Fatia 3: totais pago/previsto/pendentes do Tiago */
+  const totaisMesTiago = totaisCategoriaMes('tiago', tiagoCurrentYM);
+
   /* Filtra gastos do Tiago do mês — exclui ajustes (que afetam só saldo bancário) */
   const gastosTiago = state.gastos
     .filter(g => g.categoria === 'tiago' && g.ym === tiagoCurrentYM && !g.isAjuste)
     .filter(g => {
-      if (tiagoFilter === 'fixos') return g.isFixo === true;
+      if (tiagoFilter === 'fixos')     return g.isFixo === true;
       if (tiagoFilter === 'variaveis') return g.isFixo !== true;
+      if (tiagoFilter === 'pendentes') return g.pago === false;
+      if (tiagoFilter === 'pagos')     return g.pago !== false;
       return true;
     })
     .sort((a, b) => b.data.localeCompare(a.data));
 
-  /* Totais (consumo + investimento separados) */
-  const totalConsumo = gastosTiago.reduce((s, g) => s + (g.isInvest ? 0 : Number(g.valor) || 0), 0);
-  const totalInvest = gastosTiago.reduce((s, g) => s + (g.isInvest ? Number(g.valor) || 0 : 0), 0);
-
-  /* Comparativo mês anterior (apenas consumo) */
-  const ymAnt = ymPrev(tiagoCurrentYM);
-  const totalAnt = state.gastos
-    .filter(g => g.categoria === 'tiago' && g.ym === ymAnt && !g.isInvest && !g.isAjuste)
+  /* Totais — número grande = só PAGO (decisão Fatia 3) */
+  const totalConsumo = totaisMesTiago.pago;
+  const totalPrevisto = totaisMesTiago.previsto;
+  const totalInvest = state.gastos
+    .filter(g => g.categoria === 'tiago' && g.ym === tiagoCurrentYM && g.isInvest && !g.isAjuste)
     .reduce((s, g) => s + (Number(g.valor) || 0), 0);
+
+  /* Comparativo mês anterior (pago de consumo) */
+  const ymAnt = ymPrev(tiagoCurrentYM);
+  const totalAnt = totaisCategoriaMes('tiago', ymAnt).pago;
   const delta = totalAnt > 0 ? ((totalConsumo - totalAnt) / totalAnt) * 100 : (totalConsumo > 0 ? 100 : 0);
 
   const split = fmtBRLSplit(totalConsumo);
@@ -7430,6 +7493,7 @@ function renderTiagoView() {
         <div class="ch-value">
           <span class="currency">R$</span>${split.intl}<span class="cents">,${split.cents}</span>
         </div>
+        ${totalPrevisto > 0 ? `<div class="ch-previsto"><span class="ch-prev-prefix">a pagar</span><span class="ch-prev-val">+ ${fmtBRL(totalPrevisto)}</span></div>` : ''}
       </div>
       <div class="ch-meta">
         <span class="delta ${deltaCls}">${deltaTxt}</span>
@@ -7447,16 +7511,36 @@ function renderTiagoView() {
     </div>
   `;
 
-  /* Filtros */
+  /* Filtros — Fatia 3 adiciona ⏳ a pagar e ✓ pagos */
   const totalFixos = state.gastos.filter(g => g.categoria === 'tiago' && g.ym === tiagoCurrentYM && g.isFixo && !g.isAjuste).length;
   const totalVar = state.gastos.filter(g => g.categoria === 'tiago' && g.ym === tiagoCurrentYM && !g.isFixo && !g.isAjuste).length;
+  const totalPendT = totaisMesTiago.pendentes.length;
+  const totalPagosT = state.gastos.filter(g => g.categoria === 'tiago' && g.ym === tiagoCurrentYM && g.pago !== false && !g.isAjuste).length;
   const filtersHtml = `
     <div class="filter-row">
       <button class="filter ${tiagoFilter === 'todos' ? 'active' : ''}" data-f="todos">todos · ${totalFixos + totalVar}</button>
+      ${totalPendT > 0 ? `<button class="filter ${tiagoFilter === 'pendentes' ? 'active' : ''}" data-f="pendentes">⏳ a pagar · ${totalPendT}</button>` : ''}
+      <button class="filter ${tiagoFilter === 'pagos' ? 'active' : ''}" data-f="pagos">✓ pagos · ${totalPagosT}</button>
       <button class="filter ${tiagoFilter === 'fixos' ? 'active' : ''}" data-f="fixos">🔁 fixos · ${totalFixos}</button>
       <button class="filter ${tiagoFilter === 'variaveis' ? 'active' : ''}" data-f="variaveis">variáveis · ${totalVar}</button>
     </div>
   `;
+
+  /* Banner de pendências (só se houver) */
+  let bannerTiago = '';
+  if (totaisMesTiago.pendentes.length > 0) {
+    const n = totaisMesTiago.pendentes.length;
+    bannerTiago = `
+      <div class="pendencias-banner" id="pendBannerTiago">
+        <div class="pb-ico">⏳</div>
+        <div class="pb-body">
+          <div class="pb-title">${n} ${n === 1 ? 'conta a pagar' : 'contas a pagar'} este mês</div>
+          <div class="pb-sub">${fmtBRL(totaisMesTiago.previsto)} pendente${n === 1 ? '' : 's'} de confirmação</div>
+        </div>
+        <div class="pb-chev">›</div>
+      </div>
+    `;
+  }
 
   /* Body */
   let bodyHtml = '';
@@ -7508,7 +7592,13 @@ function renderTiagoView() {
     }).join('');
   }
 
-  host.innerHTML = isolatedBanner + monthNavHtml + quickLaunchHtml + heroHtml + filtersHtml + bodyHtml;
+  host.innerHTML = isolatedBanner + monthNavHtml + quickLaunchHtml + heroHtml + bannerTiago + filtersHtml + bodyHtml;
+
+  /* Banner Tiago: toque pra filtrar por pendentes */
+  const _pendBannerT = document.getElementById('pendBannerTiago');
+  if (_pendBannerT) {
+    _pendBannerT.onclick = () => { tiagoFilter = 'pendentes'; renderTiagoView(); };
+  }
 
   /* Hooks */
   document.getElementById('tgPrev').onclick = () => { tiagoCurrentYM = ymPrev(tiagoCurrentYM); renderTiagoView(); };
@@ -7714,55 +7804,40 @@ function setAuthStatus(msg) {
 /* Bootstrap quando Firebase carrega (módulo ESM, dispara evento) */
 async function initFirebaseAuth() {
   if (typeof window === 'undefined' || !window.addEventListener) return;
-  if (window.authDebug) window.authDebug.log('init: chamado');
   if (!window.FB) {
     /* Firebase ainda não carregou — espera */
-    if (window.authDebug) window.authDebug.log('init: window.FB ainda não existe — esperando firebase-ready');
     window.addEventListener('firebase-ready', initFirebaseAuth, { once: true });
     return;
   }
-  if (window.authDebug) window.authDebug.log('init: window.FB OK, prosseguindo');
 
   const FB = window.FB;
   const googleBtn = document.getElementById('authGoogleBtn');
-  if (window.authDebug) window.authDebug.log('init: googleBtn no DOM = ' + !!googleBtn);
 
   /* Processa resultado de redirect com timeout curto (crítico pra PWA iOS).
      Se o usuário acabou de voltar de signInWithRedirect, completa o login.
      Se não há redirect pendente, segue em frente sem travar. */
   setAuthStatus('verificando sessão…');
   try {
-    if (window.authDebug) window.authDebug.log('redirect: chamando getRedirectResult (timeout 2.5s)');
     const redirectPromise = FB.getRedirectResult(FB.auth);
-    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve('__TIMEOUT__'), 2500));
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 2500));
     const result = await Promise.race([redirectPromise, timeoutPromise]);
-    if (result === '__TIMEOUT__') {
-      if (window.authDebug) window.authDebug.log('redirect: TIMEOUT (sem resposta em 2.5s)');
-    } else if (result && result.user) {
-      if (window.authDebug) window.authDebug.log('redirect: SUCESSO', { email: result.user.email, uid: (result.user.uid || '').slice(0, 8) + '…' });
+    if (result && result.user) {
       setAuthStatus('login concluído, preparando app…');
-    } else {
-      if (window.authDebug) window.authDebug.log('redirect: resolvido sem user (sem redirect pendente)');
     }
   } catch (err) {
-    if (window.authDebug) window.authDebug.log('redirect: ERRO', { code: err && err.code, msg: err && err.message });
     if (err && err.code !== 'auth/no-auth-event') {
       console.error('Redirect error:', err);
       setAuthError('Erro ao processar login: ' + (err.message || err.code || ''));
     }
   }
   /* Listener de mudanças de auth */
-  if (window.authDebug) window.authDebug.log('listener: armando onAuthStateChanged');
   FB.onAuthStateChanged(FB.auth, async (user) => {
-    if (window.authDebug) window.authDebug.log('listener: disparou', user ? { email: user.email, uid: (user.uid || '').slice(0, 8) + '…' } : { user: null });
     if (user) {
       setAuthStatus('preparando seus dados…');
       setAuthError(null);
       StorageAdapter.setCloudMode(user.uid, user.email || null);
 
-      if (window.authDebug) window.authDebug.log('cloud: pullFromCloud iniciado');
       const cloudState = await StorageAdapter.pullFromCloud();
-      if (window.authDebug) window.authDebug.log('cloud: pullFromCloud retornou ' + (cloudState ? 'state existente' : 'null (primeira vez)'));
       if (cloudState) {
         localStorage.setItem(`financa.v1.user.${user.uid}`, JSON.stringify(cloudState));
       } else {
@@ -7771,7 +7846,6 @@ async function initFirebaseAuth() {
         StorageAdapter.save(fresh);
       }
 
-      if (window.authDebug) window.authDebug.log('app: bootApp chamado');
       bootApp();
 
       StorageAdapter.startRealtimeSync((remoteState) => {
@@ -7791,7 +7865,6 @@ async function initFirebaseAuth() {
       });
 
     } else {
-      if (window.authDebug) window.authDebug.log('listener: sem user → mostrando botão de login');
       StorageAdapter.setLocalMode();
       setAuthStatus('faça login para começar');
       setAuthError(null);
@@ -7812,17 +7885,12 @@ async function initFirebaseAuth() {
         const isStandalone = (window.navigator && window.navigator.standalone === true)
           || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
         const useRedirect = isStandalone;
-        if (window.authDebug) window.authDebug.log('click: usuário tocou Google', { standalone: isStandalone, modo: useRedirect ? 'redirect' : 'popup' });
         if (useRedirect) {
-          if (window.authDebug) window.authDebug.log('click: chamando signInWithRedirect (página vai navegar)');
           await FB.signInWithRedirect(FB.auth, provider);
         } else {
-          if (window.authDebug) window.authDebug.log('click: chamando signInWithPopup');
           await FB.signInWithPopup(FB.auth, provider);
-          if (window.authDebug) window.authDebug.log('click: signInWithPopup concluído');
         }
       } catch (err) {
-        if (window.authDebug) window.authDebug.log('click: ERRO', { code: err && err.code, msg: err && err.message });
         console.error('Login error:', err);
         setAuthStatus('faça login para começar');
         let msg = 'Erro ao fazer login. ';
