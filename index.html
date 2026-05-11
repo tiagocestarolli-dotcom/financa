@@ -2761,7 +2761,6 @@ label {
     <div class="auth-title">Finança</div>
     <div class="auth-subtitle">gestão financeira pessoal e familiar</div>
 
-```
 <div class="auth-status" id="authStatus">conectando…</div>
 
 <button class="auth-btn auth-btn-google" id="authGoogleBtn" style="display:none;">
@@ -2783,7 +2782,6 @@ label {
     <span class="tc-name">TC Development</span> <span class="tc-year">· 2026</span>
   </div>
 </div>
-```
 
   </div>
 </div>
@@ -2838,11 +2836,8 @@ label {
   <!-- CARTÕES -->
 
   <section class="view" data-view="cartoes">
-    <div class="placeholder-card">
-      <div class="pc-eyebrow">módulo 05</div>
-      <div class="pc-title">Cartões &amp; Importação PDF</div>
-      <div class="pc-desc">Cadastro de cartões e importação de faturas em PDF com PDF.js. Memorização de apelidos de estabelecimentos. Será implementado na Etapa 5.</div>
-    </div>
+    <div id="cartoesContent"></div>
+    <button class="fab" id="cartoesFab" aria-label="Novo cartão" style="display:none;">＋</button>
   </section>
 
   <!-- RELATÓRIOS -->
@@ -2867,7 +2862,6 @@ label {
     <div class="section-title">Pessoas &amp; cores</div>
     <div id="cfgMembers"></div>
 
-```
 <div class="section-title">Subcategorias</div>
 <button class="menu-item" data-cfg="subcats" data-cat="casa">
   <div class="mi-ico">🏠</div>
@@ -3053,9 +3047,8 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.6 · cadastro enriquecido de cartões
+  Finança · v0.7 · aba Cartões funcional
 </div>
-```
 
   </section>
 
@@ -3660,6 +3653,7 @@ function go(view) {
   if (view === 'entradas') renderEntradas();
   if (view === 'contas') renderContas();
   if (view === 'tiago') renderTiagoView();
+  if (view === 'cartoes') renderCartoes();
 
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
@@ -7867,6 +7861,239 @@ function renderTiagoView() {
       e.stopPropagation();
       openGastoForm(row.dataset.editGasto, 'tiago');
     };
+  });
+}
+
+/* =========================================================================
+   MÓDULO 5 — CARTÕES (lista, drill-down, lançamentos do mês por cartão)
+   Substituiu o placeholder antigo. Importação de PDF entra na Fatia 2.
+   ========================================================================= */
+
+let cartoesView = 'home';          /* 'home' | 'detail' */
+let cartoesDetailId = null;
+let cartoesCurrentYM = (() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+})();
+
+/* Soma dos gastos com este cardId no mês informado (calendar month).
+   Para uma versão futura, podemos respeitar o ciclo de faturamento real
+   (fechamento → vencimento), mas a aproximação por mês corrente já entrega
+   90% do valor de visualização. */
+function calcFaturaCartao(cardId, ym) {
+  return state.gastos
+    .filter(g => g.cardId === cardId && g.ym === ym && !g.isAjuste)
+    .reduce((s, g) => s + (Number(g.valor) || 0), 0);
+}
+
+function calcTotalFaturasMes(ym) {
+  return (state.cards || [])
+    .reduce((s, c) => s + calcFaturaCartao(c.id, ym), 0);
+}
+
+function renderCartoes() {
+  if (cartoesView === 'detail' && cartoesDetailId) {
+    return renderCartoesDetail(cartoesDetailId);
+  }
+  return renderCartoesHome();
+}
+
+function renderCartoesHome() {
+  const fab = document.getElementById('cartoesFab');
+  const host = document.getElementById('cartoesContent');
+  const cards = state.cards || [];
+
+  /* Estado vazio: empty state com CTA, FAB escondido (CTA é redundante) */
+  if (cards.length === 0) {
+    if (fab) fab.style.display = 'none';
+    host.innerHTML = `
+      <div class="empty-cta" style="margin-top:14px;">
+        <div class="ec-emoji">💳</div>
+        <div class="ec-title">Nenhum cartão cadastrado</div>
+        <div class="ec-desc">Cadastre seus cartões para ver gastos consolidados por fatura e importar PDFs na Etapa 5.</div>
+        <button class="btn btn-primary" id="emptyAddCartao" style="max-width:260px;margin:0 auto;">+ Cadastrar primeiro cartão</button>
+      </div>
+    `;
+    document.getElementById('emptyAddCartao').onclick = () => openCardForm(null);
+    return;
+  }
+
+  /* Com cartões: mostra FAB */
+  if (fab) {
+    fab.style.display = '';
+    fab.onclick = () => openCardForm(null);
+  }
+
+  const ym = cartoesCurrentYM;
+  const reveal = !!state.uiPrefs.revealCartoes;
+  const totalFaturas = calcTotalFaturasMes(ym);
+  const mesLabel = MESES_PT[Number(ym.split('-')[1]) - 1];
+
+  host.innerHTML = `
+    <div class="month-nav">
+      <button id="cartoesPrev" aria-label="Mês anterior">‹</button>
+      <div class="month-label">${ymLabel(ym)}</div>
+      <button id="cartoesNext" aria-label="Próximo mês">›</button>
+    </div>
+
+    <div class="contas-hero">
+      <div class="ch-label">lançamentos em ${mesLabel}</div>
+      <div class="ch-total" id="cartoesHeroTotal">
+        ${redactedHtml(totalFaturas, reveal)}
+      </div>
+      <div style="font-size:11px;color:var(--ink-faint);font-style:italic;margin-top:8px;font-family:var(--font-display);">${reveal ? 'tocar para ocultar' : 'tocar para mostrar'}</div>
+    </div>
+
+    <div class="contas-section-h">
+      <div class="csh-title">cartões (${cards.length})</div>
+    </div>
+    ${cards.map(c => {
+      const banco = getBancoEmissor(c.bancoEmissor);
+      const conta = c.contaPagamentoId ? getContaById(c.contaPagamentoId) : null;
+      const fatura = calcFaturaCartao(c.id, ym);
+      const subInfo = [
+        escapeHtml(banco.nome),
+        conta ? 'paga via ' + escapeHtml(conta.nome) : null,
+        c.debitoAutomatico ? 'débito auto' : null
+      ].filter(Boolean).join(' · ');
+      return `
+        <button class="conta-card" data-cartao="${c.id}" style="--conta-color:${c.cor};">
+          <div class="cc-ico" style="font-size:11px;font-weight:600;letter-spacing:0.04em;">${escapeHtml((c.bandeira || '').slice(0,2).toUpperCase())}</div>
+          <div class="cc-body">
+            <div class="cc-name">${escapeHtml(c.nome)}</div>
+            <div class="cc-saldo">${redactedHtml(fatura, reveal)}</div>
+            <div style="font-size:11px;color:var(--ink-mute);margin-top:4px;">${subInfo}</div>
+          </div>
+          <div class="cc-chev">›</div>
+        </button>
+      `;
+    }).join('')}
+  `;
+
+  document.getElementById('cartoesPrev').onclick = () => { cartoesCurrentYM = ymPrev(cartoesCurrentYM); renderCartoes(); };
+  document.getElementById('cartoesNext').onclick = () => { cartoesCurrentYM = ymNext(cartoesCurrentYM); renderCartoes(); };
+
+  document.getElementById('cartoesHeroTotal').onclick = () => {
+    state.uiPrefs.revealCartoes = !state.uiPrefs.revealCartoes;
+    saveState(state);
+    renderCartoes();
+  };
+
+  host.querySelectorAll('[data-cartao]').forEach(el => {
+    el.onclick = () => {
+      cartoesView = 'detail';
+      cartoesDetailId = el.dataset.cartao;
+      renderCartoes();
+    };
+  });
+}
+
+function renderCartoesDetail(cartaoId) {
+  const fab = document.getElementById('cartoesFab');
+  if (fab) fab.style.display = 'none';
+
+  const c = state.cards.find(x => x.id === cartaoId);
+  if (!c) {
+    cartoesView = 'home';
+    cartoesDetailId = null;
+    return renderCartoesHome();
+  }
+
+  const banco = getBancoEmissor(c.bancoEmissor);
+  const conta = c.contaPagamentoId ? getContaById(c.contaPagamentoId) : null;
+  const ym = cartoesCurrentYM;
+  const fatura = calcFaturaCartao(c.id, ym);
+  const reveal = !!state.uiPrefs.revealCartoes;
+  const mesLabel = MESES_PT[Number(ym.split('-')[1]) - 1];
+
+  /* Lançamentos do mês neste cartão — ordenados por data desc */
+  const lancs = state.gastos
+    .filter(g => g.cardId === c.id && g.ym === ym && !g.isAjuste)
+    .sort((a, b) => b.data.localeCompare(a.data));
+
+  const host = document.getElementById('cartoesContent');
+  host.innerHTML = `
+    <button class="btn btn-secondary" id="cartoesVoltar" style="width:auto;padding:8px 14px;font-size:13px;margin-bottom:12px;">‹ voltar</button>
+
+    <div class="month-nav">
+      <button id="cartoesPrev" aria-label="Mês anterior">‹</button>
+      <div class="month-label">${ymLabel(ym)}</div>
+      <button id="cartoesNext" aria-label="Próximo mês">›</button>
+    </div>
+
+    <div class="conta-hero-detail" style="--conta-color:${c.cor};">
+      <div class="chd-name">
+        <span style="display:inline-flex;width:38px;height:38px;border-radius:8px;background:${c.cor};color:#fff;align-items:center;justify-content:center;font-size:11px;font-weight:600;letter-spacing:0.04em;margin-right:10px;vertical-align:middle;">${escapeHtml((c.bandeira || '').slice(0,2).toUpperCase())}</span>
+        ${escapeHtml(c.nome)}
+      </div>
+      <div class="chd-saldo" id="chdSaldoCartao">${redactedHtml(fatura, reveal)}</div>
+      <div style="font-size:12px;color:var(--ink-mute);margin-top:4px;font-style:italic;font-family:var(--font-display);">lançamentos em ${mesLabel}${reveal ? '' : ' · tocar para ver'}</div>
+      <div style="font-size:12px;color:var(--ink-mute);margin-top:10px;font-family:var(--font-body);position:relative;z-index:1;">
+        ${escapeHtml(banco.nome)} · ${escapeHtml(c.bandeira)} · venc dia ${c.vencimento}${conta ? ' · paga via ' + escapeHtml(conta.nome) : ''}${c.debitoAutomatico ? ' · ⚡ débito automático' : ''}
+      </div>
+    </div>
+
+    <div class="contas-actions">
+      <button class="btn" id="btnImportarFatura" disabled style="opacity:0.55;cursor:not-allowed;">
+        <span class="ai">📄</span> Importar PDF (em breve)
+      </button>
+      <button class="btn" id="btnEditarCartao"><span class="ai">✎</span> Editar cartão</button>
+    </div>
+
+    <div class="contas-section-h">
+      <div class="csh-title">lançamentos em ${mesLabel} (${lancs.length})</div>
+      ${lancs.length > 0 ? `<div style="font-size:11.5px;color:var(--ink-faint);font-style:italic;font-family:var(--font-display);">total: ${reveal ? fmtBRL(fatura) : '••••'}</div>` : ''}
+    </div>
+    ${lancs.length === 0
+      ? '<div class="empty" style="padding:28px;"><div class="icon-big">📭</div>Nenhum lançamento neste cartão no mês<br><span style="font-size:12px;color:var(--ink-faint);">aparecerão aqui quando importar a fatura PDF ou lançar manualmente</span></div>'
+      : lancs.map(g => {
+          const member = state.members[g.categoria];
+          const [, mm, dd] = g.data.split('-');
+          const parcLabel = (g.parcela && g.parcela.total > 1) ? ` · ${g.parcela.atual}/${g.parcela.total}` : '';
+          return `
+            <div class="statement-row" data-edit-gasto="${g.id}" style="cursor:pointer;">
+              <div class="sr-ico" style="background:${member ? `color-mix(in srgb, ${member.cor} 14%, white)` : 'var(--bg-sunken)'};color:${member ? member.cor : 'var(--ink-mute)'};">${member ? member.icone : '?'}</div>
+              <div class="sr-body">
+                <div class="sr-title">${escapeHtml(g.nome || g.subcategoria)}</div>
+                <div class="sr-meta">${dd}/${mm} · ${escapeHtml(member ? member.nome : '?')} · ${escapeHtml(g.subcategoria)}${parcLabel}</div>
+              </div>
+              <div class="sr-value out">${reveal ? fmtBRL(g.valor) : '••••'}</div>
+            </div>
+          `;
+        }).join('')
+    }
+
+    <div class="contas-section-h">
+      <div class="csh-title">configuração do cartão</div>
+    </div>
+    <div class="card-flat" style="font-size:13px;line-height:1.75;">
+      <div><span class="muted">Banco emissor:</span> <strong>${escapeHtml(banco.nome)}</strong></div>
+      <div><span class="muted">Conta de pagamento:</span> <strong>${conta ? escapeHtml(conta.nome) : '<span style="color:var(--flow-out);">não definida</span>'}</strong></div>
+      <div><span class="muted">Vencimento:</span> <strong>dia ${c.vencimento}</strong> · <span class="muted">Fechamento:</span> <strong>dia ${c.fechamento}</strong></div>
+      <div><span class="muted">Débito automático:</span> <strong>${c.debitoAutomatico ? '✓ ativo' : '— manual'}</strong></div>
+      <div style="margin-top:6px;"><span class="muted">Finais conhecidos:</span> ${c.finaisConhecidos && c.finaisConhecidos.length > 0
+        ? c.finaisConhecidos.map(f => `<span class="tag" style="font-family:var(--font-mono);">•••• ${escapeHtml(f)}</span>`).join(' ')
+        : '<span class="muted" style="font-style:italic;">nenhum ainda — serão detectados ao importar a fatura PDF</span>'}</div>
+    </div>
+  `;
+
+  document.getElementById('cartoesVoltar').onclick = () => {
+    cartoesView = 'home';
+    cartoesDetailId = null;
+    renderCartoes();
+  };
+  document.getElementById('cartoesPrev').onclick = () => { cartoesCurrentYM = ymPrev(cartoesCurrentYM); renderCartoes(); };
+  document.getElementById('cartoesNext').onclick = () => { cartoesCurrentYM = ymNext(cartoesCurrentYM); renderCartoes(); };
+  document.getElementById('chdSaldoCartao').onclick = () => {
+    state.uiPrefs.revealCartoes = !state.uiPrefs.revealCartoes;
+    saveState(state);
+    renderCartoes();
+  };
+  document.getElementById('btnEditarCartao').onclick = () => openCardForm(c.id);
+
+  /* Tap em um lançamento abre seu form de edição */
+  host.querySelectorAll('[data-edit-gasto]').forEach(row => {
+    row.onclick = () => openGastoForm(row.dataset.editGasto, null);
   });
 }
 
