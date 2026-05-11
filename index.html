@@ -3683,6 +3683,43 @@ function askConfirm({ title, message, confirmLabel = 'Confirmar', cancelLabel = 
   });
 }
 
+/* askChoice: Promise<string|null> — apresenta 2+ opções e devolve o `value` escolhido,
+   ou null se o usuário cancelar. Cada option = { value, label, desc?, primary?, danger? } */
+function askChoice({ title, message, options }) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position:fixed; inset:0; background:rgba(20,18,14,0.5);
+      z-index:200; display:flex; align-items:center; justify-content:center;
+      padding:20px; animation:fadeIn .2s ease;
+    `;
+    const buttonsHtml = options.map((opt, i) => {
+      const baseCls = opt.danger ? 'btn btn-danger' : (opt.primary ? 'btn btn-primary' : 'btn btn-secondary');
+      return `
+        <button class="${baseCls}" data-choice-idx="${i}" style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:13px 16px;text-align:left;height:auto;width:100%;">
+          <span style="font-weight:600;font-size:14.5px;">${escapeHtml(opt.label)}</span>
+          ${opt.desc ? `<span style="font-size:12px;opacity:0.78;font-weight:400;line-height:1.35;">${escapeHtml(opt.desc)}</span>` : ''}
+        </button>
+      `;
+    }).join('');
+    overlay.innerHTML = `
+      <div style="background:var(--bg);border-radius:var(--r-lg);padding:22px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);">
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:500;margin-bottom:8px;letter-spacing:-0.01em;">${escapeHtml(title)}</div>
+        ${message ? `<div style="color:var(--ink-soft);font-size:14px;margin-bottom:16px;line-height:1.5;">${escapeHtml(message)}</div>` : '<div style="margin-bottom:12px;"></div>'}
+        <div style="display:flex;flex-direction:column;gap:8px;">${buttonsHtml}</div>
+        <button class="btn btn-ghost" id="__choiceCancel" style="margin-top:10px;font-size:13px;width:100%;">Cancelar</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    options.forEach((opt, i) => {
+      const btn = overlay.querySelector(`[data-choice-idx="${i}"]`);
+      if (btn) btn.onclick = () => { overlay.remove(); resolve(opt.value); };
+    });
+    overlay.querySelector('#__choiceCancel').onclick = () => { overlay.remove(); resolve(null); };
+    overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(null); } };
+  });
+}
+
 /* ====== Roteamento (bottom nav) ====== */
 const VIEW_LABELS = {
   entradas:   { eyebrow: 'módulo · 02', title: 'Entradas' },
@@ -5498,7 +5535,9 @@ function processarGastosFixosDoMes(ym) {
       isFixo: true,
       parentFixoId: f.id,
       isInvest: isInvest(f.categoria, f.subcategoria),
-      observacao: f.observacao || ''
+      observacao: f.observacao || '',
+      pago: true,
+      dataPagamento: data
     });
     added++;
   });
@@ -6292,7 +6331,7 @@ function openGastoForm(id, defaultCategoria, opts) {
   }
 
   /* ===== Salvar ===== */
-  document.getElementById('g_save').onclick = () => {
+  document.getElementById('g_save').onclick = async () => {
     const valor = parseValor(document.getElementById('g_valor').value);
     const data = document.getElementById('g_data').value;
     const nomeRaw = document.getElementById('g_nome').value.trim();
@@ -6317,8 +6356,25 @@ function openGastoForm(id, defaultCategoria, opts) {
     const contaIdFinal = (state_pagamento === 'cartao') ? null : state_contaId;
 
     if (editing) {
-      /* Editar lançamento existente — não recria a recorrência fixa,
-         apenas altera este mês. Ajustes na recorrência são feitos no Config. */
+      /* Editar lançamento existente. Se for um CLONE de fixo replicado e o usuário
+         mudou o VALOR, pergunta antes de salvar: só este mês, ou novo padrão? */
+      const valorAntigo = Number(editing.valor) || 0;
+      const valorMudou = Math.abs(valorAntigo - valor) > 0.005;
+      let aplicarNovoPadrao = false;
+      if (editing.parentFixoId && valorMudou) {
+        const parent = state.fixedExpenses.find(f => f.id === editing.parentFixoId);
+        const nomeRef = parent ? (parent.nome || parent.subcategoria) : (editing.nome || editing.subcategoria);
+        const escolha = await askChoice({
+          title: 'Mudou o valor de um fixo',
+          message: `"${nomeRef}" passa de ${fmtBRL(valorAntigo)} para ${fmtBRL(valor)}. Como aplicar?`,
+          options: [
+            { value: 'mes',    label: 'Só este mês',  desc: 'A recorrência mensal continua com o valor antigo.' },
+            { value: 'padrao', label: 'Novo padrão',  desc: 'Este mês e todos os meses futuros.', primary: true }
+          ]
+        });
+        if (!escolha) return;
+        aplicarNovoPadrao = (escolha === 'padrao');
+      }
       Object.assign(editing, {
         categoria: state_categoria,
         subcategoria: state_subcategoria,
@@ -6333,6 +6389,21 @@ function openGastoForm(id, defaultCategoria, opts) {
         observacao: obs,
         isInvest: investFlag
       });
+      if (aplicarNovoPadrao) {
+        /* Atualiza a recorrência mensal */
+        const parent = state.fixedExpenses.find(f => f.id === editing.parentFixoId);
+        if (parent) parent.valor = valor;
+        /* Atualiza também clones já replicados em meses FUTUROS que ainda estavam
+           com o valor antigo (preserva edições manuais que já tinham valor diferente). */
+        state.gastos.forEach(g => {
+          if (g.parentFixoId === editing.parentFixoId
+              && g.id !== editing.id
+              && g.ym > editing.ym
+              && Math.abs((Number(g.valor) || 0) - valorAntigo) < 0.005) {
+            g.valor = valor;
+          }
+        });
+      }
       saveState(state);
       sheet.close();
     } else {
@@ -6379,7 +6450,9 @@ function openGastoForm(id, defaultCategoria, opts) {
           isFixo: true,
           parentFixoId: fixo.id,
           isInvest: investFlag,
-          observacao: obs
+          observacao: obs,
+          pago: true,
+          dataPagamento: data
         });
       } else {
         /* Lançamento avulso */
@@ -6395,9 +6468,11 @@ function openGastoForm(id, defaultCategoria, opts) {
           cardId: state_pagamento === 'cartao' ? state_cardId : null,
           contaId: contaIdFinal,
           pagamento: state_pagamento,
-          isFixo: false,
+isFixo: false,
           isInvest: investFlag,
-          observacao: obs
+          observacao: obs,
+          pago: true,
+          dataPagamento: data
         });
       }
       saveState(state);
@@ -7113,7 +7188,9 @@ function openAjusteSaldoForm(contaId) {
       isFixo: false,
       isInvest: false,
       isAjuste: true,
-      observacao: obs
+      observacao: obs,
+      pago: true,
+      dataPagamento: data
     });
     saveState(state);
     sheet.close();
