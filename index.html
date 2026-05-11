@@ -4387,6 +4387,36 @@ function openUniversaisSheet() {
 /* ===== Cartões ===== */
 const BANDEIRAS = ['Visa','Mastercard','Elo','American Express','Hipercard','Outro'];
 
+
+
+
+/* Bancos emissores conhecidos — usados pra auto-detectar parser de fatura
+   na Etapa 5 e pra default da conta de pagamento. 'outro' é o fallback. */
+const BANCOS_EMISSORES = [
+  { id: 'itau',   nome: 'Itaú',   cor: '#EC7000' },
+  { id: 'sicoob', nome: 'Sicoob', cor: '#003641' },
+  { id: 'btg',    nome: 'BTG',    cor: '#101820' },
+  { id: 'outro',  nome: 'Outro',  cor: '#666666' }
+];
+function getBancoEmissor(id) {
+  return BANCOS_EMISSORES.find(b => b.id === id) || BANCOS_EMISSORES[BANCOS_EMISSORES.length - 1];
+}
+
+
+
+
+/* Bancos emissores conhecidos — usados pra auto-detectar parser de fatura
+   na Etapa 5 e pra default da conta de pagamento. 'outro' é o fallback. */
+const BANCOS_EMISSORES = [
+  { id: 'itau',   nome: 'Itaú',   cor: '#EC7000' },
+  { id: 'sicoob', nome: 'Sicoob', cor: '#003641' },
+  { id: 'btg',    nome: 'BTG',    cor: '#101820' },
+  { id: 'outro',  nome: 'Outro',  cor: '#666666' }
+];
+function getBancoEmissor(id) {
+  return BANCOS_EMISSORES.find(b => b.id === id) || BANCOS_EMISSORES[BANCOS_EMISSORES.length - 1];
+}
+
 function openCardsSheet() {
   function render() {
     const html = `
