@@ -1,10 +1,12 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
 <!-- ========== PWA ========== -->
+
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Finança">
@@ -15,12 +17,15 @@
 <meta name="description" content="Gestão financeira pessoal e familiar — Finança">
 
 <!-- Ícone SVG inline (usado como favicon e fallback Android) -->
+
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23FAFAF5'/><circle cx='256' cy='256' r='180' fill='none' stroke='%234A6741' stroke-width='12'/><text x='256' y='320' text-anchor='middle' font-family='Georgia,serif' font-style='italic' font-size='220' font-weight='400' fill='%2314120E'>ƒ</text></svg>">
 
 <!-- Apple Touch Icon (iOS Safari, tela inicial) — usa SVG embarcado renderizado -->
+
 <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23FAFAF5'/><circle cx='256' cy='256' r='180' fill='none' stroke='%234A6741' stroke-width='12'/><text x='256' y='320' text-anchor='middle' font-family='Georgia,serif' font-style='italic' font-size='220' font-weight='400' fill='%2314120E'>ƒ</text></svg>">
 
 <!-- Web App Manifest inline (não depende de arquivo externo) -->
+
 <link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Finança · Gestão Familiar","short_name":"Finança","description":"Gestão financeira pessoal e familiar","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23FAFAF5","theme_color":"%23FAFAF5","lang":"pt-BR","categories":["finance","productivity"],"icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27><rect width=%27512%27 height=%27512%27 rx=%27112%27 fill=%27%23FAFAF5%27/><circle cx=%27256%27 cy=%27256%27 r=%27180%27 fill=%27none%27 stroke=%27%234A6741%27 stroke-width=%2712%27/><text x=%27256%27 y=%27320%27 text-anchor=%27middle%27 font-family=%27Georgia,serif%27 font-style=%27italic%27 font-size=%27220%27 font-weight=%27400%27 fill=%27%2314120E%27>ƒ</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any"}]}'>
 
 <title>Finança · Gestão Familiar</title>
@@ -30,10 +35,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
 <!-- Bibliotecas via CDN (carregadas para módulos futuros) -->
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
 
 <!-- ========== Firebase v10 (modular) — Auth + Firestore ========== -->
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
@@ -2741,43 +2749,49 @@ label {
 }
 
 </style>
+
 </head>
 <body>
 
 <!-- ====================== TELA DE LOGIN ====================== -->
+
 <div class="auth-screen" id="authScreen">
   <div class="auth-card">
     <div class="auth-logo">ƒ</div>
     <div class="auth-title">Finança</div>
     <div class="auth-subtitle">gestão financeira pessoal e familiar</div>
 
-    <div class="auth-status" id="authStatus">conectando…</div>
+```
+<div class="auth-status" id="authStatus">conectando…</div>
 
-    <button class="auth-btn auth-btn-google" id="authGoogleBtn" style="display:none;">
-      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-        <path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/>
-        <path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/>
-        <path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z"/>
-        <path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7C13.42 14.62 18.27 10.75 24 10.75z"/>
-      </svg>
-      <span>Continuar com Google</span>
-    </button>
+<button class="auth-btn auth-btn-google" id="authGoogleBtn" style="display:none;">
+  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+    <path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/>
+    <path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/>
+    <path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z"/>
+    <path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7C13.42 14.62 18.27 10.75 24 10.75z"/>
+  </svg>
+  <span>Continuar com Google</span>
+</button>
 
-    <div class="auth-help" id="authError" style="display:none;"></div>
+<div class="auth-help" id="authError" style="display:none;"></div>
 
-    <div class="auth-footer">
-      Dados privados, criptografados e armazenados em Google Firebase
-      <div class="auth-footer-divider"></div>
-      <div class="auth-footer-signature">
-        <span class="tc-name">TC Development</span> <span class="tc-year">· 2026</span>
-      </div>
-    </div>
+<div class="auth-footer">
+  Dados privados, criptografados e armazenados em Google Firebase
+  <div class="auth-footer-divider"></div>
+  <div class="auth-footer-signature">
+    <span class="tc-name">TC Development</span> <span class="tc-year">· 2026</span>
+  </div>
+</div>
+```
+
   </div>
 </div>
 
 <div class="app" id="app" style="display:none;">
 
   <!-- ====================== HEADER ====================== -->
+
   <header class="app-header">
     <div>
       <div class="eyebrow" id="hEyebrow">início</div>
@@ -2794,6 +2808,7 @@ label {
   <!-- ====================== VIEWS ====================== -->
 
   <!-- ENTRADAS -->
+
   <section class="view" data-view="entradas">
     <div class="month-nav">
       <button id="entrPrev" aria-label="Mês anterior">‹</button>
@@ -2805,6 +2820,7 @@ label {
   </section>
 
   <!-- FAMÍLIA -->
+
   <section class="view" data-view="familia">
     <div id="familiaTotalConsolidado"></div>
     <div class="subtabs" id="familiaSubtabs"></div>
@@ -2813,12 +2829,14 @@ label {
   </section>
 
   <!-- TIAGO — gastos isolados, nunca somam família -->
+
   <section class="view" data-view="tiago">
     <div id="tiagoContent"></div>
     <button class="fab" id="tiagoFab" aria-label="Novo gasto">＋</button>
   </section>
 
   <!-- CARTÕES -->
+
   <section class="view" data-view="cartoes">
     <div class="placeholder-card">
       <div class="pc-eyebrow">módulo 05</div>
@@ -2828,6 +2846,7 @@ label {
   </section>
 
   <!-- RELATÓRIOS -->
+
   <section class="view" data-view="relatorios">
     <div class="placeholder-card">
       <div class="pc-eyebrow">módulo 06</div>
@@ -2837,205 +2856,211 @@ label {
   </section>
 
   <!-- CONTAS — saldos bancários -->
+
   <section class="view" data-view="contas">
     <div id="contasContent"></div>
   </section>
 
   <!-- CONFIGURAÇÕES (Etapa 1 - completa) -->
+
   <section class="view" data-view="config">
     <div class="section-title">Pessoas &amp; cores</div>
     <div id="cfgMembers"></div>
 
-    <div class="section-title">Subcategorias</div>
-    <button class="menu-item" data-cfg="subcats" data-cat="casa">
-      <div class="mi-ico">🏠</div>
-      <div class="mi-body">
-        <div class="mi-title">Casa</div>
-        <div class="mi-sub" id="subcCountCasa">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="subcats" data-cat="marina">
-      <div class="mi-ico">👧</div>
-      <div class="mi-body">
-        <div class="mi-title">Marina</div>
-        <div class="mi-sub" id="subcCountMarina">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="subcats" data-cat="heitor">
-      <div class="mi-ico">👦</div>
-      <div class="mi-body">
-        <div class="mi-title">Heitor</div>
-        <div class="mi-sub" id="subcCountHeitor">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="subcats" data-cat="juliana">
-      <div class="mi-ico">👩</div>
-      <div class="mi-body">
-        <div class="mi-title">Juliana</div>
-        <div class="mi-sub" id="subcCountJuliana">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="subcats" data-cat="tiago">
-      <div class="mi-ico">👤</div>
-      <div class="mi-body">
-        <div class="mi-title">Tiago</div>
-        <div class="mi-sub" id="subcCountTiago">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
+```
+<div class="section-title">Subcategorias</div>
+<button class="menu-item" data-cfg="subcats" data-cat="casa">
+  <div class="mi-ico">🏠</div>
+  <div class="mi-body">
+    <div class="mi-title">Casa</div>
+    <div class="mi-sub" id="subcCountCasa">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="subcats" data-cat="marina">
+  <div class="mi-ico">👧</div>
+  <div class="mi-body">
+    <div class="mi-title">Marina</div>
+    <div class="mi-sub" id="subcCountMarina">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="subcats" data-cat="heitor">
+  <div class="mi-ico">👦</div>
+  <div class="mi-body">
+    <div class="mi-title">Heitor</div>
+    <div class="mi-sub" id="subcCountHeitor">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="subcats" data-cat="juliana">
+  <div class="mi-ico">👩</div>
+  <div class="mi-body">
+    <div class="mi-title">Juliana</div>
+    <div class="mi-sub" id="subcCountJuliana">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="subcats" data-cat="tiago">
+  <div class="mi-ico">👤</div>
+  <div class="mi-body">
+    <div class="mi-title">Tiago</div>
+    <div class="mi-sub" id="subcCountTiago">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 
-    <div class="section-title">Grupos (cross-cutting)</div>
-    <button class="menu-item" data-cfg="grupos" data-cat="casa">
-      <div class="mi-ico">🏠</div>
-      <div class="mi-body">
-        <div class="mi-title">Grupos · Casa</div>
-        <div class="mi-sub" id="grupoCountCasa">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="grupos" data-cat="marina">
-      <div class="mi-ico">👧🏻</div>
-      <div class="mi-body">
-        <div class="mi-title">Grupos · Marina</div>
-        <div class="mi-sub" id="grupoCountMarina">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="grupos" data-cat="heitor">
-      <div class="mi-ico">👦🏻</div>
-      <div class="mi-body">
-        <div class="mi-title">Grupos · Heitor</div>
-        <div class="mi-sub" id="grupoCountHeitor">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="grupos" data-cat="juliana">
-      <div class="mi-ico">👩🏻</div>
-      <div class="mi-body">
-        <div class="mi-title">Grupos · Juliana</div>
-        <div class="mi-sub" id="grupoCountJuliana">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="grupos" data-cat="tiago">
-      <div class="mi-ico">👤</div>
-      <div class="mi-body">
-        <div class="mi-title">Grupos · Tiago</div>
-        <div class="mi-sub" id="grupoCountTiago">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
+<div class="section-title">Grupos (cross-cutting)</div>
+<button class="menu-item" data-cfg="grupos" data-cat="casa">
+  <div class="mi-ico">🏠</div>
+  <div class="mi-body">
+    <div class="mi-title">Grupos · Casa</div>
+    <div class="mi-sub" id="grupoCountCasa">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="grupos" data-cat="marina">
+  <div class="mi-ico">👧🏻</div>
+  <div class="mi-body">
+    <div class="mi-title">Grupos · Marina</div>
+    <div class="mi-sub" id="grupoCountMarina">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="grupos" data-cat="heitor">
+  <div class="mi-ico">👦🏻</div>
+  <div class="mi-body">
+    <div class="mi-title">Grupos · Heitor</div>
+    <div class="mi-sub" id="grupoCountHeitor">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="grupos" data-cat="juliana">
+  <div class="mi-ico">👩🏻</div>
+  <div class="mi-body">
+    <div class="mi-title">Grupos · Juliana</div>
+    <div class="mi-sub" id="grupoCountJuliana">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="grupos" data-cat="tiago">
+  <div class="mi-ico">👤</div>
+  <div class="mi-body">
+    <div class="mi-title">Grupos · Tiago</div>
+    <div class="mi-sub" id="grupoCountTiago">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 
-    <div class="section-title">Cartões de crédito</div>
-    <button class="menu-item" data-cfg="cards">
-      <div class="mi-ico">💳</div>
-      <div class="mi-body">
-        <div class="mi-title">Gerenciar cartões</div>
-        <div class="mi-sub" id="cardsCount">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
+<div class="section-title">Cartões de crédito</div>
+<button class="menu-item" data-cfg="cards">
+  <div class="mi-ico">💳</div>
+  <div class="mi-body">
+    <div class="mi-title">Gerenciar cartões</div>
+    <div class="mi-sub" id="cardsCount">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 
-    <div class="section-title">Fontes de renda</div>
-    <button class="menu-item" data-cfg="fontes">
-      <div class="mi-ico">💵</div>
-      <div class="mi-body">
-        <div class="mi-title">Gerenciar fontes</div>
-        <div class="mi-sub" id="fontesCount">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
+<div class="section-title">Fontes de renda</div>
+<button class="menu-item" data-cfg="fontes">
+  <div class="mi-ico">💵</div>
+  <div class="mi-body">
+    <div class="mi-title">Gerenciar fontes</div>
+    <div class="mi-sub" id="fontesCount">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 
-    <div class="section-title">Investimentos</div>
-    <button class="menu-item" data-cfg="invest">
-      <div class="mi-ico">📈</div>
-      <div class="mi-body">
-        <div class="mi-title">Modalidades de investimento</div>
-        <div class="mi-sub" id="investCount">—</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
+<div class="section-title">Investimentos</div>
+<button class="menu-item" data-cfg="invest">
+  <div class="mi-ico">📈</div>
+  <div class="mi-body">
+    <div class="mi-title">Modalidades de investimento</div>
+    <div class="mi-sub" id="investCount">—</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 
-    <div class="section-title">Outros</div>
-    <button class="menu-item" data-cfg="aliases">
-      <div class="mi-ico">🏷️</div>
-      <div class="mi-body">
-        <div class="mi-title">Apelidos memorizados</div>
-        <div class="mi-sub" id="aliasesCount">Renomeações de estabelecimentos</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="fixed">
-      <div class="mi-ico">🔁</div>
-      <div class="mi-body">
-        <div class="mi-title">Gastos fixos mensais</div>
-        <div class="mi-sub" id="fixedCount">Central — gerenciar (cadastro vai dentro da categoria)</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="reminders">
-      <div class="mi-ico">⏰</div>
-      <div class="mi-body">
-        <div class="mi-title">Lembretes</div>
-        <div class="mi-sub">Dia e hora para contas manuais</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
+<div class="section-title">Outros</div>
+<button class="menu-item" data-cfg="aliases">
+  <div class="mi-ico">🏷️</div>
+  <div class="mi-body">
+    <div class="mi-title">Apelidos memorizados</div>
+    <div class="mi-sub" id="aliasesCount">Renomeações de estabelecimentos</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="fixed">
+  <div class="mi-ico">🔁</div>
+  <div class="mi-body">
+    <div class="mi-title">Gastos fixos mensais</div>
+    <div class="mi-sub" id="fixedCount">Central — gerenciar (cadastro vai dentro da categoria)</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="reminders">
+  <div class="mi-ico">⏰</div>
+  <div class="mi-body">
+    <div class="mi-title">Lembretes</div>
+    <div class="mi-sub">Dia e hora para contas manuais</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 
-    <div class="section-title">Backup &amp; dados</div>
-    <button class="menu-item" data-cfg="export">
-      <div class="mi-ico">⬇</div>
-      <div class="mi-body">
-        <div class="mi-title">Exportar JSON</div>
-        <div class="mi-sub">Backup completo de todos os dados</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="import">
-      <div class="mi-ico">⬆</div>
-      <div class="mi-body">
-        <div class="mi-title">Importar JSON</div>
-        <div class="mi-sub">Restaurar a partir de um backup</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
-    <button class="menu-item" data-cfg="reset">
-      <div class="mi-ico">⚠️</div>
-      <div class="mi-body">
-        <div class="mi-title" style="color:var(--flow-out);">Apagar todos os dados</div>
-        <div class="mi-sub">Restaurar para a configuração inicial</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
+<div class="section-title">Backup &amp; dados</div>
+<button class="menu-item" data-cfg="export">
+  <div class="mi-ico">⬇</div>
+  <div class="mi-body">
+    <div class="mi-title">Exportar JSON</div>
+    <div class="mi-sub">Backup completo de todos os dados</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="import">
+  <div class="mi-ico">⬆</div>
+  <div class="mi-body">
+    <div class="mi-title">Importar JSON</div>
+    <div class="mi-sub">Restaurar a partir de um backup</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+<button class="menu-item" data-cfg="reset">
+  <div class="mi-ico">⚠️</div>
+  <div class="mi-body">
+    <div class="mi-title" style="color:var(--flow-out);">Apagar todos os dados</div>
+    <div class="mi-sub">Restaurar para a configuração inicial</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 
-    <div class="section-title">Conta</div>
-    <div class="menu-item" id="accountInfo" style="cursor:default;">
-      <div class="mi-ico">👤</div>
-      <div class="mi-body">
-        <div class="mi-title" id="accountEmail">—</div>
-        <div class="mi-sub" id="accountSync">—</div>
-      </div>
-    </div>
-    <button class="menu-item" data-cfg="logout">
-      <div class="mi-ico">⎋</div>
-      <div class="mi-body">
-        <div class="mi-title">Sair</div>
-        <div class="mi-sub">Encerrar sessão neste dispositivo</div>
-      </div>
-      <div class="mi-chev">›</div>
-    </button>
+<div class="section-title">Conta</div>
+<div class="menu-item" id="accountInfo" style="cursor:default;">
+  <div class="mi-ico">👤</div>
+  <div class="mi-body">
+    <div class="mi-title" id="accountEmail">—</div>
+    <div class="mi-sub" id="accountSync">—</div>
+  </div>
+</div>
+<button class="menu-item" data-cfg="logout">
+  <div class="mi-ico">⎋</div>
+  <div class="mi-body">
+    <div class="mi-title">Sair</div>
+    <div class="mi-sub">Encerrar sessão neste dispositivo</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 
-    <div style="height: 28px;"></div>
-    <div class="center muted" style="font-size:12px;">
-      Finança · v0.5 · gastos fixos com check-in
-    </div>
+<div style="height: 28px;"></div>
+<div class="center muted" style="font-size:12px;">
+  Finança · v0.6 · cadastro enriquecido de cartões
+</div>
+```
+
   </section>
 
   <!-- ====================== BOTTOM NAV ====================== -->
+
   <nav class="bottom-nav" id="bottomNav" style="display:none;">
     <button class="nav-item" data-go="entradas">
       <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg></span>
@@ -3070,6 +3095,7 @@ label {
 </div>
 
 <!-- Sheet (modal bottom) -->
+
 <div class="sheet-backdrop" id="sheetBackdrop"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true">
   <div class="sheet-handle"></div>
@@ -3082,8 +3108,8 @@ label {
 </div>
 
 <!-- Toast host -->
-<div class="toast-host" id="toastHost"></div>
 
+<div class="toast-host" id="toastHost"></div>
 
 <script>
 /* =========================================================================
@@ -3399,6 +3425,22 @@ const StorageAdapter = {
           g.pago = true;
           g.dataPagamento = g.dataPagamento || g.data || null;
         }
+      });
+    }
+    /* Migração v0.6: cartões enriquecidos com banco emissor, conta de pagamento
+       configurada, lista de finais conhecidos (preenchida pelo parser de fatura na
+       Etapa 5) e flag de débito automático. Como Tiago pediu pra começar do zero,
+       faz wipe único protegido por flag (não wipe em reloads ou backups posteriores). */
+    if (!merged._v6CardsWipe) {
+      merged.cards = [];
+      merged._v6CardsWipe = true;
+    }
+    if (Array.isArray(merged.cards)) {
+      merged.cards.forEach(c => {
+        if (typeof c.bancoEmissor === 'undefined') c.bancoEmissor = 'outro';
+        if (typeof c.contaPagamentoId === 'undefined') c.contaPagamentoId = null;
+        if (!Array.isArray(c.finaisConhecidos)) c.finaisConhecidos = [];
+        if (typeof c.debitoAutomatico === 'undefined') c.debitoAutomatico = false;
       });
     }
     /* Migrações de ícone */
@@ -4391,49 +4433,46 @@ const BANDEIRAS = ['Visa','Mastercard','Elo','American Express','Hipercard','Out
 
 
 /* Bancos emissores conhecidos — usados pra auto-detectar parser de fatura
-   na Etapa 5 e pra default da conta de pagamento. 'outro' é o fallback. */
+   na Etapa 5 e pra default da conta de pagamento. 'outro' é o fallback. */
 const BANCOS_EMISSORES = [
-  { id: 'itau',   nome: 'Itaú',   cor: '#EC7000' },
-  { id: 'sicoob', nome: 'Sicoob', cor: '#003641' },
-  { id: 'btg',    nome: 'BTG',    cor: '#101820' },
-  { id: 'outro',  nome: 'Outro',  cor: '#666666' }
+  { id: 'itau',   nome: 'Itaú',   cor: '#EC7000' },
+  { id: 'sicoob', nome: 'Sicoob', cor: '#003641' },
+  { id: 'btg',    nome: 'BTG',    cor: '#101820' },
+  { id: 'outro',  nome: 'Outro',  cor: '#666666' }
 ];
 function getBancoEmissor(id) {
-  return BANCOS_EMISSORES.find(b => b.id === id) || BANCOS_EMISSORES[BANCOS_EMISSORES.length - 1];
-}
-
-
-
-
-/* Bancos emissores conhecidos — usados pra auto-detectar parser de fatura
-   na Etapa 5 e pra default da conta de pagamento. 'outro' é o fallback. */
-const BANCOS_EMISSORES = [
-  { id: 'itau',   nome: 'Itaú',   cor: '#EC7000' },
-  { id: 'sicoob', nome: 'Sicoob', cor: '#003641' },
-  { id: 'btg',    nome: 'BTG',    cor: '#101820' },
-  { id: 'outro',  nome: 'Outro',  cor: '#666666' }
-];
-function getBancoEmissor(id) {
-  return BANCOS_EMISSORES.find(b => b.id === id) || BANCOS_EMISSORES[BANCOS_EMISSORES.length - 1];
+  return BANCOS_EMISSORES.find(b => b.id === id) || BANCOS_EMISSORES[BANCOS_EMISSORES.length - 1];
 }
 
 function openCardsSheet() {
   function render() {
     const html = `
-      <ul class="list">
-        ${state.cards.length === 0 ? '<div class="empty"><div class="icon-big">💳</div>Nenhum cartão cadastrado</div>' : state.cards.map(c => `
-          <li class="list-row">
-            <div class="lr-leading" style="background:${c.cor};color:#fff;font-weight:600;font-size:11px;">${escapeHtml(c.bandeira.slice(0,2).toUpperCase())}</div>
-            <div class="lr-body">
-              <div class="lr-title">${escapeHtml(c.nome)}</div>
-              <div class="lr-sub">${escapeHtml(c.bandeira)} · venc dia ${c.vencimento} · fecha dia ${c.fechamento}</div>
-            </div>
-            <div class="lr-actions">
-              <button class="tiny-btn" data-edit-card="${c.id}">Editar</button>
-              <button class="tiny-btn danger" data-rm-card="${c.id}">×</button>
-            </div>
-          </li>
-        `).join('')}
+      <div class="card-flat">
+        <strong>Cartões de crédito</strong>
+        <div class="muted" style="font-size:13px;margin-top:4px;line-height:1.5;">
+          Cadastre cada cartão físico apenas uma vez. Cartões virtuais (gerados pelo app do banco) compartilham o mesmo cartão pai — os finais são detectados automaticamente ao importar a fatura PDF.
+        </div>
+      </div>
+      <ul class="list" style="margin-top:6px;">
+        ${state.cards.length === 0 ? '<div class="empty" style="padding:24px;"><div class="icon-big">💳</div>Nenhum cartão cadastrado</div>' : state.cards.map(c => {
+          const banco = getBancoEmissor(c.bancoEmissor);
+          const conta = c.contaPagamentoId ? getContaById(c.contaPagamentoId) : null;
+          return `
+            <li class="list-row" style="border-left:6px solid ${c.cor};">
+              <div class="lr-leading" style="background:${c.cor};color:#fff;font-weight:600;font-size:10px;letter-spacing:0.04em;">${escapeHtml(c.bandeira.slice(0,2).toUpperCase())}</div>
+              <div class="lr-body">
+                <div class="lr-title">${escapeHtml(c.nome)}</div>
+                <div class="lr-sub">
+                  ${escapeHtml(banco.nome)} · ${escapeHtml(c.bandeira)} · venc dia ${c.vencimento}${conta ? ' · paga via ' + escapeHtml(conta.nome) : ''}${c.debitoAutomatico ? ' · débito automático' : ''}
+                </div>
+              </div>
+              <div class="lr-actions">
+                <button class="tiny-btn" data-edit-card="${c.id}">Editar</button>
+                <button class="tiny-btn danger" data-rm-card="${c.id}">×</button>
+              </div>
+            </li>
+          `;
+        }).join('')}
       </ul>
       <button class="add-btn" id="addCard">+ adicionar cartão</button>
     `;
@@ -4443,13 +4482,18 @@ function openCardsSheet() {
     document.querySelectorAll('[data-rm-card]').forEach(b => b.onclick = async () => {
       const id = b.dataset.rmCard;
       const c = state.cards.find(x => x.id === id);
+      const usos = state.gastos.filter(g => g.cardId === id).length;
+      const msg = usos > 0
+        ? `"${c.nome}" será removido. ${usos} ${usos === 1 ? 'lançamento atrelado a ele fica' : 'lançamentos atrelados a ele ficam'} sem cartão associado (valores preservados).`
+        : `"${c.nome}" será removido.`;
       const ok = await askConfirm({
         title: 'Remover cartão?',
-        message: `"${c.nome}" será removido. Lançamentos importados não são apagados.`,
+        message: msg,
         confirmLabel: 'Remover',
         danger: true
       });
       if (!ok) return;
+      state.gastos.forEach(g => { if (g.cardId === id) g.cardId = null; });
       state.cards = state.cards.filter(x => x.id !== id);
       saveState(state); render(); renderConfigCounts(); toast('Removido');
     });
@@ -4459,24 +4503,59 @@ function openCardsSheet() {
 
 function openCardForm(id) {
   const editing = id ? state.cards.find(c => c.id === id) : null;
-  const c = editing || { nome:'', bandeira:'Visa', cor:'#1E3A5F', vencimento:10, fechamento:3 };
+  const c = editing || {
+    nome: '',
+    bandeira: 'Mastercard',
+    cor: '#EC7000',
+    vencimento: 10,
+    fechamento: 3,
+    bancoEmissor: 'itau',           /* default Itaú porque é o banco principal */
+    contaPagamentoId: null,
+    finaisConhecidos: [],
+    debitoAutomatico: false
+  };
+
+  /* Contas ativas pra escolher como pagadora */
+  const contasAtivas = (state.contas || []).filter(co => !co.arquivado);
 
   const html = `
     <div class="form-grid">
       <div>
         <label>Apelido / Nome</label>
-        <input type="text" id="c_nome" value="${escapeHtml(c.nome)}" placeholder="Ex: Itaú Black">
+        <input type="text" id="c_nome" value="${escapeHtml(c.nome)}" placeholder="Ex: Itaú Visa Infinite, Sicoob Black" maxlength="40" autocomplete="off">
       </div>
+
+      <div>
+        <label>Banco emissor</label>
+        <div class="chip-row" id="c_banco">
+          ${BANCOS_EMISSORES.map(b => `<button type="button" class="chip ${b.id === c.bancoEmissor ? 'selected' : ''}" data-banco="${b.id}" style="${b.id === c.bancoEmissor ? `background:${b.cor};border-color:${b.cor};color:#fff;` : ''}">${escapeHtml(b.nome)}</button>`).join('')}
+        </div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px;line-height:1.45;">
+          O banco emissor é usado para escolher o parser certo ao importar a fatura PDF.
+        </div>
+      </div>
+
       <div class="form-row two">
         <div>
           <label>Bandeira</label>
           <select id="c_band">${BANDEIRAS.map(b => `<option ${b===c.bandeira?'selected':''}>${b}</option>`).join('')}</select>
         </div>
         <div>
-          <label>Cor</label>
+          <label>Cor do cartão</label>
           <input type="color" id="c_cor" value="${c.cor}">
         </div>
       </div>
+
+      <div>
+        <label>Conta que paga a fatura</label>
+        <div class="chip-row" id="c_conta">
+          ${contasAtivas.length === 0
+            ? '<div class="muted" style="font-size:13px;padding:6px 0;">Nenhuma conta ativa. Cadastre em Contas primeiro.</div>'
+            : contasAtivas.map(co => `<button type="button" class="chip ${co.id === c.contaPagamentoId ? 'selected' : ''}" data-conta="${co.id}" style="${co.id === c.contaPagamentoId ? `background:${co.cor};border-color:${co.cor};color:#fff;` : ''}">${co.icone || '🏦'} ${escapeHtml(co.nome)}</button>`).join('')
+          }
+        </div>
+      </div>
+
       <div class="form-row two">
         <div>
           <label>Vencimento (dia)</label>
@@ -4487,6 +4566,26 @@ function openCardForm(id) {
           <input type="number" id="c_fech" value="${c.fechamento}" min="1" max="31">
         </div>
       </div>
+
+      <div class="row-toggle">
+        <div class="rt-body">
+          <div class="rt-title">⚡ Débito automático</div>
+          <div class="rt-sub">A fatura é debitada automaticamente da conta no vencimento</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="c_debito" ${c.debitoAutomatico ? 'checked' : ''}>
+          <span class="sl"></span>
+        </label>
+      </div>
+
+      ${editing && c.finaisConhecidos && c.finaisConhecidos.length > 0 ? `
+        <div class="card-flat" style="background:color-mix(in srgb, var(--ink) 4%, white);">
+          <div class="muted" style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.04em;font-weight:500;margin-bottom:6px;">Finais conhecidos (detectados via fatura)</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${c.finaisConhecidos.map(f => `<span class="tag" style="font-family:var(--font-mono);">•••• ${escapeHtml(f)}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
     </div>
   `;
   const footer = `
@@ -4497,6 +4596,61 @@ function openCardForm(id) {
   `;
   sheet.open(editing ? 'Editar cartão' : 'Novo cartão', html, footer);
 
+  /* Estado local de seleção */
+  let st_banco = c.bancoEmissor;
+  let st_conta = c.contaPagamentoId;
+
+  /* Hooks de banco emissor — quando muda, sugere conta + cor batendo com o banco */
+  document.querySelectorAll('#c_banco .chip').forEach(b => {
+    b.onclick = () => {
+      st_banco = b.dataset.banco;
+      document.querySelectorAll('#c_banco .chip').forEach(x => {
+        x.classList.remove('selected');
+        x.style.background = ''; x.style.borderColor = ''; x.style.color = '';
+      });
+      const banco = getBancoEmissor(st_banco);
+      b.classList.add('selected');
+      b.style.background = banco.cor;
+      b.style.borderColor = banco.cor;
+      b.style.color = '#fff';
+      /* Auto-sugestões só ao criar — não sobrescreve edições */
+      if (!editing) {
+        /* Cor do cartão = cor do banco */
+        document.getElementById('c_cor').value = banco.cor;
+        /* Conta de pagamento = conta com mesmo id do banco (se existir) */
+        const contaMatch = contasAtivas.find(co => co.id === st_banco);
+        if (contaMatch) {
+          st_conta = contaMatch.id;
+          document.querySelectorAll('#c_conta .chip').forEach(x => {
+            const ativa = x.dataset.conta === contaMatch.id;
+            x.classList.toggle('selected', ativa);
+            x.style.background = ativa ? contaMatch.cor : '';
+            x.style.borderColor = ativa ? contaMatch.cor : '';
+            x.style.color = ativa ? '#fff' : '';
+          });
+        }
+      }
+    };
+  });
+
+  /* Hooks de conta de pagamento */
+  document.querySelectorAll('#c_conta .chip').forEach(b => {
+    b.onclick = () => {
+      st_conta = b.dataset.conta;
+      document.querySelectorAll('#c_conta .chip').forEach(x => {
+        x.classList.remove('selected');
+        x.style.background = ''; x.style.borderColor = ''; x.style.color = '';
+      });
+      const conta = getContaById(st_conta);
+      b.classList.add('selected');
+      if (conta) {
+        b.style.background = conta.cor;
+        b.style.borderColor = conta.cor;
+        b.style.color = '#fff';
+      }
+    };
+  });
+
   document.getElementById('c_cancel').onclick = () => openCardsSheet();
   document.getElementById('c_save').onclick = () => {
     const nome = document.getElementById('c_nome').value.trim();
@@ -4505,10 +4659,25 @@ function openCardForm(id) {
     const cor = document.getElementById('c_cor').value;
     const venc = +document.getElementById('c_venc').value || 10;
     const fech = +document.getElementById('c_fech').value || 3;
+    const debito = document.getElementById('c_debito').checked;
     if (editing) {
-      Object.assign(editing, { nome, bandeira, cor, vencimento: venc, fechamento: fech });
+      Object.assign(editing, {
+        nome, bandeira, cor,
+        vencimento: venc, fechamento: fech,
+        bancoEmissor: st_banco,
+        contaPagamentoId: st_conta,
+        debitoAutomatico: debito
+      });
     } else {
-      state.cards.push({ id: uid(), nome, bandeira, cor, vencimento: venc, fechamento: fech });
+      state.cards.push({
+        id: uid(),
+        nome, bandeira, cor,
+        vencimento: venc, fechamento: fech,
+        bancoEmissor: st_banco,
+        contaPagamentoId: st_conta,
+        finaisConhecidos: [],
+        debitoAutomatico: debito
+      });
     }
     saveState(state);
     openCardsSheet();
