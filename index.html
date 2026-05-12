@@ -2925,6 +2925,13 @@ label {
   background: color-mix(in srgb, var(--flow-invest) 14%, white);
   color: var(--flow-invest);
 }
+.revisao-item .ri-tag.auto {
+  background: color-mix(in srgb, var(--flow-in) 12%, white);
+  color: var(--flow-in);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
 .revisao-item .ri-value {
   font-family: var(--font-mono);
   font-weight: 600;
@@ -3233,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.8 · importação de fatura PDF
+  Finança · v0.9 · aliases automáticos + filtro de pendentes
 </div>
 
   </section>
@@ -3366,6 +3373,7 @@ function defaultState() {
     cards: [],          /* {id, nome, bandeira, cor, vencimento, fechamento, contaPagamentoId} */
     contas: structuredClone(CONTAS_DEFAULT), /* {id, nome, cor, icone, principal, saldoInicial, dataSaldoInicial, arquivado} */
     aliases: {},        /* { 'TEXTO ORIGINAL': 'apelido' } */
+    aliasItems: [],     /* memória de classificação automática (v0.9) — {id, chave, categoria, subcategoria, grupoId, parcelaTotal, contagemUso, criadoEm, ultimoUsoEm} */
     fixedExpenses: [],  /* {id, categoria, subcategoria, grupoId, nome, valor, pagamento, cardId, contaId, lembreteDia, lembreteHora, ativo} */
     reminders: [],      /* {id, titulo, dia, hora} */
     investMods: structuredClone(INVEST_MODS_DEFAULT),
@@ -3631,6 +3639,13 @@ const StorageAdapter = {
         if (typeof g.categoriaPendente === 'undefined') g.categoriaPendente = false;
       });
     }
+    /* Migração v0.9: aliasItems — memória de classificação automática.
+       Toda vez que o usuário atribui um lançamento importado, o app aprende
+       a classificação (descrição-chave → categoria/subcategoria/grupo). Em
+       importações futuras, lançamentos cuja descrição contém uma chave conhecida
+       vêm pré-atribuídos com tag visual "auto". Para parcelas (parcela.total), o
+       alias guarda o total como discriminador. */
+    if (!Array.isArray(merged.aliasItems)) merged.aliasItems = [];
     /* Migrações de ícone */
     const LEGACY_ICONS = {
       marina:  { from: '👧', to: '👧🏻' },
@@ -8295,6 +8310,103 @@ function renderCartoesDetail(cartaoId) {
 }
 
 /* =========================================================================
+   ALIASES DE CLASSIFICAÇÃO — memória aprendida (Fatia 2.1)
+   Toda vez que o usuário atribui um lançamento importado, o app extrai uma
+   "chave" da descrição (ex: "DROGASIL" de "DROGASIL 4940 LUZIANIA") e guarda
+   a classificação. Em importações futuras, lançamentos cuja descrição contém
+   uma chave conhecida vêm pré-atribuídos com tag visual "auto".
+   Parcelas usam parcelaTotal como discriminador adicional.
+   ========================================================================= */
+
+/* Prefixos comuns de processadoras/maquininhas que não fazem parte do nome
+   do estabelecimento — removidos antes da extração da chave. */
+const ALIAS_PREFIXOS_REMOVIVEIS = /^(IFD\*|PG \*|PG\*|PD |DL\*|UB\*|MP\*|GP\*)/i;
+
+/* Extrai a chave de match de uma descrição. Tenta pegar a primeira palavra
+   significativa. Se ela for curta (≤4 chars), agrega a segunda. */
+function extrairChaveAlias(descricao) {
+  if (!descricao) return '';
+  let s = descricao.toUpperCase().trim();
+  s = s.replace(ALIAS_PREFIXOS_REMOVIVEIS, '').trim();
+  const tokens = s.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return '';
+  let chave = tokens[0];
+  /* Stop em / pra evitar "APPLE.COM/BILL." → quer "APPLE.COM" */
+  chave = chave.split('/')[0];
+  /* Se a primeira palavra é curta, agrega a segunda (ex: "CLUB" + "MED") */
+  if (chave.length <= 4 && tokens.length > 1) {
+    const seg = tokens[1].split('/')[0];
+    chave = chave + ' ' + seg;
+  }
+  return chave.trim();
+}
+
+/* Busca um alias que matche essa descrição. Retorna o alias mais específico
+   (chave mais longa) ou mais recente em caso de empate. */
+function buscarAliasParaDescricao(descricaoBruta, parcelaTotal) {
+  if (!Array.isArray(state.aliasItems) || state.aliasItems.length === 0) return null;
+  const descUpper = (descricaoBruta || '').toUpperCase();
+  const isParc = (parcelaTotal !== null && parcelaTotal !== undefined);
+
+  const candidatos = state.aliasItems.filter(a => {
+    if (!a.chave) return false;
+    if (!descUpper.includes(a.chave)) return false;
+    const aliasIsParc = (a.parcelaTotal !== null && a.parcelaTotal !== undefined);
+    /* Discriminador parcela: alias-parcela só matche gasto-parcela com mesmo total;
+       alias-comum só matche gasto-comum. */
+    if (aliasIsParc !== isParc) return false;
+    if (aliasIsParc && a.parcelaTotal !== parcelaTotal) return false;
+    return true;
+  });
+
+  if (candidatos.length === 0) return null;
+
+  candidatos.sort((a, b) => {
+    if (b.chave.length !== a.chave.length) return b.chave.length - a.chave.length;
+    return (b.ultimoUsoEm || '').localeCompare(a.ultimoUsoEm || '');
+  });
+
+  return candidatos[0];
+}
+
+/* Aprende ou reforça um alias quando o usuário aplica uma classificação. */
+function aprenderAlias(descricaoBruta, categoria, subcategoria, grupoId, parcelaTotal) {
+  if (!Array.isArray(state.aliasItems)) state.aliasItems = [];
+  const chave = extrairChaveAlias(descricaoBruta);
+  if (!chave || chave.length < 3) return null;
+
+  const hoje = todayISO();
+  const parcTotal = (parcelaTotal !== null && parcelaTotal !== undefined) ? parcelaTotal : null;
+
+  const existente = state.aliasItems.find(a =>
+    a.chave === chave && (a.parcelaTotal || null) === parcTotal
+  );
+
+  if (existente) {
+    existente.categoria = categoria;
+    existente.subcategoria = subcategoria;
+    existente.grupoId = grupoId || null;
+    existente.contagemUso = (existente.contagemUso || 0) + 1;
+    existente.ultimoUsoEm = hoje;
+    return existente;
+  }
+
+  const novo = {
+    id: uid(),
+    chave,
+    categoria,
+    subcategoria,
+    grupoId: grupoId || null,
+    parcelaTotal: parcTotal,
+    contagemUso: 1,
+    criadoEm: hoje,
+    ultimoUsoEm: hoje
+  };
+  state.aliasItems.push(novo);
+  return novo;
+}
+
+/* =========================================================================
    MÓDULO 6 — IMPORTAÇÃO DE FATURA PDF (Fatia 2.0)
    Pipeline genérico: PDF.js extrai texto cru → parser heurístico identifica
    lançamentos → tela de revisão com bulk-attribution → aplica em batch.
@@ -8533,6 +8645,7 @@ function parserGenericoFatura(textoBruto) {
       data: dataISO,
       ym,
       descricao,
+      descricaoBruta: descricao,  /* preservada — usada como chave do alias mesmo se usuário renomear */
       valor,
       parcela,
       internacional: false,
@@ -8551,41 +8664,73 @@ function openRevisaoFaturaSheet(lancs, cardId) {
 
   lancs.sort((a, b) => b.data.localeCompare(a.data));
 
+  /* Aplica aliases conhecidos: lançamentos que matchem ganham atribuição prévia + tag "auto" */
+  let autoAplicados = 0;
+  lancs.forEach(l => {
+    const parcelaTotal = l.parcela ? l.parcela.total : null;
+    const alias = buscarAliasParaDescricao(l.descricao, parcelaTotal);
+    if (alias) {
+      l.atribuido = {
+        categoria: alias.categoria,
+        subcategoria: alias.subcategoria,
+        grupoId: alias.grupoId || null
+      };
+      l.aliasAplicado = alias.id;
+      autoAplicados++;
+    }
+  });
+
   revisaoState = {
     lancs,
     selecionados: new Set(),
     cardId,
-    cardName: card.nome
+    cardName: card.nome,
+    mostrarSomentePendentes: true,  /* default: foco no que falta atribuir */
+    autoAplicados
   };
 
   renderRevisao();
 }
 
 function renderRevisao() {
-  const { lancs, selecionados, cardName } = revisaoState;
+  const { lancs, selecionados, cardName, autoAplicados } = revisaoState;
   const ativos = lancs.filter(l => !l.excluido);
   const atribuidos = ativos.filter(l => l.atribuido.categoria);
   const pendentes = ativos.filter(l => !l.atribuido.categoria);
   const totalValor = ativos.reduce((s, l) => s + l.valor, 0);
   const selecionadosCount = selecionados.size;
 
+  /* Filtro de visualização: por default mostra só pendentes (foco no que falta) */
+  const mostrarSomentePendentes = revisaoState.mostrarSomentePendentes;
+  const visiveis = mostrarSomentePendentes ? pendentes : ativos;
+  /* Limpa seleções que não estão mais visíveis */
+  selecionados.forEach(id => {
+    if (!visiveis.some(l => l.id === id)) selecionados.delete(id);
+  });
+  const selecionadosVis = visiveis.filter(l => selecionados.has(l.id)).length;
+
   const html = `
     <div class="card-flat">
       <div style="font-size:13px;line-height:1.55;">
         <strong>${escapeHtml(cardName)}</strong> · ${ativos.length} ${ativos.length === 1 ? 'lançamento' : 'lançamentos'} · total ${fmtBRL(totalValor)}<br>
-        <span class="muted">${atribuidos.length} identificados · ${pendentes.length} pendentes</span>
+        <span class="muted">${atribuidos.length} identificados${autoAplicados > 0 ? ` (${autoAplicados} via alias)` : ''} · ${pendentes.length} pendentes</span>
       </div>
     </div>
 
     <div class="revisao-toolbar">
-      <span class="rt-info">${selecionadosCount} selecionado${selecionadosCount === 1 ? '' : 's'}</span>
-      <button class="rt-action" id="selToggleAll">${selecionadosCount === ativos.length && ativos.length > 0 ? '☑ desmarcar' : '☐ todos'}</button>
-      <button class="rt-action primary" id="bulkAttr" ${selecionadosCount === 0 ? 'disabled' : ''}>atribuir</button>
-      <button class="rt-action" id="bulkExclude" ${selecionadosCount === 0 ? 'disabled' : ''}>excluir</button>
+      <span class="rt-info">${selecionadosVis} selecionado${selecionadosVis === 1 ? '' : 's'}</span>
+      <button class="rt-action" id="selToggleAll">${selecionadosVis === visiveis.length && visiveis.length > 0 ? '☑ desmarcar' : '☐ todos'}</button>
+      <button class="rt-action primary" id="bulkAttr" ${selecionadosVis === 0 ? 'disabled' : ''}>atribuir</button>
+      <button class="rt-action" id="bulkExclude" ${selecionadosVis === 0 ? 'disabled' : ''}>excluir</button>
+      <button class="rt-action" id="toggleFiltro" style="margin-left:auto;">${mostrarSomentePendentes ? `ver todos (${atribuidos.length})` : 'só pendentes'}</button>
     </div>
 
     <div id="revisaoList">
-      ${ativos.length === 0 ? '<div class="empty" style="padding:24px;">Todos os lançamentos foram excluídos</div>' : ativos.map(l => renderRevisaoItem(l)).join('')}
+      ${visiveis.length === 0
+        ? (mostrarSomentePendentes && atribuidos.length > 0
+            ? `<div class="empty" style="padding:24px;"><div class="icon-big">✓</div>Todos os lançamentos foram identificados<br><span style="font-size:12px;color:var(--ink-faint);">toque "ver todos" para revisar os ${atribuidos.length} atribuídos</span></div>`
+            : '<div class="empty" style="padding:24px;">Nenhum lançamento</div>')
+        : visiveis.map(l => renderRevisaoItem(l)).join('')}
     </div>
   `;
 
@@ -8598,11 +8743,17 @@ function renderRevisao() {
 
   sheet.open('Revisar lançamentos', html, footer);
 
+  document.getElementById('toggleFiltro').onclick = () => {
+    revisaoState.mostrarSomentePendentes = !revisaoState.mostrarSomentePendentes;
+    renderRevisao();
+  };
+
   document.getElementById('selToggleAll').onclick = () => {
-    if (selecionados.size === ativos.length) {
-      selecionados.clear();
+    const todosVisSelecionados = visiveis.every(l => selecionados.has(l.id));
+    if (todosVisSelecionados) {
+      visiveis.forEach(l => selecionados.delete(l.id));
     } else {
-      ativos.forEach(l => selecionados.add(l.id));
+      visiveis.forEach(l => selecionados.add(l.id));
     }
     renderRevisao();
   };
@@ -8613,6 +8764,8 @@ function renderRevisao() {
       lancs.forEach(l => {
         if (selecionados.has(l.id) && !l.excluido) {
           l.atribuido = { categoria: cat, subcategoria: subc, grupoId };
+          /* Atribuição manual em bulk: descarta marcação de alias-auto, pois a decisão é nova */
+          if (l.aliasAplicado) delete l.aliasAplicado;
         }
       });
       selecionados.clear();
@@ -8683,6 +8836,7 @@ function renderRevisaoItem(l) {
   const tags = [];
   if (l.parcela) tags.push(`<span class="ri-tag parc">${l.parcela.atual}/${l.parcela.total}</span>`);
   if (l.internacional) tags.push('<span class="ri-tag intl">internacional</span>');
+  if (l.aliasAplicado) tags.push('<span class="ri-tag auto">auto</span>');
   if (isAttr) {
     const member = state.members[l.atribuido.categoria];
     tags.push(`<span class="ri-tag atribuido">${member ? escapeHtml(member.icone + ' ' + member.nome) : '?'} · ${escapeHtml(l.atribuido.subcategoria || '?')}</span>`);
@@ -8706,14 +8860,172 @@ function renderRevisaoItem(l) {
   `;
 }
 
-/* Edição individual: abre o mesmo diálogo de atribuição, mas só pra um item. */
+/* Edição individual de um lançamento da revisão — overlay sobreposto à sheet.
+   Diferente do bulk: tem campo de descrição editável (útil pra limpar o que vem
+   bagunçado do PDF — ex: "DROGASIL 4940 LUZIANIA" → "Drogasil"). */
 function openItemAtribuicaoIndividual(itemId) {
   const lanc = revisaoState.lancs.find(l => l.id === itemId);
   if (!lanc) return;
-  openBulkAtribuicaoSheet((cat, subc, grupoId) => {
-    lanc.atribuido = { categoria: cat, subcategoria: subc, grupoId };
+
+  const categorias = ['casa', 'marina', 'heitor', 'juliana', 'tiago'];
+  let st_cat = lanc.atribuido.categoria;
+  let st_subc = lanc.atribuido.subcategoria;
+  let st_grupo = lanc.atribuido.grupoId;
+  let st_desc = lanc.descricao;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed; inset:0; background:rgba(20,18,14,0.5);
+    z-index:200; display:flex; align-items:center; justify-content:center;
+    padding:20px; animation:fadeIn .2s ease;
+  `;
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg);border-radius:var(--r-lg);padding:20px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);max-height:88dvh;overflow-y:auto;">
+      <div style="font-family:var(--font-display);font-size:20px;font-weight:500;margin-bottom:4px;letter-spacing:-0.01em;">Editar lançamento</div>
+      <div style="color:var(--ink-soft);font-size:12.5px;margin-bottom:14px;line-height:1.45;">${fmtBRL(lanc.valor)} · ${lanc.data.split('-').slice(1).reverse().join('/')}${lanc.parcela ? ' · parcela ' + lanc.parcela.atual + '/' + lanc.parcela.total : ''}</div>
+
+      <label>Descrição</label>
+      <input type="text" id="indDesc" value="${escapeHtml(st_desc)}" maxlength="80" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r);font-size:14px;font-family:var(--font-body);background:var(--bg);color:var(--ink);">
+
+      <div style="margin-top:14px;">
+        <label>Categoria</label>
+        <div class="chip-row" id="indCat">
+          ${categorias.map(k => {
+            const m = state.members[k];
+            const sel = k === st_cat;
+            const styleSel = sel ? `background:${m.cor};border-color:${m.cor};color:#fff;` : '';
+            return `<button type="button" class="chip ${sel ? 'selected' : ''}" data-icat="${k}" style="${styleSel}">${m.icone} ${escapeHtml(m.nome)}</button>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label>Subcategoria</label>
+        <div class="subcat-pick" id="indSubc"></div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label>Grupo (opcional)</label>
+        <div class="chip-row" id="indGrupo"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button class="btn btn-secondary" id="indCancel">Cancelar</button>
+        <button class="btn btn-primary" id="indOk">Aplicar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  function refreshSubcAndGrupo() {
+    const subcEl = overlay.querySelector('#indSubc');
+    const grupoEl = overlay.querySelector('#indGrupo');
+
+    if (!st_cat) {
+      subcEl.innerHTML = '<div class="muted" style="font-size:12.5px;padding:6px 0;">Escolha uma categoria primeiro</div>';
+      grupoEl.innerHTML = '<div class="muted" style="font-size:12.5px;padding:6px 0;">Escolha uma categoria primeiro</div>';
+      updateOkBtn();
+      return;
+    }
+
+    const subcats = getSubcatsFor(st_cat);
+    const member = state.members[st_cat];
+    subcEl.style.setProperty('--member-color', member.cor);
+    subcEl.innerHTML = subcats.map(s => {
+      const ex = isExclusiva(st_cat, s);
+      const inv = isInvest(st_cat, s);
+      const sel = s === st_subc;
+      const cls = ['pick'];
+      if (ex) cls.push('exclusive');
+      if (inv) cls.push('invest');
+      if (sel) cls.push('selected');
+      return `<button type="button" class="${cls.join(' ')}" data-isubc="${escapeHtml(s)}">
+        ${ex ? '<span class="star">★</span>' : ''}
+        <span>${escapeHtml(s)}</span>
+        ${inv ? '<span class="invest-tag">invest</span>' : ''}
+      </button>`;
+    }).join('');
+    subcEl.querySelectorAll('.pick').forEach(p => {
+      p.onclick = () => {
+        st_subc = p.dataset.isubc;
+        subcEl.querySelectorAll('.pick').forEach(x => x.classList.remove('selected'));
+        p.classList.add('selected');
+        updateOkBtn();
+      };
+    });
+
+    const grupos = gruposAtivosPara(st_cat);
+    let grupoHtml = `<button type="button" class="chip ${!st_grupo ? 'selected' : ''}" data-igrupo="">— sem grupo —</button>`;
+    grupos.forEach(grp => {
+      const sel = grp.id === st_grupo;
+      const styleSel = sel ? `background:${member.cor};border-color:${member.cor};color:#fff;` : '';
+      grupoHtml += `<button type="button" class="chip ${sel ? 'selected' : ''}" data-igrupo="${grp.id}" style="${styleSel}">${escapeHtml(grp.nome)}</button>`;
+    });
+    grupoEl.innerHTML = grupoHtml;
+    grupoEl.querySelectorAll('.chip').forEach(c => {
+      c.onclick = () => {
+        st_grupo = c.dataset.igrupo || null;
+        grupoEl.querySelectorAll('.chip').forEach(x => {
+          x.classList.remove('selected');
+          x.style.background = ''; x.style.borderColor = ''; x.style.color = '';
+        });
+        c.classList.add('selected');
+        if (c.dataset.igrupo) {
+          c.style.background = member.cor;
+          c.style.borderColor = member.cor;
+          c.style.color = '#fff';
+        }
+      };
+    });
+  }
+
+  function updateOkBtn() {
+    const ok = !!(st_cat && st_subc);
+    const btn = overlay.querySelector('#indOk');
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '1' : '0.4';
+  }
+
+  overlay.querySelectorAll('#indCat .chip').forEach(c => {
+    c.onclick = () => {
+      const novoCat = c.dataset.icat;
+      if (novoCat !== st_cat) {
+        st_cat = novoCat;
+        st_subc = null;
+        st_grupo = null;
+      }
+      overlay.querySelectorAll('#indCat .chip').forEach(x => {
+        x.classList.remove('selected');
+        x.style.background = ''; x.style.borderColor = ''; x.style.color = '';
+      });
+      const m = state.members[st_cat];
+      c.classList.add('selected');
+      c.style.background = m.cor;
+      c.style.borderColor = m.cor;
+      c.style.color = '#fff';
+      refreshSubcAndGrupo();
+    };
+  });
+
+  overlay.querySelector('#indDesc').oninput = (ev) => {
+    st_desc = ev.target.value;
+  };
+
+  refreshSubcAndGrupo();
+  updateOkBtn();
+
+  overlay.querySelector('#indCancel').onclick = () => overlay.remove();
+  overlay.querySelector('#indOk').onclick = () => {
+    if (!st_cat || !st_subc) return;
+    lanc.descricao = (st_desc || '').trim() || lanc.descricao;
+    lanc.atribuido = { categoria: st_cat, subcategoria: st_subc, grupoId: st_grupo };
+    /* Edição manual: descarta marcação de alias-auto, pois a decisão é nova */
+    if (lanc.aliasAplicado) delete lanc.aliasAplicado;
+    overlay.remove();
     renderRevisao();
-  }, lanc.atribuido);
+  };
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
 
 /* Sub-modal sobrepondo a sheet de revisão — escolhe categoria/subcategoria/grupo. */
@@ -8865,10 +9177,13 @@ function openBulkAtribuicaoSheet(callback, prefill) {
 }
 
 /* Aplica os lançamentos revisados como gastos com pagamento=cartao + cardId.
-   Pendentes (sem categoria atribuída) vão para casa/Outros com flag categoriaPendente. */
+   Pendentes (sem categoria atribuída) vão para casa/Outros com flag categoriaPendente.
+   Aprende alias para cada lançamento atribuído (usando descricaoBruta como chave
+   para que renomeações pelo usuário não quebrem matches futuros). */
 function aplicarLancamentosImportados(lancs, cardId) {
   let novos = 0;
   let pendentesCount = 0;
+  let aliasesAprendidos = 0;
 
   lancs.forEach(l => {
     if (l.excluido) return;
@@ -8879,6 +9194,14 @@ function aplicarLancamentosImportados(lancs, cardId) {
     const investFlag = !isPendente && isInvest(cat, subc);
 
     const nomeFinal = canonicalizeNome(cat, subc, l.descricao);
+
+    /* Aprende alias se o lançamento foi atribuído. Usa descricaoBruta (preservada
+       pelo parser) pra extrair a chave — assim renomeações manuais não interferem. */
+    if (!isPendente) {
+      const parcelaTotal = l.parcela ? l.parcela.total : null;
+      const result = aprenderAlias(l.descricaoBruta || l.descricao, cat, subc, grupoId, parcelaTotal);
+      if (result) aliasesAprendidos++;
+    }
 
     const novoGasto = {
       id: uid(),
