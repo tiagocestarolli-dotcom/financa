@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.9 · aliases automáticos + filtro de pendentes
+  Finança · v0.9.1 · criar subcat/grupo na atribuição
 </div>
 
   </section>
@@ -8945,8 +8945,29 @@ function openItemAtribuicaoIndividual(itemId) {
         <span>${escapeHtml(s)}</span>
         ${inv ? '<span class="invest-tag">invest</span>' : ''}
       </button>`;
-    }).join('');
+    }).join('') + `<button type="button" class="pick" data-isubc-novo style="border-style:dashed;color:var(--ink-mute);"><span>+ nova subcategoria</span></button>`;
     subcEl.querySelectorAll('.pick').forEach(p => {
+      if (p.hasAttribute('data-isubc-novo')) {
+        p.onclick = async () => {
+          const t = await askText({
+            title: `Nova subcategoria de ${state.members[st_cat].nome}`,
+            label: 'Será adicionada como exclusiva desta categoria.',
+            placeholder: 'Ex: Padaria, Hotéis, Combustível…',
+            confirmLabel: 'Adicionar'
+          });
+          if (!t) return;
+          const existentes = getSubcatsFor(st_cat);
+          if (existentes.includes(t)) { toast('Já existe', 'error'); return; }
+          if (!state.subcatsExclusivas[st_cat]) state.subcatsExclusivas[st_cat] = [];
+          state.subcatsExclusivas[st_cat] = [...state.subcatsExclusivas[st_cat], t];
+          saveState(state);
+          st_subc = t;
+          refreshSubcAndGrupo();
+          updateOkBtn();
+          toast('Adicionada', 'success');
+        };
+        return;
+      }
       p.onclick = () => {
         st_subc = p.dataset.isubc;
         subcEl.querySelectorAll('.pick').forEach(x => x.classList.remove('selected'));
@@ -8962,8 +8983,28 @@ function openItemAtribuicaoIndividual(itemId) {
       const styleSel = sel ? `background:${member.cor};border-color:${member.cor};color:#fff;` : '';
       grupoHtml += `<button type="button" class="chip ${sel ? 'selected' : ''}" data-igrupo="${grp.id}" style="${styleSel}">${escapeHtml(grp.nome)}</button>`;
     });
+    grupoHtml += `<button type="button" class="chip" data-igrupo-novo style="border-style:dashed;color:var(--ink-mute);">+ novo grupo</button>`;
     grupoEl.innerHTML = grupoHtml;
     grupoEl.querySelectorAll('.chip').forEach(c => {
+      if (c.hasAttribute('data-igrupo-novo')) {
+        c.onclick = async () => {
+          const t = await askText({
+            title: `Novo grupo em ${state.members[st_cat].nome}`,
+            label: 'Grupos agregam gastos de várias subcategorias (ex: "Viagem Cancun", "Honda Civic").',
+            placeholder: 'Ex: Viagem Cancun 2026',
+            confirmLabel: 'Adicionar'
+          });
+          if (!t) return;
+          if (!state.grupos[st_cat]) state.grupos[st_cat] = [];
+          const novoId = uid();
+          state.grupos[st_cat].push({ id: novoId, nome: t, arquivado: false });
+          saveState(state);
+          st_grupo = novoId;
+          refreshSubcAndGrupo();
+          toast('Grupo criado', 'success');
+        };
+        return;
+      }
       c.onclick = () => {
         st_grupo = c.dataset.igrupo || null;
         grupoEl.querySelectorAll('.chip').forEach(x => {
@@ -9102,8 +9143,29 @@ function openBulkAtribuicaoSheet(callback, prefill) {
         <span>${escapeHtml(s)}</span>
         ${inv ? '<span class="invest-tag">invest</span>' : ''}
       </button>`;
-    }).join('');
+    }).join('') + `<button type="button" class="pick" data-bsubc-novo style="border-style:dashed;color:var(--ink-mute);"><span>+ nova subcategoria</span></button>`;
     subcEl.querySelectorAll('.pick').forEach(p => {
+      if (p.hasAttribute('data-bsubc-novo')) {
+        p.onclick = async () => {
+          const t = await askText({
+            title: `Nova subcategoria de ${state.members[st_cat].nome}`,
+            label: 'Será adicionada como exclusiva desta categoria.',
+            placeholder: 'Ex: Padaria, Hotéis, Combustível…',
+            confirmLabel: 'Adicionar'
+          });
+          if (!t) return;
+          const existentes = getSubcatsFor(st_cat);
+          if (existentes.includes(t)) { toast('Já existe', 'error'); return; }
+          if (!state.subcatsExclusivas[st_cat]) state.subcatsExclusivas[st_cat] = [];
+          state.subcatsExclusivas[st_cat] = [...state.subcatsExclusivas[st_cat], t];
+          saveState(state);
+          st_subc = t; /* já seleciona */
+          refreshSubcAndGrupo();
+          updateOkBtn();
+          toast('Adicionada', 'success');
+        };
+        return;
+      }
       p.onclick = () => {
         st_subc = p.dataset.bsubc;
         subcEl.querySelectorAll('.pick').forEach(x => x.classList.remove('selected'));
@@ -9119,8 +9181,28 @@ function openBulkAtribuicaoSheet(callback, prefill) {
       const styleSel = sel ? `background:${member.cor};border-color:${member.cor};color:#fff;` : '';
       grupoHtml += `<button type="button" class="chip ${sel ? 'selected' : ''}" data-bgrupo="${grp.id}" style="${styleSel}">${escapeHtml(grp.nome)}</button>`;
     });
+    grupoHtml += `<button type="button" class="chip" data-bgrupo-novo style="border-style:dashed;color:var(--ink-mute);">+ novo grupo</button>`;
     grupoEl.innerHTML = grupoHtml;
     grupoEl.querySelectorAll('.chip').forEach(c => {
+      if (c.hasAttribute('data-bgrupo-novo')) {
+        c.onclick = async () => {
+          const t = await askText({
+            title: `Novo grupo em ${state.members[st_cat].nome}`,
+            label: 'Grupos agregam gastos de várias subcategorias (ex: "Viagem Cancun", "Honda Civic").',
+            placeholder: 'Ex: Viagem Cancun 2026',
+            confirmLabel: 'Adicionar'
+          });
+          if (!t) return;
+          if (!state.grupos[st_cat]) state.grupos[st_cat] = [];
+          const novoId = uid();
+          state.grupos[st_cat].push({ id: novoId, nome: t, arquivado: false });
+          saveState(state);
+          st_grupo = novoId; /* já seleciona */
+          refreshSubcAndGrupo();
+          toast('Grupo criado', 'success');
+        };
+        return;
+      }
       c.onclick = () => {
         st_grupo = c.dataset.bgrupo || null;
         grupoEl.querySelectorAll('.chip').forEach(x => {
