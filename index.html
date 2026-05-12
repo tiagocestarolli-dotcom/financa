@@ -1856,6 +1856,12 @@ label {
   background: color-mix(in srgb, var(--flow-out) 12%, white);
   color: var(--flow-out);
 }
+.gasto-row .gr-flag.pendente-cat {
+  background: color-mix(in srgb, #C28846 18%, white);
+  color: #8A5A1F;
+  font-weight: 700;
+  border: 1px solid color-mix(in srgb, #C28846 30%, transparent);
+}
 .gasto-row .gr-flag.grupo {
   background: color-mix(in srgb, var(--ink) 6%, white);
   color: var(--ink-soft);
@@ -2748,6 +2754,186 @@ label {
   transform: scale(1.06);
 }
 
+/* ============== IMPORTAÇÃO DE FATURA PDF (Fatia 2) ============== */
+
+/* Estado de processamento do PDF */
+.pdf-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  gap: 14px;
+}
+.pdf-loading .pl-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--line);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: pl-spin 0.8s linear infinite;
+}
+@keyframes pl-spin { to { transform: rotate(360deg); } }
+.pdf-loading .pl-status {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink-mute);
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* Toolbar de bulk no topo da tela de revisão */
+.revisao-toolbar {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  padding: 10px 0;
+  margin: -4px 0 10px;
+  border-bottom: 1px solid var(--line);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.revisao-toolbar .rt-info {
+  flex: 1;
+  font-size: 12px;
+  color: var(--ink-mute);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.revisao-toolbar .rt-action {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.revisao-toolbar .rt-action.primary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.revisao-toolbar .rt-action:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Item da lista de revisão */
+.revisao-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  margin-bottom: 6px;
+  transition: background .12s, border-color .12s;
+}
+.revisao-item.selected {
+  background: color-mix(in srgb, var(--ink) 5%, white);
+  border-color: color-mix(in srgb, var(--ink) 18%, var(--line));
+}
+.revisao-item.pendente {
+  border-left: 4px solid #C28846;
+}
+.revisao-item.atribuido {
+  border-left: 4px solid var(--flow-in);
+}
+.revisao-item.ignorar {
+  opacity: 0.4;
+}
+.revisao-item .ri-check {
+  width: 22px; height: 22px;
+  flex: 0 0 auto;
+  border: 2px solid var(--line-strong);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  transition: background .12s, border-color .12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.revisao-item.selected .ri-check {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+}
+.revisao-item .ri-date {
+  flex: 0 0 36px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-mute);
+  text-align: center;
+  background: var(--bg-sunken);
+  border-radius: 6px;
+  padding: 4px 0;
+  line-height: 1.2;
+}
+.revisao-item .ri-date .rd-day {
+  display: block; font-weight: 600; color: var(--ink); font-size: 13px;
+}
+.revisao-item .ri-date .rd-mon {
+  display: block; font-size: 8.5px; letter-spacing: 0.05em; margin-top: 1px;
+}
+.revisao-item .ri-body { flex: 1; min-width: 0; }
+.revisao-item .ri-desc {
+  font-size: 13.5px;
+  color: var(--ink);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.revisao-item .ri-meta {
+  font-size: 11px;
+  margin-top: 2px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.revisao-item .ri-tag {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.revisao-item .ri-tag.pendente {
+  background: color-mix(in srgb, #C28846 18%, white);
+  color: #8A5A1F;
+}
+.revisao-item .ri-tag.atribuido {
+  background: var(--flow-in-soft);
+  color: var(--flow-in);
+}
+.revisao-item .ri-tag.parc {
+  background: color-mix(in srgb, var(--flow-out) 12%, white);
+  color: var(--flow-out);
+  font-family: var(--font-mono);
+}
+.revisao-item .ri-tag.intl {
+  background: color-mix(in srgb, var(--flow-invest) 14%, white);
+  color: var(--flow-invest);
+}
+.revisao-item .ri-value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--flow-out);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
 </style>
 
 </head>
@@ -3047,7 +3233,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.7 · aba Cartões funcional
+  Finança · v0.8 · importação de fatura PDF
 </div>
 
   </section>
@@ -3434,6 +3620,15 @@ const StorageAdapter = {
         if (typeof c.contaPagamentoId === 'undefined') c.contaPagamentoId = null;
         if (!Array.isArray(c.finaisConhecidos)) c.finaisConhecidos = [];
         if (typeof c.debitoAutomatico === 'undefined') c.debitoAutomatico = false;
+      });
+    }
+    /* Migração v0.8: campo `categoriaPendente` em gastos.
+       Lançamentos importados de PDF sem categoria atribuída nascem com
+       categoriaPendente:true e ganham tag visual "⚠ identificar". Gastos antigos
+       criados manualmente ficam como categoriaPendente:false (já identificados). */
+    if (Array.isArray(merged.gastos)) {
+      merged.gastos.forEach(g => {
+        if (typeof g.categoriaPendente === 'undefined') g.categoriaPendente = false;
       });
     }
     /* Migrações de ícone */
@@ -5981,6 +6176,7 @@ function renderNomeTotals(items) {
 function renderGastoRow(g) {
   const [y, mm, dd] = g.data.split('-');
   const flags = [];
+  if (g.categoriaPendente) flags.push('<span class="gr-flag pendente-cat">⚠ identificar</span>');
   if (g.pago === false) flags.push('<span class="gr-flag pendente">⏳ a pagar</span>');
   /* Tag "auto" suave para fixos que não precisam de check-in (cartão / débito automático) */
   if (g.isFixo && (g.pagamento === 'cartao' || g.pagamento === 'debito')) {
@@ -8034,8 +8230,8 @@ function renderCartoesDetail(cartaoId) {
     </div>
 
     <div class="contas-actions">
-      <button class="btn" id="btnImportarFatura" disabled style="opacity:0.55;cursor:not-allowed;">
-        <span class="ai">📄</span> Importar PDF (em breve)
+      <button class="btn" id="btnImportarFatura">
+        <span class="ai">📄</span> Importar PDF
       </button>
       <button class="btn" id="btnEditarCartao"><span class="ai">✎</span> Editar cartão</button>
     </div>
@@ -8090,11 +8286,634 @@ function renderCartoesDetail(cartaoId) {
     renderCartoes();
   };
   document.getElementById('btnEditarCartao').onclick = () => openCardForm(c.id);
+  document.getElementById('btnImportarFatura').onclick = () => openImportarFaturaSheet(c.id);
 
   /* Tap em um lançamento abre seu form de edição */
   host.querySelectorAll('[data-edit-gasto]').forEach(row => {
     row.onclick = () => openGastoForm(row.dataset.editGasto, null);
   });
+}
+
+/* =========================================================================
+   MÓDULO 6 — IMPORTAÇÃO DE FATURA PDF (Fatia 2.0)
+   Pipeline genérico: PDF.js extrai texto cru → parser heurístico identifica
+   lançamentos → tela de revisão com bulk-attribution → aplica em batch.
+   Parsers especializados por banco virão na Fatia 3.
+   ========================================================================= */
+
+/* Estado global da tela de revisão (preenchido em openRevisaoFaturaSheet) */
+let revisaoState = null;
+
+/* Entry point: abre o seletor de PDF para o cartão dado. */
+function openImportarFaturaSheet(cardId) {
+  const card = state.cards.find(c => c.id === cardId);
+  if (!card) return;
+
+  const html = `
+    <div class="card-flat">
+      <strong>Importar fatura PDF</strong>
+      <div class="muted" style="font-size:13px;margin-top:4px;line-height:1.5;">
+        Cartão: <strong>${escapeHtml(card.nome)}</strong><br>
+        Selecione o PDF da fatura. O app extrai os lançamentos e abre uma tela de revisão para você atribuir categorias antes de aplicar.
+      </div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <input type="file" id="pdfInput" accept="application/pdf" style="display:none;">
+      <button class="btn btn-primary" id="pdfSelectBtn" style="width:100%;">📄 Selecionar arquivo PDF</button>
+    </div>
+
+    <div id="pdfStatus" style="margin-top:14px;"></div>
+
+    <div class="muted" style="font-size:11.5px;text-align:center;margin-top:14px;line-height:1.45;">
+      Parser genérico (Fatia 2.0) — pode errar em alguns lançamentos.<br>
+      Parsers especializados por banco (Itaú, Sicoob, BTG) virão na Fatia 3.
+    </div>
+  `;
+  sheet.open('Importar fatura', html);
+
+  const input = document.getElementById('pdfInput');
+  const btn = document.getElementById('pdfSelectBtn');
+  const statusEl = document.getElementById('pdfStatus');
+
+  btn.onclick = () => input.click();
+
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    btn.style.display = 'none';
+    statusEl.innerHTML = `
+      <div class="pdf-loading">
+        <div class="pl-spinner"></div>
+        <div class="pl-status">Lendo PDF…<br><span style="font-size:11px;color:var(--ink-faint);">${escapeHtml(file.name)}</span></div>
+      </div>
+    `;
+
+    try {
+      const texto = await extrairTextoDoPDF(file);
+      statusEl.querySelector('.pl-status').innerHTML = 'Identificando lançamentos…';
+      await new Promise(r => setTimeout(r, 50));
+
+      const lancs = parserGenericoFatura(texto);
+
+      if (lancs.length === 0) {
+        statusEl.innerHTML = `
+          <div class="empty" style="padding:24px;">
+            <div class="icon-big">😕</div>
+            Nenhum lançamento detectado.<br>
+            <span style="font-size:12px;color:var(--ink-faint);">O parser genérico não conseguiu interpretar este PDF. Os parsers especializados por banco virão na Fatia 3. Por enquanto, lance manualmente.</span>
+          </div>
+        `;
+        return;
+      }
+
+      sheet.close();
+      setTimeout(() => openRevisaoFaturaSheet(lancs, cardId), 250);
+
+    } catch (err) {
+      console.error('Erro ao processar PDF:', err);
+      statusEl.innerHTML = `
+        <div class="empty" style="padding:24px;">
+          <div class="icon-big">⚠️</div>
+          Erro ao ler o PDF.<br>
+          <span style="font-size:12px;color:var(--ink-faint);">${escapeHtml(err.message || 'desconhecido')}</span>
+        </div>
+      `;
+    }
+  };
+}
+
+/* Extrai texto cru de um PDF usando PDF.js (carregado via CDN no head).
+   Tenta preservar quebras de linha baseando-se na coordenada Y dos itens. */
+async function extrairTextoDoPDF(file) {
+  if (typeof pdfjsLib === 'undefined') {
+    throw new Error('PDF.js não carregado. Recarregue a página.');
+  }
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  let texto = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    let prevY = null;
+    let line = '';
+    for (const item of content.items) {
+      if (!item.str) continue;
+      const y = item.transform[5];
+      if (prevY !== null && Math.abs(y - prevY) > 2) {
+        if (line.trim()) texto += line.trim() + '\n';
+        line = '';
+      }
+      line += item.str + ' ';
+      prevY = y;
+    }
+    if (line.trim()) texto += line.trim() + '\n';
+    texto += '\n';
+  }
+  return texto;
+}
+
+/* Parser genérico — heurística por regex.
+   Tenta detectar linhas no padrão `data + descrição + valor`.
+   Filtra keywords técnicas (pagamentos, anuidade, juros, etc).
+   Detecta parcelas X/Y no final da descrição.
+   Detecta seção "Compras parceladas - próximas faturas" e PARA a captura
+   ali (caso contrário, faturas Itaú trazem parcelas futuras infladas). */
+function parserGenericoFatura(textoBruto) {
+  const linhas = textoBruto.split('\n').map(l => l.trim()).filter(Boolean);
+  const MESES = {
+    'JAN':'01','FEV':'02','MAR':'03','ABR':'04','MAI':'05','JUN':'06',
+    'JUL':'07','AGO':'08','SET':'09','OUT':'10','NOV':'11','DEZ':'12'
+  };
+  const EXCLUDE_KEYWORDS = [
+    'pagamento', 'fatura anterior', 'saldo anterior', 'saldo total',
+    'saldo financiado', 'saldo do rotativo', 'anuidade', 'vantagem progressiva',
+    'estorno', 'juros', 'iof de financiamento', 'iof internacional',
+    'encargos', 'encargo', 'tarifa', 'multa', 'mora', 'desconto',
+    'total dos lançamentos', 'total de tiago', 'total de compras',
+    'total a pagar', 'total da fatura', 'total desta fatura',
+    'cashback', 'mensalidade', 'seguros', 'taxa de', 'cet ',
+    'limite ', 'pagamentos recebidos', 'pagamentos feitos', 'créditos internacionais',
+    'lançamentos no cartão', 'lançamentos: compras', 'lançamentos internacionais',
+    'movimentações da conta', 'resumo da fatura', 'resumo consolidado',
+    'dólar de conversão', 'novidade:', 'opções com seguro', 'simulação',
+    'tarifas de serviços', 'outros encargos', 'somente para correntistas',
+    'previsão do próximo', 'vencimento', 'fechamento', 'período de compras',
+    'compras à vista', 'compras parceladas', 'outros valores'
+  ];
+  /* Marcos de seção que indicam "fim dos lançamentos da fatura atual" — assim que detectados, pára a captura */
+  const STOP_MARKERS = [
+    'compras parceladas - próximas',
+    'compras parceladas próximas',
+    'próximas faturas',
+    'demais faturas',
+    'total para próximas',
+    'fique atento aos encargos',
+    'novo teto de juros',
+    'simulação de compras',
+    'demais taxas de juros'
+  ];
+
+  const lancs = [];
+  const currentYear = new Date().getFullYear();
+  let stopReached = false;
+
+  for (const linha of linhas) {
+    const lower = linha.toLowerCase();
+
+    /* Detecta seção que termina a captura */
+    if (STOP_MARKERS.some(m => lower.includes(m))) {
+      stopReached = true;
+      continue;
+    }
+    if (stopReached) continue;
+
+    if (EXCLUDE_KEYWORDS.some(kw => lower.includes(kw))) continue;
+    if (linha.length < 8) continue;
+
+    let dia = null, mes = null, descricao = null, valorStr = null;
+
+    /* Padrão A: DD/MM no início, valor no final (estilo Itaú) */
+    let m = linha.match(/^(\d{1,2})\/(\d{1,2})\s+(.+?)\s+(-?[\d.,]+)$/);
+    if (m) {
+      dia = m[1].padStart(2, '0');
+      mes = m[2].padStart(2, '0');
+      descricao = m[3].trim();
+      valorStr = m[4];
+    }
+
+    /* Padrão B: DD MMM no início (estilo Sicoob/BTG) — testado mesmo se A matchou,
+       porque algumas linhas Sicoob tipo "01 ABR ESTAB 01/05 CIDADE R$ valor" também
+       fazem match espúrio com A (interpretam "01/05" parcela como data). Se B matcha,
+       prefere B. */
+    let mB = linha.match(/^(\d{1,2})\s+([A-Za-zÀ-ÿ]{3,9})\s+(.+?)\s+R?\$?\s*(-?[\d.,]+)$/);
+    if (mB) {
+      const mesUpper = mB[2].slice(0, 3).toUpperCase();
+      if (MESES[mesUpper]) {
+        dia = mB[1].padStart(2, '0');
+        mes = MESES[mesUpper];
+        descricao = mB[3].trim();
+        valorStr = mB[4];
+      }
+    }
+
+    if (!dia || !valorStr) continue;
+
+    /* Parse valor — aceita formato BR (1.234,56) e US (1234.56) */
+    let valor = parseValor(valorStr);
+    if (!valor || valor <= 0) continue;
+    if (valor > 1000000) continue; /* sanity check */
+
+    /* Detecta parcela X/Y no final da descrição */
+    let parcela = null;
+    const pm = descricao.match(/\s(\d{1,2})\/(\d{1,2})\s*$/);
+    if (pm) {
+      const atual = parseInt(pm[1], 10);
+      const total = parseInt(pm[2], 10);
+      if (total > 1 && total <= 99 && atual <= total) {
+        parcela = { atual, total };
+        descricao = descricao.replace(/\s\d{1,2}\/\d{1,2}\s*$/, '').trim();
+      }
+    }
+
+    descricao = descricao.replace(/\s+R\$\s*$/i, '').trim();
+    if (!descricao || descricao.length < 2) continue;
+
+    const dataISO = `${currentYear}-${mes}-${dia}`;
+    const ym = `${currentYear}-${mes}`;
+
+    lancs.push({
+      id: uid(),
+      data: dataISO,
+      ym,
+      descricao,
+      valor,
+      parcela,
+      internacional: false,
+      atribuido: { categoria: null, subcategoria: null, grupoId: null },
+      excluido: false
+    });
+  }
+
+  return lancs;
+}
+
+/* Tela de revisão dos lançamentos extraídos. */
+function openRevisaoFaturaSheet(lancs, cardId) {
+  const card = state.cards.find(c => c.id === cardId);
+  if (!card) return;
+
+  lancs.sort((a, b) => b.data.localeCompare(a.data));
+
+  revisaoState = {
+    lancs,
+    selecionados: new Set(),
+    cardId,
+    cardName: card.nome
+  };
+
+  renderRevisao();
+}
+
+function renderRevisao() {
+  const { lancs, selecionados, cardName } = revisaoState;
+  const ativos = lancs.filter(l => !l.excluido);
+  const atribuidos = ativos.filter(l => l.atribuido.categoria);
+  const pendentes = ativos.filter(l => !l.atribuido.categoria);
+  const totalValor = ativos.reduce((s, l) => s + l.valor, 0);
+  const selecionadosCount = selecionados.size;
+
+  const html = `
+    <div class="card-flat">
+      <div style="font-size:13px;line-height:1.55;">
+        <strong>${escapeHtml(cardName)}</strong> · ${ativos.length} ${ativos.length === 1 ? 'lançamento' : 'lançamentos'} · total ${fmtBRL(totalValor)}<br>
+        <span class="muted">${atribuidos.length} identificados · ${pendentes.length} pendentes</span>
+      </div>
+    </div>
+
+    <div class="revisao-toolbar">
+      <span class="rt-info">${selecionadosCount} selecionado${selecionadosCount === 1 ? '' : 's'}</span>
+      <button class="rt-action" id="selToggleAll">${selecionadosCount === ativos.length && ativos.length > 0 ? '☑ desmarcar' : '☐ todos'}</button>
+      <button class="rt-action primary" id="bulkAttr" ${selecionadosCount === 0 ? 'disabled' : ''}>atribuir</button>
+      <button class="rt-action" id="bulkExclude" ${selecionadosCount === 0 ? 'disabled' : ''}>excluir</button>
+    </div>
+
+    <div id="revisaoList">
+      ${ativos.length === 0 ? '<div class="empty" style="padding:24px;">Todos os lançamentos foram excluídos</div>' : ativos.map(l => renderRevisaoItem(l)).join('')}
+    </div>
+  `;
+
+  const footer = `
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="revCancel">Cancelar</button>
+      <button class="btn btn-primary" id="revApply" ${ativos.length === 0 ? 'disabled' : ''}>Aplicar ${ativos.length}${pendentes.length > 0 ? ' (' + pendentes.length + ' pend.)' : ''}</button>
+    </div>
+  `;
+
+  sheet.open('Revisar lançamentos', html, footer);
+
+  document.getElementById('selToggleAll').onclick = () => {
+    if (selecionados.size === ativos.length) {
+      selecionados.clear();
+    } else {
+      ativos.forEach(l => selecionados.add(l.id));
+    }
+    renderRevisao();
+  };
+
+  document.getElementById('bulkAttr').onclick = () => {
+    if (selecionados.size === 0) return;
+    openBulkAtribuicaoSheet((cat, subc, grupoId) => {
+      lancs.forEach(l => {
+        if (selecionados.has(l.id) && !l.excluido) {
+          l.atribuido = { categoria: cat, subcategoria: subc, grupoId };
+        }
+      });
+      selecionados.clear();
+      renderRevisao();
+    });
+  };
+
+  document.getElementById('bulkExclude').onclick = async () => {
+    if (selecionados.size === 0) return;
+    const n = selecionados.size;
+    const ok = await askConfirm({
+      title: 'Excluir selecionados?',
+      message: `${n} ${n === 1 ? 'lançamento será removido' : 'lançamentos serão removidos'} da importação.`,
+      confirmLabel: 'Excluir',
+      danger: true
+    });
+    if (!ok) return;
+    lancs.forEach(l => { if (selecionados.has(l.id)) l.excluido = true; });
+    selecionados.clear();
+    renderRevisao();
+  };
+
+  document.getElementById('revCancel').onclick = async () => {
+    const ok = await askConfirm({
+      title: 'Cancelar importação?',
+      message: 'Nenhum lançamento será aplicado.',
+      confirmLabel: 'Sim, cancelar',
+      danger: true
+    });
+    if (!ok) return;
+    sheet.close();
+    revisaoState = null;
+  };
+
+  document.getElementById('revApply').onclick = async () => {
+    if (ativos.length === 0) { toast('Nada a aplicar', 'error'); return; }
+    if (pendentes.length > 0) {
+      const ok = await askConfirm({
+        title: `Aplicar com ${pendentes.length} pendente${pendentes.length === 1 ? '' : 's'}?`,
+        message: 'Os pendentes ficarão marcados com ⚠ identificar para você categorizar depois.',
+        confirmLabel: 'Aplicar'
+      });
+      if (!ok) return;
+    }
+    aplicarLancamentosImportados(ativos, revisaoState.cardId);
+    sheet.close();
+    revisaoState = null;
+  };
+
+  document.querySelectorAll('[data-rev-item]').forEach(el => {
+    const id = el.dataset.revItem;
+    el.querySelector('.ri-check').onclick = (ev) => {
+      ev.stopPropagation();
+      if (selecionados.has(id)) selecionados.delete(id);
+      else selecionados.add(id);
+      renderRevisao();
+    };
+    el.querySelector('.ri-body').onclick = () => {
+      openItemAtribuicaoIndividual(id);
+    };
+  });
+}
+
+function renderRevisaoItem(l) {
+  const isSelected = revisaoState.selecionados.has(l.id);
+  const isAttr = !!l.atribuido.categoria;
+  const [, mm, dd] = l.data.split('-');
+  const tags = [];
+  if (l.parcela) tags.push(`<span class="ri-tag parc">${l.parcela.atual}/${l.parcela.total}</span>`);
+  if (l.internacional) tags.push('<span class="ri-tag intl">internacional</span>');
+  if (isAttr) {
+    const member = state.members[l.atribuido.categoria];
+    tags.push(`<span class="ri-tag atribuido">${member ? escapeHtml(member.icone + ' ' + member.nome) : '?'} · ${escapeHtml(l.atribuido.subcategoria || '?')}</span>`);
+  } else {
+    tags.push('<span class="ri-tag pendente">⚠ pendente</span>');
+  }
+
+  return `
+    <div class="revisao-item ${isSelected ? 'selected' : ''} ${isAttr ? 'atribuido' : 'pendente'}" data-rev-item="${l.id}">
+      <div class="ri-check">${isSelected ? '✓' : ''}</div>
+      <div class="ri-date">
+        <span class="rd-day">${dd}</span>
+        <span class="rd-mon">${MESES_PT_ABBR[Number(mm) - 1]}</span>
+      </div>
+      <div class="ri-body">
+        <div class="ri-desc">${escapeHtml(l.descricao)}</div>
+        <div class="ri-meta">${tags.join('')}</div>
+      </div>
+      <div class="ri-value">${fmtBRL(l.valor)}</div>
+    </div>
+  `;
+}
+
+/* Edição individual: abre o mesmo diálogo de atribuição, mas só pra um item. */
+function openItemAtribuicaoIndividual(itemId) {
+  const lanc = revisaoState.lancs.find(l => l.id === itemId);
+  if (!lanc) return;
+  openBulkAtribuicaoSheet((cat, subc, grupoId) => {
+    lanc.atribuido = { categoria: cat, subcategoria: subc, grupoId };
+    renderRevisao();
+  }, lanc.atribuido);
+}
+
+/* Sub-modal sobrepondo a sheet de revisão — escolhe categoria/subcategoria/grupo. */
+function openBulkAtribuicaoSheet(callback, prefill) {
+  const categorias = ['casa', 'marina', 'heitor', 'juliana', 'tiago'];
+  let st_cat = prefill ? prefill.categoria : null;
+  let st_subc = prefill ? prefill.subcategoria : null;
+  let st_grupo = prefill ? prefill.grupoId : null;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed; inset:0; background:rgba(20,18,14,0.5);
+    z-index:200; display:flex; align-items:center; justify-content:center;
+    padding:20px; animation:fadeIn .2s ease;
+  `;
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg);border-radius:var(--r-lg);padding:20px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);max-height:88dvh;overflow-y:auto;">
+      <div style="font-family:var(--font-display);font-size:20px;font-weight:500;margin-bottom:4px;letter-spacing:-0.01em;">Atribuir</div>
+      <div style="color:var(--ink-soft);font-size:13px;margin-bottom:14px;line-height:1.45;">Categoria + subcategoria serão aplicadas aos lançamentos selecionados.</div>
+
+      <label>Categoria</label>
+      <div class="chip-row" id="bulkCat">
+        ${categorias.map(k => {
+          const m = state.members[k];
+          const sel = k === st_cat;
+          const styleSel = sel ? `background:${m.cor};border-color:${m.cor};color:#fff;` : '';
+          return `<button type="button" class="chip ${sel ? 'selected' : ''}" data-bcat="${k}" style="${styleSel}">${m.icone} ${escapeHtml(m.nome)}</button>`;
+        }).join('')}
+      </div>
+
+      <div style="margin-top:14px;">
+        <label>Subcategoria</label>
+        <div class="subcat-pick" id="bulkSubc"></div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label>Grupo (opcional)</label>
+        <div class="chip-row" id="bulkGrupo"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button class="btn btn-secondary" id="bulkCancel">Cancelar</button>
+        <button class="btn btn-primary" id="bulkOk">Aplicar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  function refreshSubcAndGrupo() {
+    const subcEl = overlay.querySelector('#bulkSubc');
+    const grupoEl = overlay.querySelector('#bulkGrupo');
+
+    if (!st_cat) {
+      subcEl.innerHTML = '<div class="muted" style="font-size:12.5px;padding:6px 0;">Escolha uma categoria primeiro</div>';
+      grupoEl.innerHTML = '<div class="muted" style="font-size:12.5px;padding:6px 0;">Escolha uma categoria primeiro</div>';
+      updateOkBtn();
+      return;
+    }
+
+    const subcats = getSubcatsFor(st_cat);
+    const member = state.members[st_cat];
+    subcEl.style.setProperty('--member-color', member.cor);
+    subcEl.innerHTML = subcats.map(s => {
+      const ex = isExclusiva(st_cat, s);
+      const inv = isInvest(st_cat, s);
+      const sel = s === st_subc;
+      const cls = ['pick'];
+      if (ex) cls.push('exclusive');
+      if (inv) cls.push('invest');
+      if (sel) cls.push('selected');
+      return `<button type="button" class="${cls.join(' ')}" data-bsubc="${escapeHtml(s)}">
+        ${ex ? '<span class="star">★</span>' : ''}
+        <span>${escapeHtml(s)}</span>
+        ${inv ? '<span class="invest-tag">invest</span>' : ''}
+      </button>`;
+    }).join('');
+    subcEl.querySelectorAll('.pick').forEach(p => {
+      p.onclick = () => {
+        st_subc = p.dataset.bsubc;
+        subcEl.querySelectorAll('.pick').forEach(x => x.classList.remove('selected'));
+        p.classList.add('selected');
+        updateOkBtn();
+      };
+    });
+
+    const grupos = gruposAtivosPara(st_cat);
+    let grupoHtml = `<button type="button" class="chip ${!st_grupo ? 'selected' : ''}" data-bgrupo="">— sem grupo —</button>`;
+    grupos.forEach(grp => {
+      const sel = grp.id === st_grupo;
+      const styleSel = sel ? `background:${member.cor};border-color:${member.cor};color:#fff;` : '';
+      grupoHtml += `<button type="button" class="chip ${sel ? 'selected' : ''}" data-bgrupo="${grp.id}" style="${styleSel}">${escapeHtml(grp.nome)}</button>`;
+    });
+    grupoEl.innerHTML = grupoHtml;
+    grupoEl.querySelectorAll('.chip').forEach(c => {
+      c.onclick = () => {
+        st_grupo = c.dataset.bgrupo || null;
+        grupoEl.querySelectorAll('.chip').forEach(x => {
+          x.classList.remove('selected');
+          x.style.background = ''; x.style.borderColor = ''; x.style.color = '';
+        });
+        c.classList.add('selected');
+        if (c.dataset.bgrupo) {
+          c.style.background = member.cor;
+          c.style.borderColor = member.cor;
+          c.style.color = '#fff';
+        }
+      };
+    });
+  }
+
+  function updateOkBtn() {
+    const ok = !!(st_cat && st_subc);
+    const btn = overlay.querySelector('#bulkOk');
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '1' : '0.4';
+  }
+
+  overlay.querySelectorAll('#bulkCat .chip').forEach(c => {
+    c.onclick = () => {
+      st_cat = c.dataset.bcat;
+      if (!prefill || st_cat !== (prefill && prefill.categoria)) {
+        st_subc = null;
+        st_grupo = null;
+      }
+      overlay.querySelectorAll('#bulkCat .chip').forEach(x => {
+        x.classList.remove('selected');
+        x.style.background = ''; x.style.borderColor = ''; x.style.color = '';
+      });
+      const m = state.members[st_cat];
+      c.classList.add('selected');
+      c.style.background = m.cor;
+      c.style.borderColor = m.cor;
+      c.style.color = '#fff';
+      refreshSubcAndGrupo();
+    };
+  });
+
+  refreshSubcAndGrupo();
+  updateOkBtn();
+
+  overlay.querySelector('#bulkCancel').onclick = () => overlay.remove();
+  overlay.querySelector('#bulkOk').onclick = () => {
+    if (!st_cat || !st_subc) return;
+    overlay.remove();
+    callback(st_cat, st_subc, st_grupo);
+  };
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+}
+
+/* Aplica os lançamentos revisados como gastos com pagamento=cartao + cardId.
+   Pendentes (sem categoria atribuída) vão para casa/Outros com flag categoriaPendente. */
+function aplicarLancamentosImportados(lancs, cardId) {
+  let novos = 0;
+  let pendentesCount = 0;
+
+  lancs.forEach(l => {
+    if (l.excluido) return;
+    const isPendente = !l.atribuido.categoria;
+    const cat = l.atribuido.categoria || 'casa';
+    const subc = l.atribuido.subcategoria || 'Outros';
+    const grupoId = l.atribuido.grupoId || null;
+    const investFlag = !isPendente && isInvest(cat, subc);
+
+    const nomeFinal = canonicalizeNome(cat, subc, l.descricao);
+
+    const novoGasto = {
+      id: uid(),
+      categoria: cat,
+      subcategoria: subc,
+      grupoId,
+      nome: nomeFinal,
+      valor: l.valor,
+      data: l.data,
+      ym: l.ym,
+      cardId,
+      contaId: null,
+      pagamento: 'cartao',
+      isFixo: false,
+      isInvest: investFlag,
+      observacao: l.parcela ? `parcela ${l.parcela.atual}/${l.parcela.total}` : '',
+      pago: true,
+      dataPagamento: l.data,
+      categoriaPendente: isPendente
+    };
+    if (l.parcela) {
+      novoGasto.parcela = l.parcela;
+    }
+    state.gastos.push(novoGasto);
+    novos++;
+    if (isPendente) pendentesCount++;
+  });
+
+  saveState(state);
+  renderCartoes();
+  if (pendentesCount > 0) {
+    toast(`${novos} lançamentos aplicados (${pendentesCount} pendentes)`, 'success');
+  } else {
+    toast(`${novos} lançamentos aplicados`, 'success');
+  }
 }
 
 /* =========================================================================
