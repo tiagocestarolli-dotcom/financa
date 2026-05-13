@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.9.3 · fix vencimento default
+  Finança · v0.9.5 · re-render robusto pós-edição
 </div>
 
   </section>
@@ -6450,6 +6450,7 @@ function openGastoForm(id, defaultCategoria, opts) {
       if (activeView === 'tiago') renderTiagoView();
       else if (activeView === 'familia') renderFamiliaContent();
       if (activeView === 'contas') renderContas();
+      if (activeView === 'cartoes') renderCartoes();
       toast('Pagamento desfeito');
     };
   }
@@ -6872,12 +6873,11 @@ function openGastoForm(id, defaultCategoria, opts) {
         tiagoCurrentYM = ym;
       }
     }
-    /* Re-renderiza a view ativa corretamente */
-    if (state_categoria === 'tiago' || activeView === 'tiago') {
-      renderTiagoView();
-    } else {
-      renderFamiliaSubtabs();
-    }
+    /* Re-renderiza todas as views que podem estar mostrando este gasto.
+       Funções de render são idempotentes e tocam apenas o seu próprio host. */
+    try { renderCartoes(); } catch (e) {}
+    try { if (state_categoria === 'tiago') renderTiagoView(); else renderFamiliaSubtabs(); } catch (e) {}
+    try { renderContas(); } catch (e) {}
     renderConfigCounts();
     toast(editing ? 'Gasto atualizado' : 'Gasto adicionado', 'success');
   };
@@ -6903,11 +6903,12 @@ function openGastoForm(id, defaultCategoria, opts) {
       state.gastos = state.gastos.filter(x => x.id !== id);
       saveState(state);
       sheet.close();
-      if (wasTiago || activeView === 'tiago') {
-        renderTiagoView();
-      } else {
-        renderFamiliaContent();
-      }
+      /* Re-renderiza todas as views que podem estar mostrando este gasto.
+         Funções de render são idempotentes e tocam apenas o seu próprio host —
+         chamar todas é seguro e elimina dependência do activeView. */
+      try { renderCartoes(); } catch (e) {}
+      try { if (wasTiago) renderTiagoView(); else renderFamiliaContent(); } catch (e) {}
+      try { renderContas(); } catch (e) {}
       renderConfigCounts();
       toast('Excluído');
     };
@@ -7136,6 +7137,7 @@ function abrirDialogoCheckin(gasto) {
       if (activeView === 'tiago') renderTiagoView();
       else if (activeView === 'familia') renderFamiliaContent();
       if (activeView === 'contas') renderContas();
+      if (activeView === 'cartoes') renderCartoes();
       toast('Pagamento confirmado', 'success');
       resolve(true);
     };
