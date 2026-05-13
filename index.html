@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.9.2 · gastos no mês de vencimento
+  Finança · v0.9.3 · fix vencimento default
 </div>
 
   </section>
@@ -8316,21 +8316,18 @@ function renderCartoesDetail(cartaoId) {
   });
 }
 
-/* Calcula a próxima data de vencimento de um cartão a partir do dia configurado
-   e da data de hoje. Se o dia já passou no mês corrente, vai pro próximo mês.
-   Trata fim de mês (ex: vencimento dia 31 em fevereiro → último dia de fev). */
+/* Calcula a data de vencimento sugerida para uma fatura importada hoje.
+   Heurística: dia X (cadastrado no cartão) do MÊS CORRENTE.
+   Faturas em mãos quase sempre vencem no mês corrente — mesmo que o dia
+   exato já tenha passado (fatura vencida há poucos dias). O usuário pode
+   ajustar manualmente na tela de revisão. */
 function calcularProximoVencimento(diaVencimento, hojeISO) {
   const d = diaVencimento && diaVencimento >= 1 && diaVencimento <= 31 ? diaVencimento : 10;
-  const [hY, hM, hD] = (hojeISO || todayISO()).split('-').map(Number);
-  let ano = hY, mes = hM; /* mes 1-12 */
-  if (hD >= d) {
-    mes++;
-    if (mes > 12) { mes = 1; ano++; }
-  }
-  /* Trata overflow do dia (ex: pedido dia 31 em mês com 30 dias) */
-  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const [hY, hM] = (hojeISO || todayISO()).split('-').map(Number);
+  /* Trata overflow do dia (ex: pedido dia 31 em mês com 30 dias → último dia do mês) */
+  const ultimoDia = new Date(hY, hM, 0).getDate();
   const diaFinal = Math.min(d, ultimoDia);
-  return `${ano}-${String(mes).padStart(2,'0')}-${String(diaFinal).padStart(2,'0')}`;
+  return `${hY}-${String(hM).padStart(2,'0')}-${String(diaFinal).padStart(2,'0')}`;
 }
 
 /* =========================================================================
