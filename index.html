@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.10.0 · dispatcher por banco
+  Finança · v0.10.1 · parser Itaú Visa Infinite
 </div>
 
   </section>
@@ -8515,13 +8515,13 @@ function openImportarFaturaSheet(cardId) {
     `;
 
     try {
-      const texto = await extrairTextoDoPDF(file);
+      const { textoBruto: texto, items: pdfItems } = await extrairTextoDoPDF(file);
       const banco = detectarBancoFatura(texto);
       const bancoLabel = BANCO_LABELS[banco] || banco;
       statusEl.querySelector('.pl-status').innerHTML = `Identificando lançamentos…<br><span style="font-size:11px;color:var(--ink-faint);">Banco: ${escapeHtml(bancoLabel)}</span>`;
       await new Promise(r => setTimeout(r, 50));
 
-      const { lancs } = parseFatura(texto, banco);
+      const { lancs } = parseFatura(texto, banco, pdfItems);
       console.log(`[Finança] Banco detectado: ${bancoLabel} · ${lancs.length} lançamentos`);
 
       if (lancs.length === 0) {
@@ -8564,7 +8564,10 @@ async function extrairTextoDoPDF(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
+  /* v0.10.1: além do textoBruto (compat), retorna items com coordenadas pra
+     parsers que precisam reorganizar layout em colunas (ex: Itaú Visa Infinite). */
   let texto = '';
+  const items = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
@@ -8572,7 +8575,9 @@ async function extrairTextoDoPDF(file) {
     let line = '';
     for (const item of content.items) {
       if (!item.str) continue;
+      const x = item.transform[4];
       const y = item.transform[5];
+      items.push({ x, y, text: item.str, page: i });
       if (prevY !== null && Math.abs(y - prevY) > 2) {
         if (line.trim()) texto += line.trim() + '\n';
         line = '';
@@ -8583,7 +8588,7 @@ async function extrairTextoDoPDF(file) {
     if (line.trim()) texto += line.trim() + '\n';
     texto += '\n';
   }
-  return texto;
+  return { textoBruto: texto, items };
 }
 
 /* ============== Dispatcher de parsers por banco (v0.10.0 — Fatia 3.0) ==============
@@ -8631,14 +8636,17 @@ function detectarBancoFatura(textoBruto) {
   return 'generico';
 }
 
-function parseFatura(textoBruto, hintBanco = null) {
+function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
   const banco = hintBanco || detectarBancoFatura(textoBruto);
-  /* Por ora todos os bancos usam o parser genérico. Os parsers especializados
-     entram aqui nas próximas sub-fatias (substituindo cada case). */
+  /* v0.10.1: Itaú Visa Infinite usa parser especializado que reorganiza
+     o layout em 2 colunas antes de aplicar regex. Os outros bancos ainda
+     delegam ao genérico — entram nas sub-fatias 3.2 (Sicoob) e 3.3 (BTG). */
   let lancs;
   switch (banco) {
-    case 'itau-mc-black':
     case 'itau-visa-infinite':
+      lancs = parserItauVisaInfinite(textoBruto, pdfItems);
+      break;
+    case 'itau-mc-black':
     case 'itau-generico':
     case 'sicoob':
     case 'btg':
@@ -8648,6 +8656,116 @@ function parseFatura(textoBruto, hintBanco = null) {
       break;
   }
   return { banco, lancs };
+}
+
+/* ============== Parser especializado: Itaú Visa Infinite (v0.10.1 — Fatia 3.1) ==============
+   A fatura do Visa Infinite usa layout em 2 colunas. O PDF.js extrai items por Y,
+   misturando colunas na mesma linha de texto — o que quebra a regex do genérico.
+   Solução: usar as coordenadas X/Y dos items pra reorganizar por COLUNA antes de
+   passar pelo parser genérico (que volta a funcionar normalmente).
+
+   Estratégia de detecção de colunas:
+   - Histograma de Xs onde aparecem datas DD/MM no PDF
+   - Considera só Xs com frequência >= 3 (filtra parcelas isoladas tipo "07/10"
+     no meio de linhas, que ficam em Xs únicos)
+   - Clusteriza com gap mínimo de 50px → cada cluster é uma coluna lógica
+   - Cada item é atribuído à maior base de coluna <= sua X (com 20px de tolerância)
+   - Gera texto coluna-por-coluna e devolve concatenado
+
+   Pós-processamento: identifica a seção "Lançamentos internacionais" no texto
+   reorganizado e marca os lançamentos correspondentes com internacional=true. */
+
+function reorganizarColunasItau(items) {
+  const DATA_RX = /^\d{1,2}\/\d{1,2}$/;
+  /* Agrupa items por página */
+  const paginas = new Map();
+  for (const it of items) {
+    if (!paginas.has(it.page)) paginas.set(it.page, []);
+    paginas.get(it.page).push(it);
+  }
+  let textoFinal = '';
+  const pageNums = [...paginas.keys()].sort((a, b) => a - b);
+  for (const pageNum of pageNums) {
+    const pageItems = paginas.get(pageNum);
+    /* Histograma de Xs onde há datas DD/MM */
+    const xsFreq = new Map();
+    for (const it of pageItems) {
+      if (DATA_RX.test(it.text.trim())) {
+        const xk = Math.round(it.x);
+        xsFreq.set(xk, (xsFreq.get(xk) || 0) + 1);
+      }
+    }
+    /* Só Xs com freq >= 3 viram âncora — parcelas isoladas (07/10, 06/08...)
+       aparecem em Xs únicos e ficam de fora */
+    const candidatos = [...xsFreq.entries()]
+      .filter(([, c]) => c >= 3)
+      .map(([x]) => x)
+      .sort((a, b) => a - b);
+    let bases;
+    if (candidatos.length === 0) {
+      const minX = pageItems.reduce((m, i) => Math.min(m, i.x), Infinity);
+      bases = [isFinite(minX) ? minX : 0];
+    } else {
+      bases = [candidatos[0]];
+      for (let i = 1; i < candidatos.length; i++) {
+        if (candidatos[i] - bases[bases.length - 1] >= 50) bases.push(candidatos[i]);
+      }
+    }
+    /* Atribuir coluna a cada item: maior base tal que (it.x + 20) >= base */
+    const cols = bases.map(() => []);
+    for (const it of pageItems) {
+      let colIdx = 0;
+      for (let i = bases.length - 1; i >= 0; i--) {
+        if (it.x >= bases[i] - 20) { colIdx = i; break; }
+      }
+      cols[colIdx].push(it);
+    }
+    /* Gerar texto de cada coluna: agrupar por Y (tol 2), ordenar X dentro */
+    for (const colItems of cols) {
+      const byY = [];
+      for (const it of colItems) {
+        const found = byY.find(g => Math.abs(g.y - it.y) < 2);
+        if (found) found.items.push(it);
+        else byY.push({ y: it.y, items: [it] });
+      }
+      byY.sort((a, b) => a.y - b.y);
+      for (const g of byY) {
+        g.items.sort((a, b) => a.x - b.x);
+        const linha = g.items.map(i => i.text.trim()).filter(Boolean).join(' ').trim();
+        if (linha) textoFinal += linha + '\n';
+      }
+    }
+    textoFinal += '\n';
+  }
+  return textoFinal;
+}
+
+function parserItauVisaInfinite(textoBruto, pdfItems) {
+  /* Se temos items com coordenadas, reorganiza por coluna; senão usa o texto
+     bruto direto (cai na heurística do genérico, mais frágil). */
+  const texto = (pdfItems && pdfItems.length) ? reorganizarColunasItau(pdfItems) : textoBruto;
+  const lancs = parserGenericoFatura(texto);
+
+  /* Marcar como internacional: encontrar a seção "Lançamentos internacionais"
+     no texto reorganizado e flagar lançamentos cuja descricaoBruta aparece lá. */
+  const linhas = texto.split('\n');
+  const idxInicio = linhas.findIndex(l => /Lan[çc]amentos\s+internacionais/i.test(l));
+  if (idxInicio >= 0) {
+    let idxFim = linhas.length;
+    for (let i = idxInicio + 1; i < linhas.length; i++) {
+      if (/Outros\s+lan[çc]amentos|Compras\s+parceladas|Total\s+dos\s+lan/i.test(linhas[i])) {
+        idxFim = i;
+        break;
+      }
+    }
+    const trechoInter = linhas.slice(idxInicio, idxFim).join('\n');
+    for (const l of lancs) {
+      if (l.descricaoBruta && trechoInter.includes(l.descricaoBruta)) {
+        l.internacional = true;
+      }
+    }
+  }
+  return lancs;
 }
 
 /* Parser genérico — heurística por regex.
