@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.9.5 · re-render robusto pós-edição
+  Finança · v0.9.7 · totais consolidados por grupo+nome
 </div>
 
   </section>
@@ -6002,7 +6002,7 @@ function renderFamiliaContent() {
           </div>
           <div class="subc-body">
             ${renderItemsByGrupo(g.items, cat)}
-            ${renderNomeTotals(g.items)}
+            ${renderNomeTotals(g.items, cat)}
           </div>
         </div>
       `;
@@ -6145,40 +6145,55 @@ function renderItemsByGrupo(items, cat) {
   }).join('');
 }
 
-/* Painel "totais por descrição" — agrega lançamentos pelo nome normalizado.
-   Resolve "Gasolina" ↔ "gasolina" ↔ "GASOLINA" como o mesmo item.
-   Útil dentro de uma subcategoria expandida com múltiplos grupos
-   (ex: ver quanto gastou em Gasolina total, somando Moto GS + Honda Civic). */
-function renderNomeTotals(items) {
-  /* Agrega por nome normalizado */
+/* Painel "totais consolidados" — agrega prioritariamente por GRUPO, depois por nome.
+   Quando o gasto tem grupoId: agrega pelo nome do grupo (ex: 5 iFoods diferentes
+   somam num único "iFood"). Quando não tem grupo: agrega pelo nome normalizado
+   do estabelecimento (ex: "Gasolina" majúsculo/minúsculo viram a mesma chave). */
+function renderNomeTotals(items, cat) {
   const buckets = new Map();
   items.forEach(it => {
-    if (!it.nome) return;
-    const k = normNome(it.nome);
-    if (!k) return;
-    if (!buckets.has(k)) buckets.set(k, { canonical: it.nome.trim(), total: 0, count: 0, variants: {} });
-    const b = buckets.get(k);
+    let key, label, isGroup = false;
+    if (it.grupoId) {
+      const grp = getGrupoById(cat, it.grupoId);
+      if (grp) {
+        key = `__grp__${it.grupoId}`;
+        label = grp.nome;
+        isGroup = true;
+      }
+    }
+    if (!key) {
+      if (!it.nome) return;
+      const k = normNome(it.nome);
+      if (!k) return;
+      key = `__nome__${k}`;
+      label = it.nome.trim();
+    }
+    if (!buckets.has(key)) buckets.set(key, { canonical: label, total: 0, count: 0, variants: {}, isGroup });
+    const b = buckets.get(key);
     b.total += Number(it.valor) || 0;
     b.count += 1;
-    const v = it.nome.trim();
-    b.variants[v] = (b.variants[v] || 0) + 1;
+    if (!isGroup) {
+      const v = it.nome.trim();
+      b.variants[v] = (b.variants[v] || 0) + 1;
+    }
   });
-  /* Define canonical = variante mais usada */
+  /* Para itens sem grupo: define canonical = variante mais usada */
   buckets.forEach(b => {
+    if (b.isGroup) return;
     let best = null, bc = -1;
     Object.entries(b.variants).forEach(([v, c]) => { if (c > bc) { bc = c; best = v; } });
     if (best) b.canonical = best;
   });
-  /* Só faz sentido se houver ≥ 2 grupos diferentes pelo nome (senão é redundante com a lista) */
+  /* Só faz sentido se houver ≥ 2 buckets (senão é redundante com a lista) */
   if (buckets.size < 2) return '';
   const ordered = [...buckets.values()].sort((a, b) => b.total - a.total);
   return `
     <div class="nome-totals">
-      <div class="nt-title">▾ totais por descrição</div>
+      <div class="nt-title">▾ totais consolidados</div>
       ${ordered.map(b => `
         <div class="nt-row">
           <div class="nt-name">
-            ${escapeHtml(b.canonical)}
+            ${b.isGroup ? '<span style="color:var(--ink-mute);font-size:10px;margin-right:4px;">▤</span>' : ''}${escapeHtml(b.canonical)}
             <span class="nt-count">${b.count}×</span>
           </div>
           <div class="nt-value">${fmtBRL(b.total)}</div>
@@ -6775,8 +6790,22 @@ function openGastoForm(id, defaultCategoria, opts) {
         cardId: state_pagamento === 'cartao' ? state_cardId : null,
         contaId: contaIdFinal,
         observacao: obs,
-        isInvest: investFlag
+        isInvest: investFlag,
+        categoriaPendente: false  /* edição manual sempre marca como identificado */
       });
+      /* Re-aprende alias para gastos de cartão que guardam a descrição bruta original.
+         Permite que correções manuais (ex: adicionar grupo Padaria a PD PAES E DELICIAS)
+         se propaguem para importações futuras automaticamente. */
+      if (editing.descricaoBruta && state_pagamento === 'cartao') {
+        const parcelaTotal = editing.parcela ? editing.parcela.total : null;
+        aprenderAlias(
+          editing.descricaoBruta,
+          state_categoria,
+          state_subcategoria,
+          state_grupoId || null,
+          parcelaTotal
+        );
+      }
       if (aplicarNovoPadrao) {
         /* Atualiza a recorrência mensal */
         const parent = state.fixedExpenses.find(f => f.id === editing.parentFixoId);
@@ -7998,7 +8027,7 @@ function renderTiagoView() {
           </div>
           <div class="subc-body">
             ${renderItemsByGrupo(g.items, 'tiago')}
-            ${renderNomeTotals(g.items)}
+            ${renderNomeTotals(g.items, 'tiago')}
           </div>
         </div>
       `;
@@ -9352,6 +9381,7 @@ function aplicarLancamentosImportados(lancs, cardId) {
       data: dataVenc,         /* gasto entra no mês do pagamento da fatura */
       ym: ymVenc,
       dataCompra: l.data,     /* data original preservada para exibição (flag cartão) */
+      descricaoBruta: l.descricaoBruta || l.descricao, /* texto original do PDF — usado pra re-aprender alias se gasto for editado */
       cardId,
       contaId: null,
       pagamento: 'cartao',
