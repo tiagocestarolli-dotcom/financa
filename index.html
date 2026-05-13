@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.10.1 · parser Itaú Visa Infinite
+  Finança · v0.10.2 · fix Y-axis Visa Infinite
 </div>
 
   </section>
@@ -8677,16 +8677,57 @@ function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
 
 function reorganizarColunasItau(items) {
   const DATA_RX = /^\d{1,2}\/\d{1,2}$/;
+  /* Detecta a convenção de Y do PDF: o PDF.js entrega Y no sistema nativo do
+     PDF (origem inferior esquerda, Y aumenta pra cima). Pra ordenar items
+     do topo pra base, precisamos descendente. Mas para ser robusto contra
+     outras runtimes (ex: PyMuPDF, que usa screen-native Y crescente pra
+     baixo), detectamos olhando um item-âncora conhecido do TOPO da página:
+     o "Resumo da fatura em R$" (sempre presente no cabeçalho Itaú).
+     Se a Y desse item é maior que a mediana, Y aumenta pra cima → descendente.
+     Senão, ascendente. */
+  function detectarSentidoY(pageItems) {
+    const ancora = pageItems.find(it => /Resumo\s+da\s+fatura/i.test(it.text));
+    if (!ancora) return 'desc';  /* default PDF.js */
+    const ys = pageItems.map(i => i.y);
+    const mediana = ys.sort((a, b) => a - b)[Math.floor(ys.length / 2)];
+    return ancora.y > mediana ? 'desc' : 'asc';
+  }
+
   /* Agrupa items por página */
   const paginas = new Map();
   for (const it of items) {
     if (!paginas.has(it.page)) paginas.set(it.page, []);
     paginas.get(it.page).push(it);
   }
+  /* Sentido de Y: detecta na primeira página (cabeçalho) e usa em todas */
+  const sentidoY = detectarSentidoY(paginas.get([...paginas.keys()].sort((a,b)=>a-b)[0]) || []);
+  const cmpY = sentidoY === 'desc' ? ((a, b) => b.y - a.y) : ((a, b) => a.y - b.y);
+
+  /* Proteção extra: por página, identifica a Y do marker "Compras parceladas
+     - próximas faturas". Items "abaixo" dele (no sentido de leitura: para
+     PDF.js Y nativo, Y menor; para screen-native, Y maior) são descartados —
+     blindagem contra parcelas futuras que escapariam por ordem irregular do
+     content stream. */
+  function corteParcelas(pageItems) {
+    const marker = pageItems.find(it =>
+      /Compras\s+parceladas\s*[-–]?\s*pr[óo]ximas/i.test(it.text)
+    );
+    if (!marker) return null;
+    return { y: marker.y, sentido: sentidoY };
+  }
+
   let textoFinal = '';
   const pageNums = [...paginas.keys()].sort((a, b) => a - b);
   for (const pageNum of pageNums) {
-    const pageItems = paginas.get(pageNum);
+    const allPageItems = paginas.get(pageNum);
+    /* Aplica corte de parcelas futuras */
+    const corte = corteParcelas(allPageItems);
+    const pageItems = corte
+      ? allPageItems.filter(it =>
+          corte.sentido === 'desc' ? it.y >= corte.y : it.y <= corte.y
+        )
+      : allPageItems;
+
     /* Histograma de Xs onde há datas DD/MM */
     const xsFreq = new Map();
     for (const it of pageItems) {
@@ -8720,7 +8761,8 @@ function reorganizarColunasItau(items) {
       }
       cols[colIdx].push(it);
     }
-    /* Gerar texto de cada coluna: agrupar por Y (tol 2), ordenar X dentro */
+    /* Gerar texto de cada coluna: agrupar por Y (tol 2), ordenar X dentro,
+       ordenar linhas com cmpY (descendente em PDF.js, ascendente em screen-Y) */
     for (const colItems of cols) {
       const byY = [];
       for (const it of colItems) {
@@ -8728,7 +8770,7 @@ function reorganizarColunasItau(items) {
         if (found) found.items.push(it);
         else byY.push({ y: it.y, items: [it] });
       }
-      byY.sort((a, b) => a.y - b.y);
+      byY.sort(cmpY);
       for (const g of byY) {
         g.items.sort((a, b) => a.x - b.x);
         const linha = g.items.map(i => i.text.trim()).filter(Boolean).join(' ').trim();
