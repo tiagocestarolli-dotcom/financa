@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.9.7 · totais consolidados por grupo+nome
+  Finança · v0.10.0 · dispatcher por banco
 </div>
 
   </section>
@@ -8516,10 +8516,13 @@ function openImportarFaturaSheet(cardId) {
 
     try {
       const texto = await extrairTextoDoPDF(file);
-      statusEl.querySelector('.pl-status').innerHTML = 'Identificando lançamentos…';
+      const banco = detectarBancoFatura(texto);
+      const bancoLabel = BANCO_LABELS[banco] || banco;
+      statusEl.querySelector('.pl-status').innerHTML = `Identificando lançamentos…<br><span style="font-size:11px;color:var(--ink-faint);">Banco: ${escapeHtml(bancoLabel)}</span>`;
       await new Promise(r => setTimeout(r, 50));
 
-      const lancs = parserGenericoFatura(texto);
+      const { lancs } = parseFatura(texto, banco);
+      console.log(`[Finança] Banco detectado: ${bancoLabel} · ${lancs.length} lançamentos`);
 
       if (lancs.length === 0) {
         statusEl.innerHTML = `
@@ -8581,6 +8584,70 @@ async function extrairTextoDoPDF(file) {
     texto += '\n';
   }
   return texto;
+}
+
+/* ============== Dispatcher de parsers por banco (v0.10.0 — Fatia 3.0) ==============
+   detectarBancoFatura: heurística por marcadores no cabeçalho/CNPJ do texto bruto.
+   parseFatura: ponto único de entrada do importador; despacha pro parser certo
+   ou cai no genérico. Por ora todos os bancos delegam ao genérico — os parsers
+   especializados entram nas sub-fatias 3.1 (Itaú Visa Infinite), 3.2 (Sicoob)
+   e 3.3 (BTG). Mastercard Black mantém o genérico (já funciona 100%). */
+
+const BANCO_LABELS = {
+  'itau-mc-black':      'Itaú Mastercard Black',
+  'itau-visa-infinite': 'Itaú Visa Infinite',
+  'itau-generico':      'Itaú (genérico)',
+  'sicoob':             'Sicoob',
+  'btg':                'BTG Pactual',
+  'generico':           'Genérico'
+};
+
+function detectarBancoFatura(textoBruto) {
+  /* Normaliza: remove acentos, lowercase. Olha só os primeiros ~5KB —
+     cabeçalho/headline geralmente identifica o produto, e isso evita
+     falso-positivo com nomes de lojas no corpo. */
+  const t = (textoBruto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  const cab = t.slice(0, 5000);
+
+  /* Itaú: detecta banco primeiro, depois discrimina produto */
+  const isItau = /\bitau\b|itau unibanco|60\.?\s*701\.?\s*190/.test(cab);
+  if (isItau) {
+    if (/mastercard\s+black|master\s+black/.test(cab)) return 'itau-mc-black';
+    if (/visa\s+infinite/.test(cab))                    return 'itau-visa-infinite';
+    return 'itau-generico';
+  }
+
+  /* Sicoob: nome aparece bem cedo no PDF */
+  if (/\bsicoob\b|bancoob/.test(cab)) return 'sicoob';
+
+  /* BTG Pactual — exige marcador forte ("btg pactual" ou CNPJ).
+     "BTG" isolado é rejeitado pra evitar falso-positivo com lojas que tenham
+     a sigla no nome; faturas BTG reais sempre trazem "Pactual" no cabeçalho. */
+  if (/btg\s*pactual|30\.?\s*306\.?\s*294/.test(cab)) return 'btg';
+
+  return 'generico';
+}
+
+function parseFatura(textoBruto, hintBanco = null) {
+  const banco = hintBanco || detectarBancoFatura(textoBruto);
+  /* Por ora todos os bancos usam o parser genérico. Os parsers especializados
+     entram aqui nas próximas sub-fatias (substituindo cada case). */
+  let lancs;
+  switch (banco) {
+    case 'itau-mc-black':
+    case 'itau-visa-infinite':
+    case 'itau-generico':
+    case 'sicoob':
+    case 'btg':
+    case 'generico':
+    default:
+      lancs = parserGenericoFatura(textoBruto);
+      break;
+  }
+  return { banco, lancs };
 }
 
 /* Parser genérico — heurística por regex.
