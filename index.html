@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.10.2 · fix Y-axis Visa Infinite
+  Finança · v0.10.3 · fix fragmentação PDF.js
 </div>
 
   </section>
@@ -8675,6 +8675,21 @@ function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
    Pós-processamento: identifica a seção "Lançamentos internacionais" no texto
    reorganizado e marca os lançamentos correspondentes com internacional=true. */
 
+function normalizarFragmentacaoPDFJS(linha) {
+  /* O PDF.js fragmenta caracteres acentuados isolados em items separados
+     ("Lan", "ç", "amentos" como 3 spans). Depois do agrupamento por Y,
+     ficam entre espaços. Esta função cola de volta: detecta um ou mais
+     caracteres acentuados isolados entre letras/dígitos e remove os espaços
+     ao redor. Loop até estabilizar pra cobrir múltiplos fragmentos na linha. */
+  const RX = /([a-zA-Z0-9])\s+([áéíóúâêîôûçãõÁÉÍÓÚÂÊÎÔÛÇÃÕ]+)\s+([a-zA-Z0-9])/g;
+  let prev;
+  do {
+    prev = linha;
+    linha = linha.replace(RX, '$1$2$3');
+  } while (linha !== prev);
+  return linha;
+}
+
 function reorganizarColunasItau(items) {
   const DATA_RX = /^\d{1,2}\/\d{1,2}$/;
   /* Detecta a convenção de Y do PDF: o PDF.js entrega Y no sistema nativo do
@@ -8710,7 +8725,7 @@ function reorganizarColunasItau(items) {
      content stream. */
   function corteParcelas(pageItems) {
     const marker = pageItems.find(it =>
-      /Compras\s+parceladas\s*[-–]?\s*pr[óo]ximas/i.test(it.text)
+      /Compras\s+parc/i.test(it.text)  /* relaxado: PDF.js pode fragmentar "próximas" */
     );
     if (!marker) return null;
     return { y: marker.y, sentido: sentidoY };
@@ -8773,7 +8788,8 @@ function reorganizarColunasItau(items) {
       byY.sort(cmpY);
       for (const g of byY) {
         g.items.sort((a, b) => a.x - b.x);
-        const linha = g.items.map(i => i.text.trim()).filter(Boolean).join(' ').trim();
+        const linhaRaw = g.items.map(i => i.text.trim()).filter(Boolean).join(' ').trim();
+        const linha = normalizarFragmentacaoPDFJS(linhaRaw);
         if (linha) textoFinal += linha + '\n';
       }
     }
