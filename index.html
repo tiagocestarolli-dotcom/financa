@@ -8823,6 +8823,29 @@ function parserItauVisaInfinite(textoBruto, pdfItems) {
       }
     }
   }
+  /* DEBUG v0.10.4: expor estatística pra diagnóstico no app */
+  try {
+    const totalItems = (pdfItems || []).length;
+    const matchesRelax = (pdfItems || []).filter(it => /Compras\s+parc/i.test(it.text || '')).length;
+    const matchesAncora = (pdfItems || []).filter(it => /^\s*Compras\s+parceladas/i.test(it.text || '')).length;
+    const linhasReorg = texto.split('\n');
+    const stopReorg = linhasReorg.filter(l => /compras\s+parceladas\s*-?\s*pr[óo]ximas/i.test(l)).length;
+    const internacReorg = linhasReorg.filter(l => /Lan[çc]amentos\s+internacionais/i.test(l)).length;
+    if (typeof window !== 'undefined') {
+      window.__faturaDebug = {
+        items: totalItems,
+        matchesRelax,
+        matchesAncora,
+        stopReorg,
+        internacReorg,
+        reorgChars: texto.length,
+        capturados: lancs.length,
+        somaTotal: lancs.reduce((s, l) => s + (l.valor || 0), 0)
+      };
+    }
+  } catch (e) {
+    if (typeof window !== 'undefined') window.__faturaDebug = { erro: String(e) };
+  }
   return lancs;
 }
 
@@ -9020,6 +9043,13 @@ function renderRevisao() {
       <div style="font-size:13px;line-height:1.55;">
         <strong>${escapeHtml(cardName)}</strong> · ${ativos.length} ${ativos.length === 1 ? 'lançamento' : 'lançamentos'} · total ${fmtBRL(totalValor)}<br>
         <span class="muted">${atribuidos.length} identificados${autoAplicados > 0 ? ` (${autoAplicados} via alias)` : ''} · ${pendentes.length} pendentes</span>
+        <br><span class="muted" style="font-size:10.5px;font-family:var(--font-mono);">${(() => {
+          try {
+            const d = window.__faturaDebug;
+            if (!d) return 'debug: indisponível';
+            return `debug: ${d.items} items · ${d.matchesAncora}/${d.matchesRelax} markers · stop=${d.stopMarkersReorg} · reorg=${d.reorgChars}c`;
+          } catch (e) { return 'debug: erro'; }
+        })()}</span>
       </div>
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <label style="font-size:11.5px;color:var(--ink-soft);font-weight:600;letter-spacing:0.02em;text-transform:uppercase;margin:0;">Vencimento</label>
