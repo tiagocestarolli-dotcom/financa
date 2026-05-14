@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.10.3 · fix fragmentação PDF.js
+  Finança · v0.10.4 · debug fatura + fix corteParcelas
 </div>
 
   </section>
@@ -8724,10 +8724,15 @@ function reorganizarColunasItau(items) {
      blindagem contra parcelas futuras que escapariam por ordem irregular do
      content stream. */
   function corteParcelas(pageItems) {
-    const marker = pageItems.find(it =>
-      /Compras\s+parc/i.test(it.text)  /* relaxado: PDF.js pode fragmentar "próximas" */
+    /* Exige "Compras parceladas" no INÍCIO do item (^) pra evitar falso-positivo
+       com "Simulação de Compras parc. c/ juros" da seção de simulação Itaú. */
+    const candidatos = pageItems.filter(it => /^\s*Compras\s+parceladas/i.test(it.text));
+    if (candidatos.length === 0) return null;
+    /* Entre múltiplos candidatos da mesma página, escolhe o mais perto do topo
+       (Y maior em PDF.js native, Y menor em screen-native). */
+    const marker = candidatos.reduce((acc, it) =>
+      sentidoY === 'desc' ? (it.y > acc.y ? it : acc) : (it.y < acc.y ? it : acc)
     );
-    if (!marker) return null;
     return { y: marker.y, sentido: sentidoY };
   }
 
