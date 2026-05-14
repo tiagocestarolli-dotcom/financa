@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.10.5 · fix detecção Itaú (logo é imagem)
+  Finança · v0.11.1 · marca fixo na revisão
 </div>
 
   </section>
@@ -3373,7 +3373,7 @@ function defaultState() {
     cards: [],          /* {id, nome, bandeira, cor, vencimento, fechamento, contaPagamentoId} */
     contas: structuredClone(CONTAS_DEFAULT), /* {id, nome, cor, icone, principal, saldoInicial, dataSaldoInicial, arquivado} */
     aliases: {},        /* { 'TEXTO ORIGINAL': 'apelido' } */
-    aliasItems: [],     /* memória de classificação automática (v0.9) — {id, chave, categoria, subcategoria, grupoId, parcelaTotal, contagemUso, criadoEm, ultimoUsoEm} */
+    aliasItems: [],     /* memória de classificação automática — {id, chave, categoria, subcategoria, grupoId, identificacao, isFixo, parcelaTotal, contagemUso, criadoEm, ultimoUsoEm} */
     fixedExpenses: [],  /* {id, categoria, subcategoria, grupoId, nome, valor, pagamento, cardId, contaId, lembreteDia, lembreteHora, ativo} */
     reminders: [],      /* {id, titulo, dia, hora} */
     investMods: structuredClone(INVEST_MODS_DEFAULT),
@@ -6243,6 +6243,7 @@ function renderGastoRow(g) {
       </div>
       <div class="gr-body">
         <div class="gr-name">${g.nome ? escapeHtml(g.nome) : `<span style="color:var(--ink-mute);font-style:italic;font-weight:400;">${escapeHtml(g.subcategoria)}</span>`}</div>
+        ${g.identificacao ? `<div class="gr-ident" style="font-size:12px;color:var(--ink-soft);margin-top:1px;font-family:var(--font-display);font-style:italic;">${escapeHtml(g.identificacao)}</div>` : ''}
         ${flags.length > 0 ? `<div class="gr-flags">${flags.join('')}</div>` : ''}
       </div>
       <div class="gr-value ${g.isInvest ? 'invest' : ''}">${fmtBRL(g.valor)}</div>
@@ -6353,22 +6354,27 @@ function openGastoForm(id, defaultCategoria, opts) {
       </div>
 
       <div>
+        <label>Identificação <span style="color:var(--ink-faint);font-weight:400;text-transform:none;letter-spacing:0;">(opcional — apelido pra discriminar gastos similares, ex: "Claude", "Netflix")</span></label>
+        <input type="text" id="g_identificacao" placeholder="Ex: Claude, Netflix, HBO…" value="${escapeHtml(g.identificacao || '')}" maxlength="40" autocomplete="off">
+      </div>
+
+      <div>
         <label>Data</label>
         <input type="date" id="g_data" value="${g.data}">
       </div>
 
-      ${editing ? '' : `
+      ${(!editing || !editing.parentFixoId) ? `
         <div class="row-toggle">
           <div class="rt-body">
-            <div class="rt-title">🔁 Gasto fixo mensal</div>
-            <div class="rt-sub">Replicar automaticamente todo mês</div>
+            <div class="rt-title">🔁 Gasto fixo${editing ? '' : ' mensal'}</div>
+            <div class="rt-sub">${editing ? 'Marcar como recorrente (aparece no filtro "fixos")' : 'Replicar automaticamente todo mês'}</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="g_isFixo" ${g.isFixo ? 'checked' : ''}>
             <span class="sl"></span>
           </label>
         </div>
-      `}
+      ` : ''}
 
       <div>
         <label>Forma de pagamento</label>
@@ -6474,6 +6480,7 @@ function openGastoForm(id, defaultCategoria, opts) {
   let state_categoria = g.categoria;
   let state_subcategoria = g.subcategoria;
   let state_grupoId = g.grupoId || null;
+  let state_identificacao = g.identificacao || '';
   let state_pagamento = g.pagamento || 'manual';
   let state_cardId = g.cardId || null;
   let state_contaId = g.contaId || (getContaPrincipal()?.id || '');
@@ -6743,6 +6750,7 @@ function openGastoForm(id, defaultCategoria, opts) {
        lembrar como digitou antes (Gasolina ↔ gasolina ↔ GASOLINA). */
     const nome = canonicalizeNome(state_categoria, state_subcategoria, nomeRaw);
     const obs = document.getElementById('g_obs').value.trim();
+    const identificacao = (document.getElementById('g_identificacao').value || '').trim() || null;
     const isFixo = isFixoEl ? isFixoEl.checked : (editing && editing.isFixo);
 
     /* Validações */
@@ -6782,6 +6790,7 @@ function openGastoForm(id, defaultCategoria, opts) {
         categoria: state_categoria,
         subcategoria: state_subcategoria,
         grupoId: state_grupoId || null,
+        identificacao,
         nome,
         valor,
         data,
@@ -6790,6 +6799,7 @@ function openGastoForm(id, defaultCategoria, opts) {
         cardId: state_pagamento === 'cartao' ? state_cardId : null,
         contaId: contaIdFinal,
         observacao: obs,
+        isFixo,
         isInvest: investFlag,
         categoriaPendente: false  /* edição manual sempre marca como identificado */
       });
@@ -6803,7 +6813,9 @@ function openGastoForm(id, defaultCategoria, opts) {
           state_categoria,
           state_subcategoria,
           state_grupoId || null,
-          parcelaTotal
+          parcelaTotal,
+          identificacao,
+          isFixo
         );
       }
       if (aplicarNovoPadrao) {
@@ -6857,6 +6869,7 @@ function openGastoForm(id, defaultCategoria, opts) {
           categoria: state_categoria,
           subcategoria: state_subcategoria,
           grupoId: state_grupoId || null,
+          identificacao,
           nome,
           valor,
           data,
@@ -6878,6 +6891,7 @@ function openGastoForm(id, defaultCategoria, opts) {
           categoria: state_categoria,
           subcategoria: state_subcategoria,
           grupoId: state_grupoId || null,
+          identificacao,
           nome,
           valor,
           data,
@@ -8422,13 +8436,15 @@ function buscarAliasParaDescricao(descricaoBruta, parcelaTotal) {
 }
 
 /* Aprende ou reforça um alias quando o usuário aplica uma classificação. */
-function aprenderAlias(descricaoBruta, categoria, subcategoria, grupoId, parcelaTotal) {
+function aprenderAlias(descricaoBruta, categoria, subcategoria, grupoId, parcelaTotal, identificacao, isFixoFlag) {
   if (!Array.isArray(state.aliasItems)) state.aliasItems = [];
   const chave = extrairChaveAlias(descricaoBruta);
   if (!chave || chave.length < 3) return null;
 
   const hoje = todayISO();
   const parcTotal = (parcelaTotal !== null && parcelaTotal !== undefined) ? parcelaTotal : null;
+  const identNorm = (identificacao || '').trim() || null;
+  const isFixoNorm = isFixoFlag === true;
 
   const existente = state.aliasItems.find(a =>
     a.chave === chave && (a.parcelaTotal || null) === parcTotal
@@ -8438,6 +8454,8 @@ function aprenderAlias(descricaoBruta, categoria, subcategoria, grupoId, parcela
     existente.categoria = categoria;
     existente.subcategoria = subcategoria;
     existente.grupoId = grupoId || null;
+    existente.identificacao = identNorm;
+    existente.isFixo = isFixoNorm;
     existente.contagemUso = (existente.contagemUso || 0) + 1;
     existente.ultimoUsoEm = hoje;
     return existente;
@@ -8449,6 +8467,8 @@ function aprenderAlias(descricaoBruta, categoria, subcategoria, grupoId, parcela
     categoria,
     subcategoria,
     grupoId: grupoId || null,
+    identificacao: identNorm,
+    isFixo: isFixoNorm,
     parcelaTotal: parcTotal,
     contagemUso: 1,
     criadoEm: hoje,
@@ -9000,7 +9020,9 @@ function openRevisaoFaturaSheet(lancs, cardId) {
       l.atribuido = {
         categoria: alias.categoria,
         subcategoria: alias.subcategoria,
-        grupoId: alias.grupoId || null
+        grupoId: alias.grupoId || null,
+        identificacao: alias.identificacao || null,
+        isFixo: alias.isFixo === true
       };
       l.aliasAplicado = alias.id;
       autoAplicados++;
@@ -9121,10 +9143,16 @@ function renderRevisao() {
 
   document.getElementById('bulkAttr').onclick = () => {
     if (selecionados.size === 0) return;
-    openBulkAtribuicaoSheet((cat, subc, grupoId) => {
+    openBulkAtribuicaoSheet((cat, subc, grupoId, identificacao, isFixoFlag) => {
       lancs.forEach(l => {
         if (selecionados.has(l.id) && !l.excluido) {
-          l.atribuido = { categoria: cat, subcategoria: subc, grupoId };
+          l.atribuido = {
+            categoria: cat,
+            subcategoria: subc,
+            grupoId,
+            identificacao: identificacao || null,
+            isFixo: isFixoFlag === true
+          };
           /* Atribuição manual em bulk: descarta marcação de alias-auto, pois a decisão é nova */
           if (l.aliasAplicado) delete l.aliasAplicado;
         }
@@ -9201,6 +9229,9 @@ function renderRevisaoItem(l) {
   if (isAttr) {
     const member = state.members[l.atribuido.categoria];
     tags.push(`<span class="ri-tag atribuido">${member ? escapeHtml(member.icone + ' ' + member.nome) : '?'} · ${escapeHtml(l.atribuido.subcategoria || '?')}</span>`);
+    if (l.atribuido.identificacao) {
+      tags.push(`<span class="ri-tag ident" style="background:color-mix(in srgb,var(--ink) 6%,white);color:var(--ink-soft);font-style:italic;">${escapeHtml(l.atribuido.identificacao)}</span>`);
+    }
   } else {
     tags.push('<span class="ri-tag pendente">⚠ pendente</span>');
   }
@@ -9232,6 +9263,8 @@ function openItemAtribuicaoIndividual(itemId) {
   let st_cat = lanc.atribuido.categoria;
   let st_subc = lanc.atribuido.subcategoria;
   let st_grupo = lanc.atribuido.grupoId;
+  let st_ident = lanc.atribuido.identificacao || '';
+  let st_isFixo = lanc.atribuido.isFixo === true;
   let st_desc = lanc.descricao;
 
   const overlay = document.createElement('div');
@@ -9269,6 +9302,22 @@ function openItemAtribuicaoIndividual(itemId) {
       <div style="margin-top:14px;">
         <label>Grupo (opcional)</label>
         <div class="chip-row" id="indGrupo"></div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label>Identificação <span style="color:var(--ink-faint);font-weight:400;text-transform:none;letter-spacing:0;">(opcional — ex: "Claude", "Netflix")</span></label>
+        <input type="text" id="indIdent" maxlength="40" value="${escapeHtml(st_ident)}" placeholder="Apelido pra discriminar gastos similares" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r);font-size:14px;font-family:var(--font-body);background:var(--bg);color:var(--ink);">
+      </div>
+
+      <div style="margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:var(--r);display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-size:13.5px;font-weight:500;">🔁 Marcar como fixo</div>
+          <div style="color:var(--ink-faint);font-size:11.5px;line-height:1.4;margin-top:2px;">Assinatura ou gasto recorrente. Aparece no filtro "fixos" do mês.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="indFixo" ${st_isFixo ? 'checked' : ''}>
+          <span class="sl"></span>
+        </label>
       </div>
 
       <div style="display:flex;gap:10px;margin-top:18px;">
@@ -9420,8 +9469,16 @@ function openItemAtribuicaoIndividual(itemId) {
   overlay.querySelector('#indCancel').onclick = () => overlay.remove();
   overlay.querySelector('#indOk').onclick = () => {
     if (!st_cat || !st_subc) return;
+    const identFinal = (overlay.querySelector('#indIdent').value || '').trim();
+    const fixoFinal = !!overlay.querySelector('#indFixo').checked;
     lanc.descricao = (st_desc || '').trim() || lanc.descricao;
-    lanc.atribuido = { categoria: st_cat, subcategoria: st_subc, grupoId: st_grupo };
+    lanc.atribuido = {
+      categoria: st_cat,
+      subcategoria: st_subc,
+      grupoId: st_grupo,
+      identificacao: identFinal || null,
+      isFixo: fixoFinal
+    };
     /* Edição manual: descarta marcação de alias-auto, pois a decisão é nova */
     if (lanc.aliasAplicado) delete lanc.aliasAplicado;
     overlay.remove();
@@ -9436,6 +9493,8 @@ function openBulkAtribuicaoSheet(callback, prefill) {
   let st_cat = prefill ? prefill.categoria : null;
   let st_subc = prefill ? prefill.subcategoria : null;
   let st_grupo = prefill ? prefill.grupoId : null;
+  let st_ident = prefill ? (prefill.identificacao || '') : '';
+  let st_isFixo = prefill ? (prefill.isFixo === true) : false;
 
   const overlay = document.createElement('div');
   overlay.style.cssText = `
@@ -9467,6 +9526,22 @@ function openBulkAtribuicaoSheet(callback, prefill) {
       <div style="margin-top:14px;">
         <label>Grupo (opcional)</label>
         <div class="chip-row" id="bulkGrupo"></div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label>Identificação <span style="color:var(--ink-faint);font-weight:400;text-transform:none;letter-spacing:0;">(opcional — apelido pra discriminar gastos da mesma subcategoria, ex: "Claude", "Netflix")</span></label>
+        <input type="text" id="bulkIdent" maxlength="40" placeholder="Ex: Claude, Netflix, HBO…" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r);font-size:14px;font-family:var(--font-body);background:var(--bg);color:var(--ink);">
+      </div>
+
+      <div style="margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:var(--r);display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-size:13.5px;font-weight:500;">🔁 Marcar como fixo</div>
+          <div style="color:var(--ink-faint);font-size:11.5px;line-height:1.4;margin-top:2px;">Assinatura ou gasto recorrente. Aparece no filtro "fixos" do mês.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="bulkFixo">
+          <span class="sl"></span>
+        </label>
       </div>
 
       <div style="display:flex;gap:10px;margin-top:18px;">
@@ -9610,11 +9685,20 @@ function openBulkAtribuicaoSheet(callback, prefill) {
   refreshSubcAndGrupo();
   updateOkBtn();
 
+  /* Inicializa input de identificação com prefill */
+  const identInput = overlay.querySelector('#bulkIdent');
+  if (identInput) identInput.value = st_ident;
+  /* Inicializa switch de fixo com prefill */
+  const fixoInput = overlay.querySelector('#bulkFixo');
+  if (fixoInput) fixoInput.checked = st_isFixo;
+
   overlay.querySelector('#bulkCancel').onclick = () => overlay.remove();
   overlay.querySelector('#bulkOk').onclick = () => {
     if (!st_cat || !st_subc) return;
+    const identFinal = (overlay.querySelector('#bulkIdent').value || '').trim();
+    const fixoFinal = !!overlay.querySelector('#bulkFixo').checked;
     overlay.remove();
-    callback(st_cat, st_subc, st_grupo);
+    callback(st_cat, st_subc, st_grupo, identFinal || null, fixoFinal);
   };
   overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
@@ -9637,13 +9721,15 @@ function aplicarLancamentosImportados(lancs, cardId) {
     const cat = l.atribuido.categoria || 'casa';
     const subc = l.atribuido.subcategoria || 'Outros';
     const grupoId = l.atribuido.grupoId || null;
+    const identificacao = (l.atribuido.identificacao || '').trim() || null;
+    const isFixoFlag = l.atribuido.isFixo === true;
     const investFlag = !isPendente && isInvest(cat, subc);
 
     const nomeFinal = canonicalizeNome(cat, subc, l.descricao);
 
     if (!isPendente) {
       const parcelaTotal = l.parcela ? l.parcela.total : null;
-      const result = aprenderAlias(l.descricaoBruta || l.descricao, cat, subc, grupoId, parcelaTotal);
+      const result = aprenderAlias(l.descricaoBruta || l.descricao, cat, subc, grupoId, parcelaTotal, identificacao, isFixoFlag);
       if (result) aliasesAprendidos++;
     }
 
@@ -9658,6 +9744,7 @@ function aplicarLancamentosImportados(lancs, cardId) {
       categoria: cat,
       subcategoria: subc,
       grupoId,
+      identificacao,
       nome: nomeFinal,
       valor: l.valor,
       data: dataVenc,         /* gasto entra no mês do pagamento da fatura */
@@ -9667,7 +9754,7 @@ function aplicarLancamentosImportados(lancs, cardId) {
       cardId,
       contaId: null,
       pagamento: 'cartao',
-      isFixo: false,
+      isFixo: isFixoFlag,
       isInvest: investFlag,
       observacao,
       pago: true,
