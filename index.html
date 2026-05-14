@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.10.4 · debug fatura + fix corteParcelas
+  Finança · v0.10.5 · fix detecção Itaú (logo é imagem)
 </div>
 
   </section>
@@ -8617,11 +8617,15 @@ function detectarBancoFatura(textoBruto) {
     .toLowerCase();
   const cab = t.slice(0, 5000);
 
-  /* Itaú: detecta banco primeiro, depois discrimina produto */
-  const isItau = /\bitau\b|itau unibanco|60\.?\s*701\.?\s*190/.test(cab);
+  /* Itaú: o logo "Itaú Personnalité" e o CNPJ ficam como imagem rasterizada e
+     NÃO aparecem no texto extraível pelo PDF.js. Marcadores que sobrevivem:
+     - "visa infinite" / "mastercard black" (nomes de produto, no corpo)
+     - telefones de atendimento: 4004 4828, 0800 970 4828
+     Detectamos primeiro pelo produto (mais específico), depois pelo telefone. */
+  if (/visa\s+infinite/.test(cab))                    return 'itau-visa-infinite';
+  if (/mastercard\s+black|master\s+black/.test(cab)) return 'itau-mc-black';
+  const isItau = /\bitau\b|itau unibanco|60\.?\s*701\.?\s*190|4004\s*4828|0800\s*970\s*4828/.test(cab);
   if (isItau) {
-    if (/mastercard\s+black|master\s+black/.test(cab)) return 'itau-mc-black';
-    if (/visa\s+infinite/.test(cab))                    return 'itau-visa-infinite';
     return 'itau-generico';
   }
 
