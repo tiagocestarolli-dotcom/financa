@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.12.1 · parser Sicoob (dual-mode)
+  Finança · v0.12.2 · parser Sicoob (best-of-A-or-B)
 </div>
 
   </section>
@@ -9124,23 +9124,31 @@ function parserSicoob(textoBruto, pdfItems) {
     });
   }
 
-  /* ---------- Decisão de modo ---------- */
-  let lancs = [];
-  let modo;
+  /* ---------- Decisão de modo (v0.12.2: executa AMBOS sempre, escolhe maior) ----------
+     Razão: em Safari iOS observamos casos onde o modo A retorna alguns lançamentos
+     (não zero), mas perde alguns multi-linha por sutis diferenças de Y entre runtimes
+     do PDF.js. O fallback "só-se-A-é-zero" da v0.12.1 não detectava isso. A v0.12.2
+     executa ambos os modos e escolhe o que captura mais. Em empate, prefere A (mais
+     preciso — separa cidade da descrição). */
+  let lancsA = [];
+  let lancsB = [];
   const itemsCount = (pdfItems && pdfItems.length) ? pdfItems.length : 0;
 
   if (itemsCount > 0) {
-    lancs = modoA(pdfItems);
-    modo = 'A-items';
-    if (lancs.length === 0) {
-      /* Modo A não retornou nada — pode ser layout não esperado. Tenta B */
-      lancs = modoB(textoBruto);
-      modo = 'B-texto-apos-A-zero';
-    }
+    try { lancsA = modoA(pdfItems); } catch (e) { lancsA = []; }
+  }
+  try { lancsB = modoB(textoBruto); } catch (e) { lancsB = []; }
+
+  let lancs, modo;
+  if (lancsA.length >= lancsB.length && lancsA.length > 0) {
+    lancs = lancsA;
+    modo = `A[${lancsA.length}vs${lancsB.length}]`;
+  } else if (lancsB.length > 0) {
+    lancs = lancsB;
+    modo = `B[${lancsB.length}vs${lancsA.length}]`;
   } else {
-    /* Items vazios (quirk do PDF.js em algum browser, ou versão sem suporte) */
-    lancs = modoB(textoBruto);
-    modo = 'B-texto-sem-items';
+    lancs = [];
+    modo = 'sem-resultado';
   }
 
   /* DEBUG sempre populado (genérico — funciona pra qualquer parser) */
