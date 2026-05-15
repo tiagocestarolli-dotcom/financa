@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.12.3 · detector Sicoob &gt; Mastercard Black
+  Finança · v0.13.0 · parser BTG
 </div>
 
   </section>
@@ -8670,7 +8670,8 @@ function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
      o layout em 2 colunas antes de aplicar regex.
      v0.12.0 (Fatia 3.2): Sicoob usa parser dedicado com âncora-de-DATA
      pra remontar descrições multi-linha (fragmentação típica do PDF Sicoob).
-     BTG ainda delega ao genérico — entra na sub-fatia 3.3. */
+     v0.13.0 (Fatia 3.3): BTG Pactual usa parser dedicado — layout 3-col em
+     case-mista, com ordem "VALOR DESC DATA" no texto agrupado. */
   let lancs;
   switch (banco) {
     case 'itau-visa-infinite':
@@ -8679,9 +8680,11 @@ function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
     case 'sicoob':
       lancs = parserSicoob(textoBruto, pdfItems);
       break;
+    case 'btg':
+      lancs = parserBTG(textoBruto, pdfItems);
+      break;
     case 'itau-mc-black':
     case 'itau-generico':
-    case 'btg':
     case 'generico':
     default:
       lancs = parserGenericoFatura(textoBruto);
@@ -9168,6 +9171,205 @@ function parserSicoob(textoBruto, pdfItems) {
     }
   } catch (e) {
     if (typeof window !== 'undefined') window.__faturaDebug = { parser: 'sicoob', erro: String(e) };
+  }
+  return lancs;
+}
+
+
+/* ============== Parser especializado: BTG Pactual (v0.13.0 — Fatia 3.3) ==============
+   Layout similar ao Sicoob (3 colunas com X fixos: DATA | DESCRIÇÃO | VALOR), mas:
+   - Mês em case-mista ("06 Abr" em vez de "06 ABR")
+   - Sem coluna CIDADE — lançamentos simples em 1 linha
+   - Quando agrupado por Y±2 (textoBruto), itens saem como "VALOR DESC DATA"
+     (ordem inversa à visual!) — o que quebra o parser genérico inteiramente
+
+   Estratégia idêntica ao parserSicoob: dual-mode A/B com best-of-N.
+   - Modo A (X/Y): âncora-de-DATA na coluna esquerda, agrupa items por Y±tol
+   - Modo B (texto puro): regex específico pra ordem "VALOR DESC DATA"
+
+   Filtros: valor <= 0 (créditos: pagamento de fatura, estornos) + descrição
+   começando com "pagamento" (defesa em profundidade).
+   Mensalidade do BTG (equivalente à anuidade Sicoob) PASSA como gasto. */
+
+function parserBTG(textoBruto, pdfItems) {
+  const MESES_BTG = {
+    'Jan':'01', 'Fev':'02', 'Mar':'03', 'Abr':'04', 'Mai':'05', 'Jun':'06',
+    'Jul':'07', 'Ago':'08', 'Set':'09', 'Out':'10', 'Nov':'11', 'Dez':'12'
+  };
+  const FILTRO_DESC = /^pagamento/i;
+
+  /* Parser de valor robusto BR/US */
+  function parseValorBTG(s) {
+    if (!s) return null;
+    let t = String(s).replace(/R\$/gi, '').replace(/\s+/g, '').trim();
+    const neg = t.startsWith('-');
+    if (neg) t = t.slice(1);
+    if (!/^[\d.,]+$/.test(t)) return null;
+    const lastDot = t.lastIndexOf('.');
+    const lastComma = t.lastIndexOf(',');
+    let decimal = -1;
+    if (lastDot > lastComma) decimal = lastDot;
+    else if (lastComma > lastDot) decimal = lastComma;
+    let intPart, decPart;
+    if (decimal >= 0 && t.length - decimal - 1 <= 2 && t.length - decimal - 1 >= 1) {
+      intPart = t.slice(0, decimal).replace(/[.,]/g, '');
+      decPart = t.slice(decimal + 1);
+    } else {
+      intPart = t.replace(/[.,]/g, '');
+      decPart = '00';
+    }
+    const num = parseFloat(`${intPart}.${decPart}`);
+    if (isNaN(num)) return null;
+    return neg ? -num : num;
+  }
+
+  /* Extrai parcela X/Y em qualquer posição da descrição (mesma função do parserSicoob) */
+  function extrairParcela(descricao) {
+    const rx = /(\d{1,2})\/(\d{1,2})/g;
+    const validas = [];
+    let m;
+    while ((m = rx.exec(descricao)) !== null) {
+      const atual = parseInt(m[1], 10);
+      const total = parseInt(m[2], 10);
+      if (total > 1 && total <= 99 && atual >= 1 && atual <= total) {
+        validas.push({ atual, total, idx: m.index, len: m[0].length });
+      }
+    }
+    if (!validas.length) return { parcela: null, descricaoLimpa: descricao };
+    const best = validas[validas.length - 1];
+    const descricaoLimpa = (descricao.slice(0, best.idx) + descricao.slice(best.idx + best.len))
+      .replace(/\s+/g, ' ').trim();
+    return { parcela: { atual: best.atual, total: best.total }, descricaoLimpa };
+  }
+
+  const currentYear = new Date().getFullYear();
+
+  function montarLanc(diaRaw, mes, descricaoRaw, valor) {
+    if (valor <= 0) return null;
+    let descricao = descricaoRaw.replace(/\s+/g, ' ').trim();
+    if (!descricao) return null;
+    if (FILTRO_DESC.test(descricao)) return null;
+    const { parcela, descricaoLimpa } = extrairParcela(descricao);
+    descricao = descricaoLimpa.replace(/\s+R\$\s*$/i, '').trim();
+    if (!descricao || descricao.length < 2) return null;
+    const dia = String(diaRaw).padStart(2, '0');
+    return {
+      id: uid(),
+      data: `${currentYear}-${mes}-${dia}`,
+      ym: `${currentYear}-${mes}`,
+      descricao,
+      descricaoBruta: descricao,
+      valor,
+      parcela,
+      internacional: false,
+      atribuido: { categoria: null, subcategoria: null, grupoId: null },
+      excluido: false
+    };
+  }
+
+  /* ---------- MODO A: com coordenadas X/Y dos items ---------- */
+  function modoA(items) {
+    const Y_TOL = 5;
+    const X_DATA_MAX = 55;
+    const X_DESC_MAX = 200;
+    /* X >= 200 = coluna VALOR */
+
+    const paginas = new Map();
+    for (const it of items) {
+      if (!it.text || !it.text.trim()) continue;
+      if (!paginas.has(it.page)) paginas.set(it.page, []);
+      paginas.get(it.page).push(it);
+    }
+    const out = [];
+    for (const [, pageItems] of paginas) {
+      const ancoras = [];
+      for (const it of pageItems) {
+        if (it.x > X_DATA_MAX) continue;
+        const t = it.text.trim();
+        const m = t.match(/^(\d{1,2})\s+([A-Z][a-z]{2})$/);
+        if (m && MESES_BTG[m[2]]) {
+          ancoras.push({ y: it.y, dia: m[1], mes: MESES_BTG[m[2]] });
+        }
+      }
+      if (!ancoras.length) continue;
+      ancoras.sort((a, b) => b.y - a.y);
+
+      for (const anc of ancoras) {
+        const grupo = pageItems.filter(it => Math.abs(it.y - anc.y) <= Y_TOL);
+        const descItems = grupo
+          .filter(it => it.x > X_DATA_MAX && it.x < X_DESC_MAX)
+          .sort((a, b) => b.y - a.y);
+        const valorItem = grupo.find(it => it.x >= X_DESC_MAX);
+        if (!valorItem) continue;
+        const valor = parseValorBTG(valorItem.text);
+        if (valor === null) continue;
+        const descricao = descItems.map(it => it.text.trim()).join(' ');
+        const lanc = montarLanc(anc.dia, anc.mes, descricao, valor);
+        if (lanc) out.push(lanc);
+      }
+    }
+    return out;
+  }
+
+  /* ---------- MODO B: texto puro com regex pra ordem "VALOR DESC DATA" ---------- */
+  function modoB(texto) {
+    const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean);
+    const out = [];
+    /* Regex pra ordem invertida BTG: "[-] R$ valor   descrição   DD Mmm" */
+    const RX_INV = /^(-?\s*R\$\s*-?[\d.,]+)\s+(.+?)\s+(\d{1,2})\s+([A-Z][a-z]{2})$/;
+    /* Regex pra ordem visual (fallback): "DD Mmm   descrição   [-] R$ valor" */
+    const RX_VIS = /^(\d{1,2})\s+([A-Z][a-z]{2})\s+(.+?)\s+(-?\s*R\$\s*-?[\d.,]+)$/;
+
+    for (const linha of linhas) {
+      let m = linha.match(RX_INV);
+      if (m && MESES_BTG[m[4]]) {
+        const valor = parseValorBTG(m[1]);
+        if (valor !== null) {
+          const lanc = montarLanc(m[3], MESES_BTG[m[4]], m[2], valor);
+          if (lanc) out.push(lanc);
+          continue;
+        }
+      }
+      m = linha.match(RX_VIS);
+      if (m && MESES_BTG[m[2]]) {
+        const valor = parseValorBTG(m[4]);
+        if (valor !== null) {
+          const lanc = montarLanc(m[1], MESES_BTG[m[2]], m[3], valor);
+          if (lanc) out.push(lanc);
+        }
+      }
+    }
+    return out;
+  }
+
+  /* Decisão best-of-N (mesmo padrão do parserSicoob v0.12.2) */
+  let lancsA = [], lancsB = [];
+  const itemsCount = (pdfItems && pdfItems.length) ? pdfItems.length : 0;
+  if (itemsCount > 0) { try { lancsA = modoA(pdfItems); } catch (e) { lancsA = []; } }
+  try { lancsB = modoB(textoBruto); } catch (e) { lancsB = []; }
+
+  let lancs, modo;
+  if (lancsA.length >= lancsB.length && lancsA.length > 0) {
+    lancs = lancsA;
+    modo = `A[${lancsA.length}vs${lancsB.length}]`;
+  } else if (lancsB.length > 0) {
+    lancs = lancsB;
+    modo = `B[${lancsB.length}vs${lancsA.length}]`;
+  } else {
+    lancs = [];
+    modo = 'sem-resultado';
+  }
+
+  try {
+    if (typeof window !== 'undefined') {
+      window.__faturaDebug = {
+        parser: 'btg', modo, items: itemsCount,
+        capturados: lancs.length,
+        somaTotal: lancs.reduce((s, l) => s + (l.valor || 0), 0)
+      };
+    }
+  } catch (e) {
+    if (typeof window !== 'undefined') window.__faturaDebug = { parser: 'btg', erro: String(e) };
   }
   return lancs;
 }
