@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.12.2 · parser Sicoob (best-of-A-or-B)
+  Finança · v0.12.3 · detector Sicoob &gt; Mastercard Black
 </div>
 
   </section>
@@ -8637,25 +8637,29 @@ function detectarBancoFatura(textoBruto) {
     .toLowerCase();
   const cab = t.slice(0, 5000);
 
-  /* Itaú: o logo "Itaú Personnalité" e o CNPJ ficam como imagem rasterizada e
+  /* ORDEM CRÍTICA (v0.12.3): bancos emissores únicos primeiro, produto/bandeira depois.
+     "Mastercard Black" e "Visa Infinite" são bandeiras/produtos — TANTO Itaú quanto
+     Sicoob/BTG/etc. emitem cartões com essas bandeiras. Identificar pelo emissor é
+     mais confiável.
+     Bug histórico (v0.12.0-v0.12.2): faturas Sicoob com produto "Sicoob Mastercard
+     Black Pro" eram roteadas pro Itaú genérico. */
+
+  /* 1. Bancos com nome próprio no texto — sinal forte e único do emissor */
+  if (/\bsicoob\b|bancoob/.test(cab)) return 'sicoob';
+  if (/btg\s*pactual|30\.?\s*306\.?\s*294/.test(cab)) return 'btg';
+
+  /* 2. Itaú: o logo "Itaú Personnalité" e o CNPJ ficam como imagem rasterizada e
      NÃO aparecem no texto extraível pelo PDF.js. Marcadores que sobrevivem:
      - "visa infinite" / "mastercard black" (nomes de produto, no corpo)
      - telefones de atendimento: 4004 4828, 0800 970 4828
-     Detectamos primeiro pelo produto (mais específico), depois pelo telefone. */
+     Detectamos primeiro pelo produto (mais específico), depois pelo telefone.
+     Só checamos isso DEPOIS de ter descartado Sicoob e BTG. */
   if (/visa\s+infinite/.test(cab))                    return 'itau-visa-infinite';
   if (/mastercard\s+black|master\s+black/.test(cab)) return 'itau-mc-black';
   const isItau = /\bitau\b|itau unibanco|60\.?\s*701\.?\s*190|4004\s*4828|0800\s*970\s*4828/.test(cab);
   if (isItau) {
     return 'itau-generico';
   }
-
-  /* Sicoob: nome aparece bem cedo no PDF */
-  if (/\bsicoob\b|bancoob/.test(cab)) return 'sicoob';
-
-  /* BTG Pactual — exige marcador forte ("btg pactual" ou CNPJ).
-     "BTG" isolado é rejeitado pra evitar falso-positivo com lojas que tenham
-     a sigla no nome; faturas BTG reais sempre trazem "Pactual" no cabeçalho. */
-  if (/btg\s*pactual|30\.?\s*306\.?\s*294/.test(cab)) return 'btg';
 
   return 'generico';
 }
