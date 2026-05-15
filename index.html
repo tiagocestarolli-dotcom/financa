@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.12.0 · parser Sicoob
+  Finança · v0.12.1 · parser Sicoob (dual-mode)
 </div>
 
   </section>
@@ -8882,19 +8882,21 @@ function parserItauVisaInfinite(textoBruto, pdfItems) {
   return lancs;
 }
 
-/* ============== Parser especializado: Sicoob (v0.12.0 — Fatia 3.2) ==============
+/* ============== Parser especializado: Sicoob (v0.12.1 — Fatia 3.2) ==============
    A fatura Sicoob Mastercard tem layout em 4 colunas fixas: DATA | DESCRIÇÃO
    | CIDADE | VALOR. Quando a descrição é longa (ex: "IMUNOCENTRO SERV MED 01/05"),
    ela quebra em 2-3 linhas físicas, e o PDF.js entrega cada linha como item em
    Y diferente. O parser genérico perde esse lançamento porque nenhuma linha
    isolada matcha o regex.
 
-   Estratégia: usar coordenadas X/Y dos items diretamente.
-   - Âncora de cada lançamento = item na coluna DATA (X < 50) com texto "DD MMM"
-   - Items dentro de |Y - Y_ancora| <= 5 pertencem ao mesmo lançamento
-     (gap entre lançamentos é 18px; descrição multi-linha fica em ±4px da data)
-   - Concatena descrição multi-linha (X ≈ 68) ordenando por Y descendente
-   - Cidade (X ≈ 175) e valor (X ≈ 240) — primeiro item da coluna
+   v0.12.1 introduz parser DUAL-MODE pra robustez:
+   - Modo A (preferido): com coordenadas X/Y dos items, usa âncora-de-DATA
+     com tolerância Y±5. Mais preciso (separa cidade da descrição).
+   - Modo B (fallback): só com textoBruto agrupado por Y±2 do extrairTextoDoPDF.
+     Detecta lançamentos multi-linha por linhas "DD MMM" puras e agrega até
+     achar valor terminando linha. Cidade fica colada na descrição, mas total
+     bate. Usado quando items chegam vazios (ex: alguma quirk do PDF.js em
+     Safari iOS) ou quando modo A retorna 0 lançamentos.
 
    Também captura MOVIMENTAÇÕES DA CONTA (anuidade, vantagem progressiva,
    pagamento débito) com a mesma estrutura. Filtros descartam o que não é
@@ -8904,22 +8906,14 @@ function parserItauVisaInfinite(textoBruto, pdfItems) {
    - Anuidade fica (decisão de produto: gasto real). */
 
 function parserSicoob(textoBruto, pdfItems) {
-  /* Fallback: sem items, cai no genérico — provavelmente vai capturar pouco
-     (a fragmentação multi-linha vai derrubar lançamentos longos), mas é o
-     melhor disponível sem coordenadas. */
-  if (!pdfItems || !pdfItems.length) {
-    return parserGenericoFatura(textoBruto);
-  }
-
   const MESES_SC = {
     'JAN':'01','FEV':'02','MAR':'03','ABR':'04','MAI':'05','JUN':'06',
     'JUL':'07','AGO':'08','SET':'09','OUT':'10','NOV':'11','DEZ':'12'
   };
-  const Y_TOL = 5;             /* tolerância vertical pra agrupar items do mesmo lançamento */
-  const X_DATA_MAX   = 50;     /* coluna DATA */
-  const X_DESC_MAX   = 160;    /* coluna DESCRIÇÃO (começa logo após data) */
-  const X_CIDADE_MAX = 220;    /* coluna CIDADE */
-                               /* X >= 220 = coluna VALOR */
+
+  /* Filtros pra descartar lançamentos técnicos (não-consumo).
+     Anuidade NÃO é filtrada — entra como gasto real. */
+  const FILTRO_DESC = /^(pagamento|vantagem|prote[çc][ãa]o)/i;
 
   /* Parser de valor robusto BR/US — o Sicoob usa formato US (R$ 1,933.36)
      enquanto o Itaú usa BR (R$ 1.933,36). Detecta o decimal pelo último
@@ -8948,114 +8942,220 @@ function parserSicoob(textoBruto, pdfItems) {
     return neg ? -num : num;
   }
 
-  /* Filtros pra descartar lançamentos técnicos (não-consumo).
-     Anuidade NÃO é filtrada — entra como gasto real. */
-  const FILTRO_DESC = /^(pagamento|vantagem|prote[çc][ãa]o)/i;
-
-  /* Agrupar items por página */
-  const paginas = new Map();
-  for (const it of pdfItems) {
-    if (!it.text || !it.text.trim()) continue;
-    if (!paginas.has(it.page)) paginas.set(it.page, []);
-    paginas.get(it.page).push(it);
-  }
-
-  const lancs = [];
-  const currentYear = new Date().getFullYear();
-  const pageNums = [...paginas.keys()].sort((a, b) => a - b);
-
-  for (const pageNum of pageNums) {
-    const pageItems = paginas.get(pageNum);
-
-    /* Detectar âncoras de DATA: item na coluna esquerda com texto "DD MMM" */
-    const ancoras = [];
-    for (const it of pageItems) {
-      if (it.x > X_DATA_MAX) continue;
-      const t = it.text.trim();
-      const m = t.match(/^(\d{1,2})\s+([A-Z]{3})$/);
-      if (m && MESES_SC[m[2]]) {
-        ancoras.push({ y: it.y, dia: m[1].padStart(2, '0'), mes: MESES_SC[m[2]] });
+  /* Extrai parcela X/Y da descrição em QUALQUER posição (não só no final).
+     Modo B tem cidade colada depois da parcela ("...01/05 BRASILIA"), por
+     isso a parcela não está mais no final. Pega a última X/Y válida.
+     Retorna { parcela, descricaoLimpa }. */
+  function extrairParcela(descricao) {
+    const rx = /(\d{1,2})\/(\d{1,2})/g;
+    const validas = [];
+    let m;
+    while ((m = rx.exec(descricao)) !== null) {
+      const atual = parseInt(m[1], 10);
+      const total = parseInt(m[2], 10);
+      if (total > 1 && total <= 99 && atual >= 1 && atual <= total) {
+        validas.push({ atual, total, idx: m.index, len: m[0].length });
       }
     }
-    if (!ancoras.length) continue;
+    if (!validas.length) return { parcela: null, descricaoLimpa: descricao };
+    /* Pega a última (mais perto do fim — convenção dos bancos) */
+    const best = validas[validas.length - 1];
+    const descricaoLimpa = (descricao.slice(0, best.idx) + descricao.slice(best.idx + best.len))
+      .replace(/\s+/g, ' ').trim();
+    return {
+      parcela: { atual: best.atual, total: best.total },
+      descricaoLimpa
+    };
+  }
 
-    /* Ordenar âncoras topo-pra-base (PDF.js Y nativo: maior = topo) */
-    ancoras.sort((a, b) => b.y - a.y);
+  const currentYear = new Date().getFullYear();
 
-    for (const anc of ancoras) {
-      const grupo = pageItems.filter(it => Math.abs(it.y - anc.y) <= Y_TOL);
+  /* ---------- MODO A: com coordenadas X/Y dos items ---------- */
+  function modoA(items) {
+    const Y_TOL = 5;
+    const X_DATA_MAX   = 50;
+    const X_DESC_MAX   = 160;
+    const X_CIDADE_MAX = 220;
 
-      /* Coluna DESCRIÇÃO: pode ter 1-3 items (multi-linha). Concatena por Y
-         descendente (linha de cima primeiro, conforme leitura natural). */
-      const descItems = grupo
-        .filter(it => it.x > X_DATA_MAX && it.x < X_DESC_MAX)
-        .sort((a, b) => b.y - a.y);
+    const paginas = new Map();
+    for (const it of items) {
+      if (!it.text || !it.text.trim()) continue;
+      if (!paginas.has(it.page)) paginas.set(it.page, []);
+      paginas.get(it.page).push(it);
+    }
 
-      /* Coluna CIDADE: primeiro item (geralmente único) */
-      const cidadeItem = grupo.find(it => it.x >= X_DESC_MAX && it.x < X_CIDADE_MAX);
+    const out = [];
+    const pageNums = [...paginas.keys()].sort((a, b) => a - b);
 
-      /* Coluna VALOR: primeiro item (geralmente único) */
-      const valorItem = grupo.find(it => it.x >= X_CIDADE_MAX);
+    for (const pageNum of pageNums) {
+      const pageItems = paginas.get(pageNum);
 
-      if (!valorItem) continue;
-      const valor = parseValorSicoob(valorItem.text);
-      if (valor === null || valor <= 0) continue;   /* filtro: créditos descartados */
+      const ancoras = [];
+      for (const it of pageItems) {
+        if (it.x > X_DATA_MAX) continue;
+        const t = it.text.trim();
+        const m = t.match(/^(\d{1,2})\s+([A-Z]{3})$/);
+        if (m && MESES_SC[m[2]]) {
+          ancoras.push({ y: it.y, dia: m[1].padStart(2, '0'), mes: MESES_SC[m[2]] });
+        }
+      }
+      if (!ancoras.length) continue;
+      ancoras.sort((a, b) => b.y - a.y);
 
-      let descricao = descItems.map(it => it.text.trim()).join(' ').replace(/\s+/g, ' ').trim();
-      if (!descricao) continue;
+      for (const anc of ancoras) {
+        const grupo = pageItems.filter(it => Math.abs(it.y - anc.y) <= Y_TOL);
+        const descItems = grupo
+          .filter(it => it.x > X_DATA_MAX && it.x < X_DESC_MAX)
+          .sort((a, b) => b.y - a.y);
+        const valorItem = grupo.find(it => it.x >= X_CIDADE_MAX);
+        if (!valorItem) continue;
+        const valor = parseValorSicoob(valorItem.text);
+        if (valor === null || valor <= 0) continue;
 
-      /* Filtro: descrições técnicas (pagamento débito, vantagem progressiva, proteção) */
-      if (FILTRO_DESC.test(descricao)) continue;
+        let descricao = descItems.map(it => it.text.trim()).join(' ').replace(/\s+/g, ' ').trim();
+        if (!descricao) continue;
+        if (FILTRO_DESC.test(descricao)) continue;
 
-      /* Detectar parcela X/Y no final da descrição.
-         Cobre "IMUNOCENTRO SERV MED 01/05" (parcela 1/5) e
-         "ANUIDADE MASTERCARD (6578) 10/12" (parcela 10/12). */
-      let parcela = null;
-      const pm = descricao.match(/\s(\d{1,2})\/(\d{1,2})\s*$/);
-      if (pm) {
-        const atual = parseInt(pm[1], 10);
-        const total = parseInt(pm[2], 10);
-        if (total > 1 && total <= 99 && atual <= total) {
-          parcela = { atual, total };
-          descricao = descricao.replace(/\s\d{1,2}\/\d{1,2}\s*$/, '').trim();
+        const { parcela, descricaoLimpa } = extrairParcela(descricao);
+        descricao = descricaoLimpa.replace(/\s+R\$\s*$/i, '').trim();
+        if (!descricao || descricao.length < 2) continue;
+
+        out.push({
+          id: uid(),
+          data: `${currentYear}-${anc.mes}-${anc.dia}`,
+          ym: `${currentYear}-${anc.mes}`,
+          descricao,
+          descricaoBruta: descricao,
+          valor,
+          parcela,
+          internacional: false,
+          atribuido: { categoria: null, subcategoria: null, grupoId: null },
+          excluido: false
+        });
+      }
+    }
+    return out;
+  }
+
+  /* ---------- MODO B: só com textoBruto agrupado por Y ---------- */
+  function modoB(texto) {
+    const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean);
+    const out = [];
+    let i = 0;
+
+    while (i < linhas.length) {
+      const linha = linhas[i];
+
+      /* Padrão 1: linha completa "DD MMM <desc/cidade> R$ valor" — 1 linha */
+      const mFull = linha.match(/^(\d{1,2})\s+([A-Z]{3})\s+(.+?)\s+(-?R?\$?\s*-?[\d.,]+)$/);
+      if (mFull && MESES_SC[mFull[2]]) {
+        const valor = parseValorSicoob(mFull[4]);
+        if (valor !== null) {
+          processarLanc(mFull[1], MESES_SC[mFull[2]], mFull[3].trim(), valor, out);
+          i++;
+          continue;
         }
       }
 
-      /* Limpar artefatos finais */
-      descricao = descricao.replace(/\s+R\$\s*$/i, '').trim();
-      if (!descricao || descricao.length < 2) continue;
+      /* Padrão 2: linha "DD MMM" pura — âncora multi-linha. Coleta linhas
+         seguintes até a próxima âncora OU até uma linha terminar em valor. */
+      const mDate = linha.match(/^(\d{1,2})\s+([A-Z]{3})$/);
+      if (mDate && MESES_SC[mDate[2]]) {
+        const dia = mDate[1];
+        const mes = MESES_SC[mDate[2]];
+        const partes = [];
+        let valorFinal = null;
+        let j = i + 1;
 
-      const dataISO = `${currentYear}-${anc.mes}-${anc.dia}`;
-      const ym = `${currentYear}-${anc.mes}`;
+        while (j < linhas.length) {
+          const prox = linhas[j];
+          /* Próxima âncora? Pára */
+          const probeDate = prox.match(/^(\d{1,2})\s+([A-Z]{3})(\s|$)/);
+          if (probeDate && MESES_SC[probeDate[2]]) break;
 
-      lancs.push({
-        id: uid(),
-        data: dataISO,
-        ym,
-        descricao,
-        descricaoBruta: descricao,
-        valor,
-        parcela,
-        internacional: false,
-        atribuido: { categoria: null, subcategoria: null, grupoId: null },
-        excluido: false
-      });
+          /* Termina em valor? Fecha o bloco */
+          const mTermValor = prox.match(/^(.*?)\s+(-?R?\$?\s*-?[\d.,]+)$/);
+          if (mTermValor) {
+            const vTest = parseValorSicoob(mTermValor[2]);
+            if (vTest !== null && /R\$|[.,]\d{2}$/.test(mTermValor[2])) {
+              const antes = mTermValor[1].trim();
+              if (antes) partes.push(antes);
+              valorFinal = vTest;
+              j++;
+              break;
+            }
+          }
+          partes.push(prox);
+          j++;
+        }
+
+        if (valorFinal !== null && partes.length > 0) {
+          processarLanc(dia, mes, partes.join(' '), valorFinal, out);
+          i = j;
+          continue;
+        }
+      }
+
+      i++;
     }
+    return out;
   }
 
-  /* DEBUG: expor estatística pra diagnóstico no app (mesmo padrão do Visa Infinite) */
+  function processarLanc(diaRaw, mes, descricaoRaw, valor, out) {
+    if (valor <= 0) return;
+    let descricao = descricaoRaw.replace(/\s+/g, ' ').trim();
+    if (!descricao) return;
+    if (FILTRO_DESC.test(descricao)) return;
+    const { parcela, descricaoLimpa } = extrairParcela(descricao);
+    descricao = descricaoLimpa.replace(/\s+R\$\s*$/i, '').trim();
+    if (!descricao || descricao.length < 2) return;
+    const dia = String(diaRaw).padStart(2, '0');
+    out.push({
+      id: uid(),
+      data: `${currentYear}-${mes}-${dia}`,
+      ym: `${currentYear}-${mes}`,
+      descricao,
+      descricaoBruta: descricao,
+      valor,
+      parcela,
+      internacional: false,
+      atribuido: { categoria: null, subcategoria: null, grupoId: null },
+      excluido: false
+    });
+  }
+
+  /* ---------- Decisão de modo ---------- */
+  let lancs = [];
+  let modo;
+  const itemsCount = (pdfItems && pdfItems.length) ? pdfItems.length : 0;
+
+  if (itemsCount > 0) {
+    lancs = modoA(pdfItems);
+    modo = 'A-items';
+    if (lancs.length === 0) {
+      /* Modo A não retornou nada — pode ser layout não esperado. Tenta B */
+      lancs = modoB(textoBruto);
+      modo = 'B-texto-apos-A-zero';
+    }
+  } else {
+    /* Items vazios (quirk do PDF.js em algum browser, ou versão sem suporte) */
+    lancs = modoB(textoBruto);
+    modo = 'B-texto-sem-items';
+  }
+
+  /* DEBUG sempre populado (genérico — funciona pra qualquer parser) */
   try {
     if (typeof window !== 'undefined') {
       window.__faturaDebug = {
         parser: 'sicoob',
-        items: pdfItems.length,
-        paginas: paginas.size,
+        modo,
+        items: itemsCount,
         capturados: lancs.length,
         somaTotal: lancs.reduce((s, l) => s + (l.valor || 0), 0)
       };
     }
   } catch (e) {
-    if (typeof window !== 'undefined') window.__faturaDebug = { erro: String(e) };
+    if (typeof window !== 'undefined') window.__faturaDebug = { parser: 'sicoob', erro: String(e) };
   }
   return lancs;
 }
@@ -9261,8 +9361,19 @@ function renderRevisao() {
           try {
             const d = window.__faturaDebug;
             if (!d) return 'debug: indisponível';
-            return `debug: ${d.items} items · ${d.matchesAncora}/${d.matchesRelax} markers · stop=${d.stopMarkersReorg} · reorg=${d.reorgChars}c`;
-          } catch (e) { return 'debug: erro'; }
+            if (d.erro) return `debug: erro · ${d.erro}`;
+            /* Campos comuns: parser, items, capturados, somaTotal. Parsers especializados podem ter mais. */
+            const parts = [];
+            if (d.parser) parts.push(d.parser);
+            if (d.modo) parts.push(d.modo);
+            if (d.items !== undefined) parts.push(`${d.items} items`);
+            if (d.capturados !== undefined) parts.push(`${d.capturados} cap`);
+            if (d.somaTotal !== undefined) parts.push(`soma R$ ${d.somaTotal.toFixed(2)}`);
+            /* Campos específicos do parserItauVisaInfinite */
+            if (d.matchesAncora !== undefined) parts.push(`${d.matchesAncora}/${d.matchesRelax} markers`);
+            if (d.stopReorg !== undefined) parts.push(`stop=${d.stopReorg}`);
+            return `debug: ${parts.join(' · ')}`;
+          } catch (e) { return 'debug: erro · ' + String(e).slice(0, 60); }
         })()}</span>
       </div>
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
