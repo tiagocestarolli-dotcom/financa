@@ -3240,7 +3240,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.11.1 · marca fixo na revisão
+  Finança · v0.12.0 · parser Sicoob
 </div>
 
   </section>
@@ -8663,16 +8663,20 @@ function detectarBancoFatura(textoBruto) {
 function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
   const banco = hintBanco || detectarBancoFatura(textoBruto);
   /* v0.10.1: Itaú Visa Infinite usa parser especializado que reorganiza
-     o layout em 2 colunas antes de aplicar regex. Os outros bancos ainda
-     delegam ao genérico — entram nas sub-fatias 3.2 (Sicoob) e 3.3 (BTG). */
+     o layout em 2 colunas antes de aplicar regex.
+     v0.12.0 (Fatia 3.2): Sicoob usa parser dedicado com âncora-de-DATA
+     pra remontar descrições multi-linha (fragmentação típica do PDF Sicoob).
+     BTG ainda delega ao genérico — entra na sub-fatia 3.3. */
   let lancs;
   switch (banco) {
     case 'itau-visa-infinite':
       lancs = parserItauVisaInfinite(textoBruto, pdfItems);
       break;
+    case 'sicoob':
+      lancs = parserSicoob(textoBruto, pdfItems);
+      break;
     case 'itau-mc-black':
     case 'itau-generico':
-    case 'sicoob':
     case 'btg':
     case 'generico':
     default:
@@ -8877,6 +8881,185 @@ function parserItauVisaInfinite(textoBruto, pdfItems) {
   }
   return lancs;
 }
+
+/* ============== Parser especializado: Sicoob (v0.12.0 — Fatia 3.2) ==============
+   A fatura Sicoob Mastercard tem layout em 4 colunas fixas: DATA | DESCRIÇÃO
+   | CIDADE | VALOR. Quando a descrição é longa (ex: "IMUNOCENTRO SERV MED 01/05"),
+   ela quebra em 2-3 linhas físicas, e o PDF.js entrega cada linha como item em
+   Y diferente. O parser genérico perde esse lançamento porque nenhuma linha
+   isolada matcha o regex.
+
+   Estratégia: usar coordenadas X/Y dos items diretamente.
+   - Âncora de cada lançamento = item na coluna DATA (X < 50) com texto "DD MMM"
+   - Items dentro de |Y - Y_ancora| <= 5 pertencem ao mesmo lançamento
+     (gap entre lançamentos é 18px; descrição multi-linha fica em ±4px da data)
+   - Concatena descrição multi-linha (X ≈ 68) ordenando por Y descendente
+   - Cidade (X ≈ 175) e valor (X ≈ 240) — primeiro item da coluna
+
+   Também captura MOVIMENTAÇÕES DA CONTA (anuidade, vantagem progressiva,
+   pagamento débito) com a mesma estrutura. Filtros descartam o que não é
+   gasto real:
+   - valor <= 0 → crédito (vantagem progressiva, estornos, pagamentos)
+   - descrição começa com PAGAMENTO/VANTAGEM/PROTEÇÃO → técnica, não consumo
+   - Anuidade fica (decisão de produto: gasto real). */
+
+function parserSicoob(textoBruto, pdfItems) {
+  /* Fallback: sem items, cai no genérico — provavelmente vai capturar pouco
+     (a fragmentação multi-linha vai derrubar lançamentos longos), mas é o
+     melhor disponível sem coordenadas. */
+  if (!pdfItems || !pdfItems.length) {
+    return parserGenericoFatura(textoBruto);
+  }
+
+  const MESES_SC = {
+    'JAN':'01','FEV':'02','MAR':'03','ABR':'04','MAI':'05','JUN':'06',
+    'JUL':'07','AGO':'08','SET':'09','OUT':'10','NOV':'11','DEZ':'12'
+  };
+  const Y_TOL = 5;             /* tolerância vertical pra agrupar items do mesmo lançamento */
+  const X_DATA_MAX   = 50;     /* coluna DATA */
+  const X_DESC_MAX   = 160;    /* coluna DESCRIÇÃO (começa logo após data) */
+  const X_CIDADE_MAX = 220;    /* coluna CIDADE */
+                               /* X >= 220 = coluna VALOR */
+
+  /* Parser de valor robusto BR/US — o Sicoob usa formato US (R$ 1,933.36)
+     enquanto o Itaú usa BR (R$ 1.933,36). Detecta o decimal pelo último
+     separador (com 1-2 dígitos depois). */
+  function parseValorSicoob(s) {
+    if (!s) return null;
+    let t = String(s).replace(/R\$/gi, '').replace(/\s+/g, '').trim();
+    const neg = t.startsWith('-');
+    if (neg) t = t.slice(1);
+    if (!/^[\d.,]+$/.test(t)) return null;
+    const lastDot = t.lastIndexOf('.');
+    const lastComma = t.lastIndexOf(',');
+    let decimal = -1;
+    if (lastDot > lastComma) decimal = lastDot;
+    else if (lastComma > lastDot) decimal = lastComma;
+    let intPart, decPart;
+    if (decimal >= 0 && t.length - decimal - 1 <= 2 && t.length - decimal - 1 >= 1) {
+      intPart = t.slice(0, decimal).replace(/[.,]/g, '');
+      decPart = t.slice(decimal + 1);
+    } else {
+      intPart = t.replace(/[.,]/g, '');
+      decPart = '00';
+    }
+    const num = parseFloat(`${intPart}.${decPart}`);
+    if (isNaN(num)) return null;
+    return neg ? -num : num;
+  }
+
+  /* Filtros pra descartar lançamentos técnicos (não-consumo).
+     Anuidade NÃO é filtrada — entra como gasto real. */
+  const FILTRO_DESC = /^(pagamento|vantagem|prote[çc][ãa]o)/i;
+
+  /* Agrupar items por página */
+  const paginas = new Map();
+  for (const it of pdfItems) {
+    if (!it.text || !it.text.trim()) continue;
+    if (!paginas.has(it.page)) paginas.set(it.page, []);
+    paginas.get(it.page).push(it);
+  }
+
+  const lancs = [];
+  const currentYear = new Date().getFullYear();
+  const pageNums = [...paginas.keys()].sort((a, b) => a - b);
+
+  for (const pageNum of pageNums) {
+    const pageItems = paginas.get(pageNum);
+
+    /* Detectar âncoras de DATA: item na coluna esquerda com texto "DD MMM" */
+    const ancoras = [];
+    for (const it of pageItems) {
+      if (it.x > X_DATA_MAX) continue;
+      const t = it.text.trim();
+      const m = t.match(/^(\d{1,2})\s+([A-Z]{3})$/);
+      if (m && MESES_SC[m[2]]) {
+        ancoras.push({ y: it.y, dia: m[1].padStart(2, '0'), mes: MESES_SC[m[2]] });
+      }
+    }
+    if (!ancoras.length) continue;
+
+    /* Ordenar âncoras topo-pra-base (PDF.js Y nativo: maior = topo) */
+    ancoras.sort((a, b) => b.y - a.y);
+
+    for (const anc of ancoras) {
+      const grupo = pageItems.filter(it => Math.abs(it.y - anc.y) <= Y_TOL);
+
+      /* Coluna DESCRIÇÃO: pode ter 1-3 items (multi-linha). Concatena por Y
+         descendente (linha de cima primeiro, conforme leitura natural). */
+      const descItems = grupo
+        .filter(it => it.x > X_DATA_MAX && it.x < X_DESC_MAX)
+        .sort((a, b) => b.y - a.y);
+
+      /* Coluna CIDADE: primeiro item (geralmente único) */
+      const cidadeItem = grupo.find(it => it.x >= X_DESC_MAX && it.x < X_CIDADE_MAX);
+
+      /* Coluna VALOR: primeiro item (geralmente único) */
+      const valorItem = grupo.find(it => it.x >= X_CIDADE_MAX);
+
+      if (!valorItem) continue;
+      const valor = parseValorSicoob(valorItem.text);
+      if (valor === null || valor <= 0) continue;   /* filtro: créditos descartados */
+
+      let descricao = descItems.map(it => it.text.trim()).join(' ').replace(/\s+/g, ' ').trim();
+      if (!descricao) continue;
+
+      /* Filtro: descrições técnicas (pagamento débito, vantagem progressiva, proteção) */
+      if (FILTRO_DESC.test(descricao)) continue;
+
+      /* Detectar parcela X/Y no final da descrição.
+         Cobre "IMUNOCENTRO SERV MED 01/05" (parcela 1/5) e
+         "ANUIDADE MASTERCARD (6578) 10/12" (parcela 10/12). */
+      let parcela = null;
+      const pm = descricao.match(/\s(\d{1,2})\/(\d{1,2})\s*$/);
+      if (pm) {
+        const atual = parseInt(pm[1], 10);
+        const total = parseInt(pm[2], 10);
+        if (total > 1 && total <= 99 && atual <= total) {
+          parcela = { atual, total };
+          descricao = descricao.replace(/\s\d{1,2}\/\d{1,2}\s*$/, '').trim();
+        }
+      }
+
+      /* Limpar artefatos finais */
+      descricao = descricao.replace(/\s+R\$\s*$/i, '').trim();
+      if (!descricao || descricao.length < 2) continue;
+
+      const dataISO = `${currentYear}-${anc.mes}-${anc.dia}`;
+      const ym = `${currentYear}-${anc.mes}`;
+
+      lancs.push({
+        id: uid(),
+        data: dataISO,
+        ym,
+        descricao,
+        descricaoBruta: descricao,
+        valor,
+        parcela,
+        internacional: false,
+        atribuido: { categoria: null, subcategoria: null, grupoId: null },
+        excluido: false
+      });
+    }
+  }
+
+  /* DEBUG: expor estatística pra diagnóstico no app (mesmo padrão do Visa Infinite) */
+  try {
+    if (typeof window !== 'undefined') {
+      window.__faturaDebug = {
+        parser: 'sicoob',
+        items: pdfItems.length,
+        paginas: paginas.size,
+        capturados: lancs.length,
+        somaTotal: lancs.reduce((s, l) => s + (l.valor || 0), 0)
+      };
+    }
+  } catch (e) {
+    if (typeof window !== 'undefined') window.__faturaDebug = { erro: String(e) };
+  }
+  return lancs;
+}
+
 
 /* Parser genérico — heurística por regex.
    Tenta detectar linhas no padrão `data + descrição + valor`.
