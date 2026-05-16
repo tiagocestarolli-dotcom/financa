@@ -2585,6 +2585,152 @@ label {
 .fab:active { transform: scale(0.92); box-shadow: 0 4px 12px rgba(20,18,14,0.18); }
 .fab.flow-in { background: var(--flow-in); }
 
+/* v0.14.0 — Botão "Compromissos do mês" no topo das views Família/Tiago */
+.compromissos-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 12px 0 8px;
+  padding: 12px 16px;
+  background: var(--bg-sunken, #F0EFE8);
+  border: 1px solid var(--line, #E6E4DC);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink, #14120E);
+  cursor: pointer;
+  transition: background .14s, transform .12s;
+}
+.compromissos-btn:active { background: var(--line, #E6E4DC); transform: scale(0.98); }
+
+/* Sheet "Compromissos do mês" */
+.cm-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-sunken, #F0EFE8);
+  border-radius: 10px;
+  margin: 8px 0 14px;
+}
+.cm-tab {
+  flex: 1;
+  padding: 8px 6px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-mute, #6E6857);
+  cursor: pointer;
+}
+.cm-tab.active {
+  background: var(--bg, #FAFAF5);
+  color: var(--ink, #14120E);
+  box-shadow: 0 1px 2px rgba(20,18,14,0.06);
+}
+.cm-monthnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 12px;
+}
+.cm-monthnav button {
+  background: transparent; border: 0; padding: 4px 12px;
+  font-size: 18px; color: var(--ink-mute); cursor: pointer;
+}
+.cm-monthnav .cm-monthlabel {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 16px;
+}
+.cm-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg-sunken, #F0EFE8);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.cm-toggle input { transform: scale(1.2); }
+.cm-section-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-mute, #6E6857);
+  margin: 14px 2px 6px;
+}
+.cm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line, #E6E4DC);
+  font-size: 14px;
+}
+.cm-row:last-child { border-bottom: 0; }
+.cm-row .cm-status {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.cm-row .cm-status.pago { background: var(--flow-in-soft, #E8F0E5); color: var(--flow-in, #4A6741); }
+.cm-row .cm-status.pendente { background: var(--bg-sunken, #F0EFE8); color: var(--ink-mute, #6E6857); }
+.cm-row .cm-info { flex: 1; min-width: 0; }
+.cm-row .cm-info .cm-name { font-weight: 500; }
+.cm-row .cm-info .cm-meta {
+  font-size: 11px;
+  color: var(--ink-mute, #6E6857);
+  margin-top: 1px;
+  font-family: var(--font-mono, monospace);
+}
+.cm-row .cm-val { font-weight: 600; white-space: nowrap; }
+.cm-row.projetado { opacity: 0.78; }
+.cm-row .cm-tag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-sunken, #F0EFE8);
+  color: var(--ink-mute, #6E6857);
+  letter-spacing: 0.3px;
+}
+.cm-row .cm-tag.parcela { background: #FFF3DB; color: #8B6A1A; }
+.cm-row .cm-tag.projetado { background: #E8EDF5; color: #4A5A7A; }
+.cm-totals {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px solid var(--ink, #14120E);
+}
+.cm-total-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 4px 0;
+  font-size: 14px;
+}
+.cm-total-line.grand {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 20px;
+  margin-top: 8px;
+}
+.cm-total-line .cm-tlabel { color: var(--ink-mute, #6E6857); }
+.cm-empty {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--ink-mute, #6E6857);
+  font-style: italic;
+  font-size: 13px;
+}
+
 /* Section header dentro de uma view */
 .view-section-h {
   display: flex;
@@ -3014,6 +3160,7 @@ label {
 
   <section class="view" data-view="familia">
     <div id="familiaTotalConsolidado"></div>
+    <button class="compromissos-btn" data-compromissos="familia">📋 Compromissos do mês</button>
     <div class="subtabs" id="familiaSubtabs"></div>
     <div id="familiaContent"></div>
     <button class="fab" id="famFab" aria-label="Novo gasto">＋</button>
@@ -3022,6 +3169,7 @@ label {
   <!-- TIAGO — gastos isolados, nunca somam família -->
 
   <section class="view" data-view="tiago">
+    <button class="compromissos-btn" data-compromissos="tiago">📋 Compromissos do mês</button>
     <div id="tiagoContent"></div>
     <button class="fab" id="tiagoFab" aria-label="Novo gasto">＋</button>
   </section>
@@ -3240,7 +3388,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.13.0 · parser BTG
+  Finança · v0.14.1 · projeções sincronizadas
 </div>
 
   </section>
@@ -3869,6 +4017,11 @@ function go(view) {
 }
 document.querySelectorAll('.nav-item').forEach(btn => {
   btn.addEventListener('click', () => go(btn.dataset.go));
+});
+
+/* v0.14.0 — Bind dos botões "Compromissos do mês" em Família e Tiago */
+document.querySelectorAll('[data-compromissos]').forEach(btn => {
+  btn.addEventListener('click', () => openCompromissosSheet(btn.dataset.compromissos));
 });
 
 /* ====== Família — sub-tabs (Casa/Marina/Heitor/Juliana) ====== */
@@ -5171,6 +5324,30 @@ function ymNext(ym) {
 function dataToYM(dataISO) {
   return dataISO.slice(0, 7); /* "2026-05-15" -> "2026-05" */
 }
+function ymAdd(ym, n) {
+  /* Soma N meses a um ym (n pode ser negativo). Retorna formato YYYY-MM. */
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function currentYM() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+/* Chave única pra identificar uma compra parcelada e reconciliar parcelas futuras
+   importadas em faturas subsequentes. Formato: cardId|total|descNormalizada.
+   Usa descricaoBruta (texto original do PDF) pra ser estável mesmo se usuário
+   editar o nome do gasto. v0.14.0 — Fatia "Compromissos do Mês". */
+function gerarParcelaChave(g) {
+  if (!g || !g.parcela || !g.cardId) return null;
+  const desc = g.descricaoBruta || g.nome || '';
+  const descNorm = desc.toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 40);
+  if (!descNorm) return null;
+  return `${g.cardId}|${g.parcela.total}|${descNorm}`;
+}
 function todayISO() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -5546,6 +5723,128 @@ function parseValor(raw) {
   return isFinite(n) ? n : 0;
 }
 
+/* ===== v0.14.0 — Compromissos do Mês (fixos + parcelas projetadas) =====
+   Sheet única acessível via botão no topo das views Família e Tiago.
+   3 abas (Família · Tiago · Total) × N meses (navegáveis) × toggle parcelas. */
+let cmState = { view: 'familia', ym: null, incluiParcelas: true };
+
+function openCompromissosSheet(viewInicial = 'familia') {
+  cmState = { view: viewInicial, ym: currentYM(), incluiParcelas: true };
+  renderCompromissosSheet();
+}
+
+function calcularCompromissos(ym, view, incluiParcelas) {
+  const FAMILIA = ['casa', 'marina', 'heitor', 'juliana'];
+  const matchView = (g) => {
+    if (view === 'familia') return FAMILIA.includes(g.categoria);
+    if (view === 'tiago')   return g.categoria === 'tiago';
+    return FAMILIA.includes(g.categoria) || g.categoria === 'tiago'; /* total */
+  };
+
+  const todos = state.gastos.filter(g =>
+    g.ym === ym && !g.isAjuste && matchView(g)
+  );
+
+  const fixos = todos.filter(g => g.isFixo);
+  const parcelas = incluiParcelas
+    ? todos.filter(g => !g.isFixo && g.parcela && g.cardId)
+    : [];
+
+  /* Ordenar: pendentes primeiro, depois por valor desc */
+  const sorter = (a, b) => {
+    if (a.pago !== b.pago) return a.pago ? 1 : -1;
+    return (b.valor || 0) - (a.valor || 0);
+  };
+  fixos.sort(sorter);
+  parcelas.sort(sorter);
+
+  const somaFixos = fixos.reduce((s, g) => s + (g.valor || 0), 0);
+  const somaParcelas = parcelas.reduce((s, g) => s + (g.valor || 0), 0);
+  const somaFixosPagos = fixos.filter(g => g.pago).reduce((s, g) => s + (g.valor || 0), 0);
+  const somaFixosPend  = somaFixos - somaFixosPagos;
+
+  return { fixos, parcelas, somaFixos, somaParcelas, somaFixosPagos, somaFixosPend };
+}
+
+function renderCompromissosSheet() {
+  const { view, ym, incluiParcelas } = cmState;
+  const c = calcularCompromissos(ym, view, incluiParcelas);
+  const total = c.somaFixos + c.somaParcelas;
+
+  const ymLabel = `${MESES_PT_ABBR[Number(ym.split('-')[1]) - 1]}/${ym.split('-')[0].slice(2)}`;
+
+  const rowHTML = (g) => {
+    const isProj = g.isParcelaProjetada || g.isFixoProjetado;
+    const card = g.cardId ? (state.cards.find(c => c.id === g.cardId) || null) : null;
+    const cardLabel = card ? card.nome : (g.pagamento === 'manual' ? 'manual' : g.pagamento);
+    const parcLabel = (g.parcela && g.parcela.total > 1)
+      ? `<span class="cm-tag parcela">${g.parcela.atual}/${g.parcela.total}</span>`
+      : '';
+    const projLabel = isProj ? '<span class="cm-tag projetado">proj</span>' : '';
+    return `
+      <div class="cm-row ${isProj ? 'projetado' : ''}">
+        <div class="cm-status ${g.pago ? 'pago' : 'pendente'}">${g.pago ? '✓' : '○'}</div>
+        <div class="cm-info">
+          <div class="cm-name">${escapeHtml(g.nome || '—')} ${parcLabel} ${projLabel}</div>
+          <div class="cm-meta">${escapeHtml(state.members[g.categoria]?.nome || g.categoria)} · ${escapeHtml(cardLabel)}</div>
+        </div>
+        <div class="cm-val">R$ ${(g.valor || 0).toFixed(2).replace('.', ',')}</div>
+      </div>
+    `;
+  };
+
+  const fixosSec = c.fixos.length === 0
+    ? `<div class="cm-empty">Nenhum gasto fixo neste mês</div>`
+    : c.fixos.map(rowHTML).join('');
+
+  const parcSec = !incluiParcelas
+    ? ''
+    : c.parcelas.length === 0
+      ? `<div class="cm-section-title">Parcelas de cartão</div><div class="cm-empty">Nenhuma parcela neste mês</div>`
+      : `<div class="cm-section-title">Parcelas de cartão · R$ ${c.somaParcelas.toFixed(2).replace('.', ',')}</div>${c.parcelas.map(rowHTML).join('')}`;
+
+  const html = `
+    <div class="cm-tabs">
+      <button class="cm-tab ${view === 'familia' ? 'active' : ''}" data-cm-view="familia">Família</button>
+      <button class="cm-tab ${view === 'tiago' ? 'active' : ''}" data-cm-view="tiago">Tiago</button>
+      <button class="cm-tab ${view === 'total' ? 'active' : ''}" data-cm-view="total">Total</button>
+    </div>
+
+    <div class="cm-monthnav">
+      <button id="cmPrev" aria-label="Mês anterior">‹</button>
+      <div class="cm-monthlabel">${ymLabel}</div>
+      <button id="cmNext" aria-label="Próximo mês">›</button>
+    </div>
+
+    <label class="cm-toggle">
+      <span>Incluir parcelas de cartão no total</span>
+      <input type="checkbox" id="cmTogParc" ${incluiParcelas ? 'checked' : ''}>
+    </label>
+
+    <div class="cm-section-title">Gastos fixos · R$ ${c.somaFixos.toFixed(2).replace('.', ',')} <span class="muted" style="font-size:11px;">(${c.fixos.filter(g => g.pago).length}/${c.fixos.length} pagos)</span></div>
+    ${fixosSec}
+
+    ${parcSec}
+
+    <div class="cm-totals">
+      <div class="cm-total-line"><span class="cm-tlabel">Fixos pagos</span><span>R$ ${c.somaFixosPagos.toFixed(2).replace('.', ',')}</span></div>
+      <div class="cm-total-line"><span class="cm-tlabel">Fixos pendentes</span><span>R$ ${c.somaFixosPend.toFixed(2).replace('.', ',')}</span></div>
+      ${incluiParcelas ? `<div class="cm-total-line"><span class="cm-tlabel">Parcelas projetadas</span><span>R$ ${c.somaParcelas.toFixed(2).replace('.', ',')}</span></div>` : ''}
+      <div class="cm-total-line grand"><span>Total ${incluiParcelas ? 'comprometido' : 'fixos'}</span><span>R$ ${total.toFixed(2).replace('.', ',')}</span></div>
+    </div>
+  `;
+
+  sheet.open(`Compromissos · ${ymLabel}`, html);
+
+  /* Hooks */
+  document.querySelectorAll('[data-cm-view]').forEach(b => {
+    b.onclick = () => { cmState.view = b.dataset.cmView; renderCompromissosSheet(); };
+  });
+  document.getElementById('cmPrev').onclick = () => { cmState.ym = ymPrev(cmState.ym); renderCompromissosSheet(); };
+  document.getElementById('cmNext').onclick = () => { cmState.ym = ymNext(cmState.ym); renderCompromissosSheet(); };
+  document.getElementById('cmTogParc').onchange = (e) => { cmState.incluiParcelas = e.target.checked; renderCompromissosSheet(); };
+}
+
 /* ===== Configurações: Gerenciar Fontes de Renda ===== */
 function openFontesSheet() {
   function render() {
@@ -5792,23 +6091,25 @@ function getCardById(id) {
   return state.cards.find(c => c.id === id);
 }
 
-/* Garante que os gastos fixos do mês corrente foram replicados (idempotente) */
-function processarGastosFixosDoMes(ym) {
-  if (!state.fixedExpenses || state.fixedExpenses.length === 0) return;
+/* Processa gastos fixos pra um ym específico. Idempotente (não duplica).
+   v0.14.0: meses futuros recebem pago=false e isFixoProjetado=true; mês corrente
+   mantém comportamento anterior (pago automático se pagamento != manual). */
+function processarGastosFixosDoMesYM(ym, ymCorrente) {
+  if (!state.fixedExpenses || state.fixedExpenses.length === 0) return 0;
   const ativos = state.fixedExpenses.filter(f => f.ativo !== false);
+  const isFuturo = ym > ymCorrente;
   let added = 0;
   ativos.forEach(f => {
-    /* Se já existe um lançamento neste mês com parentFixoId === f.id, não duplica */
     const jaExiste = state.gastos.some(g => g.parentFixoId === f.id && g.ym === ym);
     if (jaExiste) return;
-    /* Não replica em meses ANTERIORES à data de criação do fixo */
     if (f.startYM && ym < f.startYM) return;
-    /* Replica usando o dia do mês original (ou dia 1 se inválido) */
     const [y, m] = ym.split('-').map(Number);
     const diaTarget = f.diaMes || 1;
     const lastDay = new Date(y, m, 0).getDate();
     const dia = Math.min(diaTarget, lastDay);
     const data = `${ym}-${String(dia).padStart(2, '0')}`;
+    /* Meses futuros NUNCA marcam pago automaticamente — usuário confirma. */
+    const pagoAuto = !isFuturo && f.pagamento !== 'manual';
     state.gastos.push({
       id: uid(),
       categoria: f.categoria,
@@ -5825,13 +6126,214 @@ function processarGastosFixosDoMes(ym) {
       parentFixoId: f.id,
       isInvest: isInvest(f.categoria, f.subcategoria),
       observacao: f.observacao || '',
-      pago: f.pagamento !== 'manual',
-      dataPagamento: f.pagamento !== 'manual' ? data : null
+      pago: pagoAuto,
+      dataPagamento: pagoAuto ? data : null,
+      isFixoProjetado: isFuturo
     });
     added++;
   });
+  return added;
+}
+
+/* Wrapper compat: processa apenas o ym especificado. Mantido para callers existentes. */
+function processarGastosFixosDoMes(ym) {
+  const added = processarGastosFixosDoMesYM(ym, currentYM());
   if (added > 0) saveState(state);
 }
+
+/* v0.14.0: processa fixos projetados pros próximos N meses (default 12).
+   Roda automaticamente na inicialização. Idempotente (não duplica). */
+function processarFixosProjetados(meses = 12) {
+  const ymCorrente = currentYM();
+  let totalAdded = 0;
+  for (let i = 0; i < meses; i++) {
+    const ym = ymAdd(ymCorrente, i);
+    totalAdded += processarGastosFixosDoMesYM(ym, ymCorrente);
+  }
+  if (totalAdded > 0) saveState(state);
+  return totalAdded;
+}
+
+/* v0.14.0: materializa parcelas FALTANTES de uma compra parcelada, criando
+   registros futuros marcados como projetados (isParcelaProjetada=true, pago=false).
+   "gastoAncora" pode ser qualquer parcela já real da compra (geralmente a 01/Y
+   recém-importada, mas também serve pra migração de dados existentes).
+   Idempotente: não duplica projeções que já existem. Retorna nº criado. */
+function materializarParcelasFaltantes(gastoAncora) {
+  if (!gastoAncora || !gastoAncora.parcela || !gastoAncora.cardId) return 0;
+  const { atual, total } = gastoAncora.parcela;
+  if (atual >= total) return 0;
+
+  const chave = gerarParcelaChave(gastoAncora);
+  if (!chave) return 0;
+
+  /* Garante que o âncora também tem a chave (migração in-flight) */
+  if (!gastoAncora.parcelaChave) gastoAncora.parcelaChave = chave;
+
+  let added = 0;
+  const dia = parseInt((gastoAncora.dataCompra || gastoAncora.data).split('-')[2], 10) || 1;
+
+  for (let k = 1; k <= total - atual; k++) {
+    const parcAtual = atual + k;
+    const novoYm = ymAdd(gastoAncora.ym, k);
+
+    /* Idempotência: já existe projeção (ou real) desta parcela específica? */
+    const jaExiste = state.gastos.some(g =>
+      g.parcelaChave === chave &&
+      g.parcela && g.parcela.atual === parcAtual
+    );
+    if (jaExiste) continue;
+
+    const [yy, mm] = novoYm.split('-').map(Number);
+    const lastDay = new Date(yy, mm, 0).getDate();
+    const diaSafe = Math.min(dia, lastDay);
+    const dataISO = `${novoYm}-${String(diaSafe).padStart(2, '0')}`;
+
+    state.gastos.push({
+      id: uid(),
+      categoria: gastoAncora.categoria,
+      subcategoria: gastoAncora.subcategoria,
+      grupoId: gastoAncora.grupoId || null,
+      identificacao: gastoAncora.identificacao || null,
+      nome: gastoAncora.nome,
+      valor: gastoAncora.valor,
+      data: dataISO,
+      ym: novoYm,
+      dataCompra: gastoAncora.dataCompra || gastoAncora.data,
+      descricaoBruta: gastoAncora.descricaoBruta || '',
+      cardId: gastoAncora.cardId,
+      contaId: null,
+      pagamento: 'cartao',
+      isFixo: false,
+      isInvest: gastoAncora.isInvest || false,
+      observacao: `projetada · ${parcAtual}/${total}`,
+      parcela: { atual: parcAtual, total },
+      parcelaChave: chave,
+      isParcelaProjetada: true,
+      pago: false,
+      dataPagamento: null
+    });
+    added++;
+  }
+  return added;
+}
+
+/* v0.14.0: tenta reconciliar um novo gasto-parcela com uma projeção existente.
+   Caso encontre projeção compatível (mesma chave + ym + parcela.atual), ATUALIZA
+   a projeção com dados reais e marca pago=true. Caso contrário INSERE como novo.
+   Retorna {acao: 'reconciliado'|'criado', id}. */
+function reconciliarOuCriarGasto(novoGasto) {
+  if (!novoGasto.parcela || !novoGasto.cardId) {
+    state.gastos.push(novoGasto);
+    return { acao: 'criado', id: novoGasto.id };
+  }
+  const chave = gerarParcelaChave(novoGasto);
+  if (chave) novoGasto.parcelaChave = chave;
+  if (!chave) {
+    state.gastos.push(novoGasto);
+    return { acao: 'criado', id: novoGasto.id };
+  }
+
+  const proj = state.gastos.find(g =>
+    g.isParcelaProjetada === true &&
+    g.parcelaChave === chave &&
+    g.ym === novoGasto.ym &&
+    g.parcela && g.parcela.atual === novoGasto.parcela.atual
+  );
+
+  if (proj) {
+    /* Reconciliação: atualiza projeção com dados reais e marca pago */
+    proj.valor = novoGasto.valor;
+    proj.data = novoGasto.data;
+    proj.nome = novoGasto.nome || proj.nome;
+    proj.subcategoria = novoGasto.subcategoria || proj.subcategoria;
+    proj.grupoId = novoGasto.grupoId || proj.grupoId;
+    proj.identificacao = novoGasto.identificacao || proj.identificacao;
+    proj.categoria = novoGasto.categoria || proj.categoria;
+    proj.observacao = novoGasto.observacao || proj.observacao;
+    proj.descricaoBruta = novoGasto.descricaoBruta || proj.descricaoBruta;
+    proj.pago = true;
+    proj.dataPagamento = novoGasto.dataPagamento || novoGasto.data;
+    proj.isParcelaProjetada = false;
+    proj.categoriaPendente = novoGasto.categoriaPendente || false;
+    return { acao: 'reconciliado', id: proj.id };
+  }
+  state.gastos.push(novoGasto);
+  return { acao: 'criado', id: novoGasto.id };
+}
+
+/* v0.14.1: limpa projeções FUTURAS (pago=false, ym > corrente) de um fixedExpense.
+   Usado quando o fixo é pausado ou removido — mantém o que já foi pago. */
+function limparProjecoesFuturasDoFixo(fixoId) {
+  const ymCorrente = currentYM();
+  const antes = state.gastos.length;
+  state.gastos = state.gastos.filter(g => !(
+    g.parentFixoId === fixoId &&
+    g.pago === false &&
+    g.ym > ymCorrente
+  ));
+  return antes - state.gastos.length;
+}
+
+/* v0.14.1: atualiza projeções FUTURAS (pago=false, ym > corrente) com dados
+   atuais do fixedExpense (nome, valor, dia, categoria, forma de pagamento).
+   Usado após editar o fixo — mantém o que já foi pago intacto. */
+function atualizarProjecoesFuturasDoFixo(fixoId) {
+  const f = state.fixedExpenses.find(x => x.id === fixoId);
+  if (!f) return 0;
+  const ymCorrente = currentYM();
+  let updated = 0;
+  state.gastos.forEach(g => {
+    if (g.parentFixoId !== fixoId) return;
+    if (g.pago !== false) return;
+    if (g.ym <= ymCorrente) return;
+    g.nome = f.nome;
+    g.valor = f.valor;
+    g.categoria = f.categoria;
+    g.subcategoria = f.subcategoria;
+    g.grupoId = f.grupoId || null;
+    g.cardId = f.pagamento === 'cartao' ? f.cardId : null;
+    g.contaId = f.pagamento !== 'cartao' ? (f.contaId || null) : null;
+    g.pagamento = f.pagamento;
+    const [y, m] = g.ym.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    const dia = Math.min(f.diaMes || 1, lastDay);
+    g.data = `${g.ym}-${String(dia).padStart(2, '0')}`;
+    updated++;
+  });
+  return updated;
+}
+
+/* v0.14.0: migração one-time pra dados existentes.
+   1. Gera parcelaChave em todos os gastos-parcela existentes que não têm
+   2. Pra cada compra parcelada existente, materializa parcelas FALTANTES a partir
+      da parcela mais alta já importada (não duplica) */
+function migrarParcelasV014() {
+  if (state.schemaVersion === '0.14') return { skip: true };
+  let chavesGeradas = 0;
+  state.gastos.forEach(g => {
+    if (g.parcela && g.cardId && !g.parcelaChave) {
+      const chave = gerarParcelaChave(g);
+      if (chave) { g.parcelaChave = chave; chavesGeradas++; }
+    }
+  });
+  /* Agrupar por parcelaChave → pegar parcela.atual mais alta como âncora */
+  const ancoras = new Map();
+  state.gastos.forEach(g => {
+    if (!g.parcelaChave || g.isParcelaProjetada) return;
+    const cur = ancoras.get(g.parcelaChave);
+    if (!cur || g.parcela.atual > cur.parcela.atual) ancoras.set(g.parcelaChave, g);
+  });
+  let projetadasCriadas = 0;
+  for (const [, ancora] of ancoras) {
+    projetadasCriadas += materializarParcelasFaltantes(ancora);
+  }
+  state.schemaVersion = '0.14';
+  saveState(state);
+  return { chavesGeradas, projetadasCriadas };
+}
+
+
 
 /* ===== Render principal da view Família ===== */
 function renderFamiliaContent() {
@@ -7012,6 +7514,12 @@ function openFixedSheet() {
     document.querySelectorAll('[data-fx-toggle]').forEach(b => b.onclick = () => {
       const f = state.fixedExpenses.find(x => x.id === b.dataset.fxToggle);
       f.ativo = (f.ativo === false);
+      /* v0.14.1: pausar → limpa projeções futuras; reativar → recria */
+      if (f.ativo === false) {
+        limparProjecoesFuturasDoFixo(f.id);
+      } else {
+        processarFixosProjetados(12);
+      }
       saveState(state); render(); renderConfigCounts();
       if (activeView === 'familia') renderFamiliaContent(); else if (activeView === 'tiago') renderTiagoView();
     });
@@ -7027,6 +7535,8 @@ function openFixedSheet() {
         danger: true
       });
       if (!ok) return;
+      /* v0.14.1: limpa projeções futuras antes de remover o fixo */
+      limparProjecoesFuturasDoFixo(b.dataset.fxRm);
       state.fixedExpenses = state.fixedExpenses.filter(x => x.id !== b.dataset.fxRm);
       saveState(state); render(); renderConfigCounts();
       if (activeView === 'familia') renderFamiliaContent(); else if (activeView === 'tiago') renderTiagoView();
@@ -7103,6 +7613,8 @@ function openFixedEditor(id) {
     f.valor = valor;
     f.nome = nome;
     f.diaMes = dia;
+    /* v0.14.1: sincroniza projeções futuras (pago=false) com os novos valores */
+    atualizarProjecoesFuturasDoFixo(f.id);
     saveState(state);
     openFixedSheet();
     if (activeView === 'familia') renderFamiliaContent(); else if (activeView === 'tiago') renderTiagoView();
@@ -10272,7 +10784,12 @@ function aplicarLancamentosImportados(lancs, cardId) {
     if (l.parcela) {
       novoGasto.parcela = l.parcela;
     }
-    state.gastos.push(novoGasto);
+    /* v0.14.0: reconciliação com projeções existentes + materialização de faltantes */
+    const result = reconciliarOuCriarGasto(novoGasto);
+    if (result.acao === 'criado' && novoGasto.parcela && novoGasto.cardId) {
+      /* Gasto novo de parcela — materializa as parcelas seguintes como projeções */
+      materializarParcelasFaltantes(novoGasto);
+    }
     novos++;
     if (isPendente) pendentesCount++;
   });
@@ -10394,9 +10911,10 @@ function bootApp() {
   if (appEl) appEl.style.display = '';
   if (navEl) navEl.style.display = '';
 
-  /* Garante que os gastos fixos do mês atual estão replicados (idempotente) */
-  const ym = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; })();
-  processarGastosFixosDoMes(ym);
+  /* v0.14.0: migra parcelas existentes (gera parcelaChave + materializa faltantes)
+     e replica fixos pros próximos 12 meses. Tudo idempotente. */
+  migrarParcelasV014();
+  processarFixosProjetados(12);
 
   go('familia');
   renderConfigCounts();
