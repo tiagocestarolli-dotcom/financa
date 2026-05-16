@@ -2585,6 +2585,52 @@ label {
 .fab:active { transform: scale(0.92); box-shadow: 0 4px 12px rgba(20,18,14,0.18); }
 .fab.flow-in { background: var(--flow-in); }
 
+/* v0.15.0 — Widget de status de fatura no drill-down do cartão */
+.fatura-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  margin: 8px 0 6px;
+  border-radius: 12px;
+  background: var(--bg-sunken, #F0EFE8);
+  border: 1px solid var(--line, #E6E4DC);
+}
+.fatura-status.paga {
+  background: #EAF3E5;
+  border-color: #C8DDB8;
+}
+.fatura-status.pendente {
+  background: var(--bg-sunken, #F0EFE8);
+}
+.fatura-status .fs-ico {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.fatura-status.paga .fs-ico { background: #4A6741; color: #fff; }
+.fatura-status.pendente .fs-ico {
+  background: var(--bg, #FAFAF5);
+  color: var(--ink-mute, #6E6857);
+  border: 1.5px solid var(--ink-mute, #6E6857);
+}
+.fatura-status .fs-body { flex: 1; min-width: 0; }
+.fatura-status .fs-title { font-weight: 500; font-size: 14px; }
+.fatura-status .fs-meta {
+  font-size: 11px;
+  color: var(--ink-mute, #6E6857);
+  margin-top: 1px;
+  font-family: var(--font-mono, monospace);
+}
+.fatura-status .tiny-btn.primary {
+  background: var(--ink, #14120E);
+  color: var(--bg, #FAFAF5);
+  border-color: var(--ink, #14120E);
+}
+
 /* v0.14.0 — Botão "Compromissos do mês" no topo das views Família/Tiago */
 .compromissos-btn {
   display: flex;
@@ -3388,7 +3434,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.14.2 · projeções de parcelas sincronizadas
+  Finança · v0.15.0 · pagamento de fatura
 </div>
 
   </section>
@@ -6291,6 +6337,146 @@ function limparProjecoesFuturasDeParcela(parcelaChave) {
   return antes - state.gastos.length;
 }
 
+/* ============== ETAPA 4 (v0.15.0) — Pagamento de fatura ==============
+   Quando uma fatura de cartão é paga (manual via UI ou automático via débito
+   automático no boot), criamos um "gasto técnico" que representa a saída da
+   conta de pagamento (card.contaPagamentoId). Esse gasto:
+   - Tem cardId=null (pra NÃO entrar no cálculo da própria fatura)
+   - Tem contaId = card.contaPagamentoId
+   - Tem isPagamentoFatura=true + faturaCardId + faturaYm (vinculação reversa)
+   - Aparece no extrato da conta com tag visual diferente
+   - Não entra em Família/Tiago (filtrado por isPagamentoFatura, similar a isAjuste)
+
+   Schema novo nos gastos (todos opcionais):
+   - g.isPagamentoFatura: boolean
+   - g.faturaCardId: id do cartão pago
+   - g.faturaYm: ym da fatura paga */
+
+function obterDataVencimentoFatura(card, ym) {
+  /* Data ISO de vencimento. ym já é o do vencimento (mesmo da fatura), e o dia
+     vem de card.vencimento (cap ao último dia do mês). */
+  const [y, m] = ym.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  const dia = Math.min(card.vencimento || 1, lastDay);
+  return `${ym}-${String(dia).padStart(2, '0')}`;
+}
+
+function calcularTotalFatura(cardId, ym) {
+  /* Soma a fatura excluindo pagamentos técnicos (cardId=null) e ajustes. */
+  return state.gastos
+    .filter(g => g.cardId === cardId && g.ym === ym && !g.isAjuste && !g.isPagamentoFatura)
+    .reduce((s, g) => s + (Number(g.valor) || 0), 0);
+}
+
+function buscarPagamentoFatura(cardId, ym) {
+  return state.gastos.find(g =>
+    g.isPagamentoFatura === true &&
+    g.faturaCardId === cardId &&
+    g.faturaYm === ym
+  );
+}
+
+function marcarFaturaPaga(cardId, ym, dataPagamento = null) {
+  const card = state.cards.find(c => c.id === cardId);
+  if (!card) return { erro: 'cartão não encontrado' };
+  if (!card.contaPagamentoId) return { erro: 'cartão sem conta de pagamento configurada' };
+
+  const total = calcularTotalFatura(cardId, ym);
+  if (total <= 0) return { erro: 'fatura sem lançamentos' };
+
+  const existente = buscarPagamentoFatura(cardId, ym);
+  if (existente) return { erro: 'fatura já está paga', id: existente.id };
+
+  const venc = obterDataVencimentoFatura(card, ym);
+  const hoje = todayISO();
+  /* Default: data do vencimento se já passou; senão hoje (caso o usuário antecipe) */
+  const dataPag = dataPagamento || (hoje >= venc ? venc : hoje);
+  const ymPag = dataToYM(dataPag);
+
+  const mesAbbr = MESES_PT_ABBR[Number(ym.split('-')[1]) - 1];
+  const ano2 = ym.slice(2, 4);
+
+  const novoGasto = {
+    id: uid(),
+    categoria: null,
+    subcategoria: null,
+    grupoId: null,
+    nome: `Pagamento fatura ${card.nome} · ${mesAbbr}/${ano2}`,
+    valor: total,
+    data: dataPag,
+    ym: ymPag,
+    cardId: null,
+    contaId: card.contaPagamentoId,
+    pagamento: 'conta',
+    isPagamentoFatura: true,
+    faturaCardId: cardId,
+    faturaYm: ym,
+    isFixo: false,
+    isInvest: false,
+    isAjuste: false,
+    observacao: 'débito automático da fatura',
+    pago: true,
+    dataPagamento: dataPag
+  };
+  state.gastos.push(novoGasto);
+  return { id: novoGasto.id, valor: total };
+}
+
+function desfazerPagamentoFatura(cardId, ym) {
+  const pag = buscarPagamentoFatura(cardId, ym);
+  if (!pag) return { erro: 'fatura não está marcada como paga' };
+  state.gastos = state.gastos.filter(g => g.id !== pag.id);
+  return { removidoId: pag.id };
+}
+
+/* Recalcula a saída técnica quando algum gasto da fatura é alterado/criado/removido.
+   No-op se a fatura não estiver marcada como paga. Idempotente. */
+function recalcularPagamentoFatura(cardId, ym) {
+  if (!cardId || !ym) return null;
+  const pag = buscarPagamentoFatura(cardId, ym);
+  if (!pag) return { sem_pagamento: true };
+
+  const novoTotal = calcularTotalFatura(cardId, ym);
+  if (novoTotal <= 0) {
+    /* Fatura ficou vazia (todos os gastos removidos) — remover saída técnica */
+    state.gastos = state.gastos.filter(g => g.id !== pag.id);
+    return { removido: true };
+  }
+  if (Math.abs(pag.valor - novoTotal) < 0.01) return { sem_mudanca: true };
+  const valorAnterior = pag.valor;
+  pag.valor = novoTotal;
+  return { atualizado: true, valorAnterior, valorNovo: novoTotal };
+}
+
+/* Roda no boot — pra cada cartão com debitoAutomatico=true, varre todas as
+   faturas (YMs com gastos) e marca como paga automaticamente se a data atual
+   já passou do vencimento e a fatura ainda não estiver paga. Idempotente. */
+function processarPagamentosFaturaAutomaticos() {
+  const hoje = todayISO();
+  let criados = 0;
+  state.cards.forEach(card => {
+    if (!card.debitoAutomatico) return;
+    if (!card.contaPagamentoId) return;
+    if (!card.vencimento) return;
+
+    const ymsComGastos = new Set(
+      state.gastos
+        .filter(g => g.cardId === card.id && !g.isPagamentoFatura)
+        .map(g => g.ym)
+    );
+
+    ymsComGastos.forEach(ym => {
+      const venc = obterDataVencimentoFatura(card, ym);
+      if (hoje < venc) return; /* ainda não venceu */
+      if (buscarPagamentoFatura(card.id, ym)) return; /* já paga */
+      const result = marcarFaturaPaga(card.id, ym, venc);
+      if (result.id) criados++;
+    });
+  });
+  if (criados > 0) saveState(state);
+  return criados;
+}
+
 /* v0.14.1: atualiza projeções FUTURAS (pago=false, ym > corrente) com dados
    atuais do fixedExpense (nome, valor, dia, categoria, forma de pagamento).
    Usado após editar o fixo — mantém o que já foi pago intacto. */
@@ -7304,6 +7490,11 @@ function openGastoForm(id, defaultCategoria, opts) {
         if (!escolha) return;
         aplicarNovoPadrao = (escolha === 'padrao');
       }
+      /* v0.15.0: captura cardId/ym ANTES da edição pra recalcular pagamento das
+         faturas afetadas (a antiga, se mudou de cartão/mês, E a nova). */
+      const cardIdAntigo = editing.cardId;
+      const ymAntigo = editing.ym;
+
       Object.assign(editing, {
         categoria: state_categoria,
         subcategoria: state_subcategoria,
@@ -7350,6 +7541,12 @@ function openGastoForm(id, defaultCategoria, opts) {
             g.valor = valor;
           }
         });
+      }
+      /* v0.15.0: recalcula pagamento da fatura antiga (se mudou de cartão/mês)
+         E da nova. Se cardId/ym não mudaram, são iguais — recalcular 2x é no-op. */
+      if (cardIdAntigo && ymAntigo) recalcularPagamentoFatura(cardIdAntigo, ymAntigo);
+      if (editing.cardId && editing.ym && (editing.cardId !== cardIdAntigo || editing.ym !== ymAntigo)) {
+        recalcularPagamentoFatura(editing.cardId, editing.ym);
       }
       saveState(state);
       sheet.close();
@@ -7476,9 +7673,13 @@ function openGastoForm(id, defaultCategoria, opts) {
       if (!ok) return;
       const wasTiago = editing.categoria === 'tiago';
       const parcelaChaveDel = editing.parcelaChave; /* captura ANTES do filter */
+      const cardIdDel = editing.cardId; /* v0.15.0: captura cartão pra recalc de pagamento */
+      const ymDel = editing.ym;
       state.gastos = state.gastos.filter(x => x.id !== id);
       /* v0.14.2: limpa projeções futuras da mesma compra parcelada (se houver) */
       if (parcelaChaveDel) limparProjecoesFuturasDeParcela(parcelaChaveDel);
+      /* v0.15.0: se gasto era de cartão e fatura está paga, recalcula valor */
+      if (cardIdDel && ymDel) recalcularPagamentoFatura(cardIdDel, ymDel);
       saveState(state);
       sheet.close();
       /* Re-renderiza todas as views que podem estar mostrando este gasto.
@@ -7932,6 +8133,24 @@ function renderContasDetail(contaId) {
     });
   });
   state.gastos.filter(g => g.contaId === contaId && g.pagamento !== 'cartao').forEach(g => {
+    /* v0.15.0: pagamento de fatura tem visualização diferente */
+    if (g.isPagamentoFatura) {
+      const card = state.cards.find(c => c.id === g.faturaCardId);
+      const cardLabel = card ? card.nome : '(cartão removido)';
+      const ymF = g.faturaYm;
+      const mesAbbr = ymF ? MESES_PT_ABBR[Number(ymF.split('-')[1]) - 1] : '';
+      const ano2 = ymF ? ymF.slice(2, 4) : '';
+      items.push({
+        tipo: 'pgfat',
+        data: g.data,
+        titulo: `🔄 Pagamento fatura ${cardLabel}`,
+        meta: `${mesAbbr}/${ano2} · débito automático`,
+        valor: Number(g.valor) || 0,
+        sinal: '−',
+        id: g.id, kind: 'gasto'
+      });
+      return;
+    }
     items.push({
       tipo: g.isAjuste ? 'adj' : 'out',
       data: g.data,
@@ -8852,6 +9071,39 @@ function renderCartoesDetail(cartaoId) {
       <button class="btn" id="btnEditarCartao"><span class="ai">✎</span> Editar cartão</button>
     </div>
 
+    ${(() => {
+      /* v0.15.0: status da fatura (paga ou pendente) + ação */
+      const pag = buscarPagamentoFatura(c.id, ym);
+      const venc = obterDataVencimentoFatura(c, ym);
+      const [, vMm, vDd] = venc.split('-');
+      const vencBR = `${vDd}/${vMm}`;
+      if (fatura <= 0) return ''; /* sem fatura, sem widget */
+      if (pag) {
+        const [, pMm, pDd] = pag.dataPagamento.split('-');
+        return `
+          <div class="fatura-status paga">
+            <div class="fs-ico">✓</div>
+            <div class="fs-body">
+              <div class="fs-title">Fatura paga em ${pDd}/${pMm}</div>
+              <div class="fs-meta">R$ ${(pag.valor).toFixed(2).replace('.', ',')} · ${escapeHtml(conta ? conta.nome : '')}</div>
+            </div>
+            <button class="tiny-btn" id="btnDesfazerPagFatura">desfazer</button>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="fatura-status pendente">
+            <div class="fs-ico">○</div>
+            <div class="fs-body">
+              <div class="fs-title">Fatura pendente</div>
+              <div class="fs-meta">venc ${vencBR}${conta ? ' · paga via ' + escapeHtml(conta.nome) : ''}${c.debitoAutomatico ? ' · ⚡ automático' : ''}</div>
+            </div>
+            <button class="tiny-btn primary" id="btnMarcarPagFatura">marcar paga</button>
+          </div>
+        `;
+      }
+    })()}
+
     <div class="contas-section-h">
       <div class="csh-title">lançamentos em ${mesLabel} (${lancs.length})</div>
       ${lancs.length > 0 ? `<div style="font-size:11.5px;color:var(--ink-faint);font-style:italic;font-family:var(--font-display);">total: ${reveal ? fmtBRL(fatura) : '••••'}</div>` : ''}
@@ -8903,6 +9155,42 @@ function renderCartoesDetail(cartaoId) {
   };
   document.getElementById('btnEditarCartao').onclick = () => openCardForm(c.id);
   document.getElementById('btnImportarFatura').onclick = () => openImportarFaturaSheet(c.id);
+
+  /* v0.15.0: botões de pagar/desfazer fatura */
+  const btnMarcar = document.getElementById('btnMarcarPagFatura');
+  if (btnMarcar) {
+    btnMarcar.onclick = async () => {
+      const ok = await askConfirm({
+        title: 'Marcar fatura paga?',
+        message: `Vou criar uma saída de ${fmtBRL(fatura)} na conta ${conta ? conta.nome : '?'} (${MESES_PT_ABBR[Number(ym.split('-')[1])-1]}/${ym.slice(2,4)}).`,
+        confirmLabel: 'Marcar paga'
+      });
+      if (!ok) return;
+      const result = marcarFaturaPaga(c.id, ym);
+      if (result.erro) { toast(result.erro, 'error'); return; }
+      saveState(state);
+      renderCartoes();
+      try { renderContas(); } catch (e) {}
+      toast('Fatura marcada como paga', 'success');
+    };
+  }
+  const btnDesfazer = document.getElementById('btnDesfazerPagFatura');
+  if (btnDesfazer) {
+    btnDesfazer.onclick = async () => {
+      const ok = await askConfirm({
+        title: 'Desfazer pagamento da fatura?',
+        message: 'A saída técnica será removida da conta. Os lançamentos da fatura permanecem.',
+        confirmLabel: 'Desfazer',
+        danger: true
+      });
+      if (!ok) return;
+      desfazerPagamentoFatura(c.id, ym);
+      saveState(state);
+      renderCartoes();
+      try { renderContas(); } catch (e) {}
+      toast('Pagamento desfeito');
+    };
+  }
 
   /* Tap em um lançamento abre seu form de edição */
   host.querySelectorAll('[data-edit-gasto]').forEach(row => {
@@ -10831,6 +11119,16 @@ function aplicarLancamentosImportados(lancs, cardId) {
     if (isPendente) pendentesCount++;
   });
 
+  /* v0.15.0: recalcula pagamento técnico das faturas afetadas (se a fatura já
+     estiver marcada como paga, ajusta o valor; senão é no-op).
+     Recolhe os ym únicos dos lançamentos aplicados (mês do vencimento). */
+  const ymsAfetados = new Set();
+  lancs.forEach(l => {
+    if (l.excluido) return;
+    ymsAfetados.add(ymVenc);
+  });
+  ymsAfetados.forEach(ym => recalcularPagamentoFatura(cardId, ym));
+
   saveState(state);
   renderCartoes();
   if (pendentesCount > 0) {
@@ -10952,6 +11250,9 @@ function bootApp() {
      e replica fixos pros próximos 12 meses. Tudo idempotente. */
   migrarParcelasV014();
   processarFixosProjetados(12);
+  /* v0.15.0: dispara pagamentos automáticos de faturas vencidas (cartões com
+     debitoAutomatico=true). Cria saída técnica na contaPagamentoId. Idempotente. */
+  processarPagamentosFaturaAutomaticos();
 
   go('familia');
   renderConfigCounts();
