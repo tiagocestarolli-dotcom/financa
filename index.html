@@ -3133,6 +3133,278 @@ label {
   flex: 0 0 auto;
 }
 
+/* ============================================================
+   RELATÓRIOS — Fatia 5.1 (v0.16.0)
+   ============================================================ */
+.rel-monthnav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 0 10px;
+}
+.rel-monthnav .rel-monthlabel {
+  font-family: var(--font-display); font-size: 18px; font-weight: 500;
+  letter-spacing: -0.01em; color: var(--ink);
+}
+.rel-monthnav button {
+  background: none; border: 1px solid var(--line); border-radius: 50%;
+  width: 32px; height: 32px; font-size: 18px; color: var(--ink-soft);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.rel-monthnav button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.rel-periodo {
+  display: flex; gap: 6px; margin: 4px 0 12px; overflow-x: auto;
+  padding-bottom: 2px; scrollbar-width: none;
+}
+.rel-periodo::-webkit-scrollbar { display: none; }
+.rel-periodo .rp {
+  padding: 7px 14px; font-size: 12.5px; border: 1px solid var(--line);
+  border-radius: 18px; white-space: nowrap; color: var(--ink-soft);
+  background: var(--bg-elevated); font-weight: 500; cursor: pointer;
+  transition: all 0.12s ease;
+}
+.rel-periodo .rp.active {
+  background: var(--ink); color: var(--bg); border-color: var(--ink);
+}
+
+.rel-toggle-tiago {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-elevated); border: 1px solid var(--line); border-radius: 12px;
+  margin-bottom: 14px; font-size: 13px; cursor: pointer;
+  user-select: none;
+}
+.rel-toggle-tiago .rt-sw {
+  width: 36px; height: 20px; background: var(--line); border-radius: 12px;
+  position: relative; flex-shrink: 0; transition: background 0.15s;
+}
+.rel-toggle-tiago .rt-sw::after {
+  content: ''; position: absolute; left: 3px; top: 3px;
+  width: 14px; height: 14px; background: var(--bg-elevated);
+  border-radius: 50%; transition: left 0.15s;
+}
+.rel-toggle-tiago.on .rt-sw { background: var(--ink); }
+.rel-toggle-tiago.on .rt-sw::after { left: 19px; }
+.rel-toggle-tiago .rt-label { flex: 1; color: var(--ink); font-weight: 500; }
+
+.rel-hero {
+  background: var(--bg-elevated); border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px 16px 14px; margin-bottom: 14px;
+}
+.rel-hero .rh-eyebrow {
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-mute); margin-bottom: 4px; font-weight: 600;
+}
+.rel-hero .rh-total {
+  font-family: var(--font-display); font-size: 36px; font-weight: 500;
+  letter-spacing: -0.02em; color: var(--flow-out); line-height: 1.05;
+}
+.rel-hero .rh-meta {
+  font-size: 12px; color: var(--ink-soft); margin-top: 6px; line-height: 1.5;
+}
+.rel-hero .rh-meta .rh-pago { color: var(--ink); font-weight: 500; }
+.rel-hero .rh-meta .rh-prev { opacity: 0.62; }
+.rel-hero .rh-meta .rh-comp {
+  display: block; margin-top: 2px; font-size: 11px; color: var(--ink-mute);
+}
+
+.rel-section {
+  background: var(--bg-elevated); border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px 14px 14px; margin-bottom: 12px;
+}
+.rel-section-title {
+  font-family: var(--font-body); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.rel-section-title .rst-icon { font-size: 13px; }
+
+.rel-chart-total {
+  display: flex; align-items: flex-end; gap: 18px; height: 200px;
+  padding: 0 4px;
+}
+.rel-chart-total .rct-col {
+  width: 92px; display: flex; flex-direction: column-reverse;
+  border-radius: 8px 8px 0 0; overflow: hidden; position: relative;
+  flex-shrink: 0;
+}
+.rel-chart-total .rct-legend {
+  flex: 1; font-size: 12px; color: var(--ink-soft); padding-top: 4px;
+}
+.rel-chart-total .rct-litem {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
+  font-size: 12.5px;
+}
+.rel-chart-total .rct-litem.off { opacity: 0.4; }
+.rel-chart-total .rct-swatch {
+  width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0;
+}
+.rel-chart-total .rct-lname { color: var(--ink); }
+.rel-chart-total .rct-lval {
+  margin-left: auto; font-weight: 600; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.rel-chart-total .rct-seg { width: 100%; min-height: 1px; }
+.rel-chart-total .rct-seg.previsto {
+  opacity: 0.55;
+  background-image: repeating-linear-gradient(
+    135deg, transparent 0 4px, rgba(255,255,255,0.28) 4px 6px
+  );
+}
+
+.rel-chart-cats {
+  display: flex; align-items: flex-end; gap: 10px; height: 220px;
+  padding: 26px 4px 28px;
+}
+.rel-chart-cats .rcc-col {
+  flex: 1; display: flex; flex-direction: column-reverse;
+  border-radius: 6px 6px 0 0; overflow: hidden;
+  position: relative; min-height: 0; min-width: 0;
+}
+.rel-chart-cats .rcc-col-label {
+  position: absolute; bottom: -22px; left: 0; right: 0; text-align: center;
+  font-size: 10.5px; color: var(--ink-soft); font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.rel-chart-cats .rcc-col-total {
+  position: absolute; top: -20px; left: 0; right: 0; text-align: center;
+  font-size: 10px; color: var(--ink); font-weight: 600;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.rel-chart-cats .rcc-seg {
+  width: 100%; min-height: 1px; cursor: pointer;
+  transition: opacity 0.12s;
+}
+.rel-chart-cats .rcc-seg:active { opacity: 0.7; }
+.rel-chart-cats .rcc-seg.previsto {
+  opacity: 0.55;
+  background-image: repeating-linear-gradient(
+    135deg, transparent 0 4px, rgba(255,255,255,0.28) 4px 6px
+  );
+}
+
+.rel-chart-multi { position: relative; height: 200px; margin: 4px 0 4px; }
+.rel-chart-multi svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.rel-chart-multi-labels {
+  display: flex; justify-content: space-around;
+  font-size: 10px; color: var(--ink-soft); margin-top: 6px;
+  font-weight: 500;
+}
+.rel-multi-legend {
+  display: flex; gap: 14px; font-size: 10.5px; color: var(--ink-mute);
+  margin: 8px 0 0; padding: 0 4px; flex-wrap: wrap;
+}
+.rel-multi-legend .rml-item { display: flex; align-items: center; gap: 5px; }
+.rel-multi-legend .rml-line {
+  width: 16px; height: 1.5px; background: var(--ink-soft);
+}
+.rel-multi-legend .rml-line.dashed {
+  background: none; border-top: 1px dashed var(--ink-soft); height: 0;
+}
+
+.rel-smalls {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-top: 4px;
+}
+.rel-small {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 8px 6px;
+}
+.rel-small-title {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; margin-bottom: 5px;
+  display: flex; align-items: center; gap: 5px; color: var(--ink);
+}
+.rel-small-title .rs-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.rel-small svg { width: 100%; height: 64px; display: block; }
+.rel-small-foot {
+  font-size: 9.5px; color: var(--ink-soft); margin-top: 2px;
+  display: flex; justify-content: space-between; font-weight: 500;
+}
+.rel-small-foot .rs-trend.up { color: var(--flow-out); }
+.rel-small-foot .rs-trend.down { color: var(--flow-in); }
+.rel-small-foot .rs-trend.flat { color: var(--ink-mute); }
+
+.rel-grupos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.rel-grupo-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 11px; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 16px;
+  font-size: 12.5px; cursor: pointer; color: var(--ink);
+}
+.rel-grupo-chip:active { background: #F0EDE4; }
+.rel-grupo-chip strong {
+  font-family: var(--font-display); font-weight: 500; letter-spacing: -0.005em;
+}
+.rel-grupo-chip .rgc-val {
+  font-variant-numeric: tabular-nums; color: var(--ink-soft); font-size: 11.5px;
+}
+
+.rel-list-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 0; border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.rel-list-row:last-child { border-bottom: none; }
+.rel-list-row .rlr-dot {
+  width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+}
+.rel-list-row .rlr-body { flex: 1; min-width: 0; }
+.rel-list-row .rlr-name {
+  font-size: 14px; font-weight: 500; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rel-list-row .rlr-sub {
+  font-size: 11px; color: var(--ink-mute); margin-top: 1px;
+}
+.rel-list-row .rlr-bar-bg {
+  height: 3px; background: var(--line); border-radius: 2px;
+  margin-top: 5px; overflow: hidden;
+}
+.rel-list-row .rlr-bar-fg { height: 100%; border-radius: 2px; }
+.rel-list-row .rlr-val {
+  font-family: var(--font-display); font-size: 16px; font-weight: 500;
+  color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+
+.rel-empty {
+  text-align: center; padding: 28px 16px; color: var(--ink-mute);
+  font-size: 13px;
+}
+.rel-empty .re-icon { font-size: 28px; opacity: 0.45; margin-bottom: 6px; }
+
+.rel-drill-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--line);
+}
+.rel-drill-row:last-child { border-bottom: none; }
+.rel-drill-row .rdr-body { flex: 1; min-width: 0; }
+.rel-drill-row .rdr-name { font-size: 14px; color: var(--ink); font-weight: 500; }
+.rel-drill-row .rdr-meta {
+  font-size: 11px; color: var(--ink-mute); margin-top: 2px;
+}
+.rel-drill-row .rdr-val {
+  font-family: var(--font-display); font-size: 15px; font-weight: 500;
+  color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.rel-drill-row .rdr-val.previsto { color: var(--ink-mute); }
+.rel-drill-row .rdr-tag {
+  display: inline-block; font-size: 9px; padding: 1px 6px;
+  border-radius: 8px; background: #F0EDE4; color: var(--ink-mute);
+  margin-left: 6px; vertical-align: middle; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.rel-drill-totalbar {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 12px 0 4px; border-top: 1px solid var(--line); margin-top: 4px;
+  font-size: 12px; color: var(--ink-mute);
+}
+.rel-drill-totalbar .rdt-val {
+  font-family: var(--font-display); font-size: 18px; font-weight: 500;
+  color: var(--ink); font-variant-numeric: tabular-nums;
+}
+
 </style>
 
 </head>
@@ -3230,11 +3502,7 @@ label {
   <!-- RELATÓRIOS -->
 
   <section class="view" data-view="relatorios">
-    <div class="placeholder-card">
-      <div class="pc-eyebrow">módulo 06</div>
-      <div class="pc-title">Relatórios do Auditor</div>
-      <div class="pc-desc">Os 4 relatórios (Gastos &amp; Saídas · Entradas/Saídas/Investimentos · Meus Gastos · Completo) com gráficos Chart.js e exportação PDF. Será implementado na Etapa 6.</div>
-    </div>
+    <div id="relatoriosContent"></div>
   </section>
 
   <!-- CONTAS — saldos bancários -->
@@ -3434,7 +3702,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.15.0 · pagamento de fatura
+  Finança · v0.16.0 · relatórios fatia 1
 </div>
 
   </section>
@@ -4058,6 +4326,7 @@ function go(view) {
   if (view === 'contas') renderContas();
   if (view === 'tiago') renderTiagoView();
   if (view === 'cartoes') renderCartoes();
+  if (view === 'relatorios') renderRelatorios();
 
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
@@ -6030,6 +6299,814 @@ const FORMAS_PAGAMENTO = {
   cartao:  { label: 'Cartão de crédito', ico: '💳', desc: 'Lançado na fatura do cartão escolhido' },
   manual:  { label: 'Manual',            ico: '✍️', desc: 'Você paga e marca como pago — opcional lembrete' }
 };
+
+/* =============================================================
+   v0.16.0 — RELATÓRIOS · Fatia 5.1
+   Gastos & Saídas (família + Tiago opcional, 4 lentes, drill-down)
+   ============================================================= */
+
+const REL_PERIODOS = [
+  { id: 'mes', label: 'mês', months: 1 },
+  { id: '3m',  label: 'últimos 3', months: 3 },
+  { id: '6m',  label: 'últimos 6', months: 6 },
+  { id: '12m', label: 'últimos 12', months: 12 }
+];
+
+let relState = {
+  ym: null,
+  periodo: 'mes',
+  incluiTiago: false
+};
+
+const _relFmtBR = (n) => 'R$ ' + (Number(n) || 0).toLocaleString('pt-BR', {
+  minimumFractionDigits: 2, maximumFractionDigits: 2
+});
+
+/* ----- Helpers de cor ----- */
+function _relHexToRgb(hex) {
+  const h = (hex || '#888888').replace('#', '');
+  return {
+    r: parseInt(h.slice(0, 2), 16) || 0,
+    g: parseInt(h.slice(2, 4), 16) || 0,
+    b: parseInt(h.slice(4, 6), 16) || 0
+  };
+}
+function _relMixWhite(hex, ratio) {
+  const c = _relHexToRgb(hex);
+  const mix = (v) => Math.round(v + (255 - v) * ratio);
+  return '#' + [mix(c.r), mix(c.g), mix(c.b)]
+    .map(v => v.toString(16).padStart(2, '0')).join('');
+}
+function relSubcatColor(catKey, idx, total) {
+  const baseColor = (state.members[catKey] || {}).cor || '#888888';
+  if (total <= 1) return baseColor;
+  const ratio = (idx * 0.60) / (total - 1);
+  return _relMixWhite(baseColor, ratio);
+}
+function relCatColor(catKey) {
+  return (state.members[catKey] || {}).cor || '#888888';
+}
+
+/* ----- Helpers de YM e numéricos ----- */
+function relYmsHistorico(ymAtual, n) {
+  const out = [];
+  let cur = ymAtual;
+  for (let i = 0; i < n; i++) {
+    out.unshift(cur);
+    cur = ymPrev(cur);
+  }
+  return out;
+}
+function relYmLabelAbbr(ym) {
+  const m = Number(ym.split('-')[1]);
+  return MESES_PT_ABBR[m - 1];
+}
+function relMediana(arr) {
+  if (!arr || !arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 === 0 ? (s[mid - 1] + s[mid]) / 2 : s[mid];
+}
+function relMediaMovel(arr, janela) {
+  janela = janela || 3;
+  if (!arr || !arr.length) return [];
+  const out = [];
+  const w = Math.floor(janela / 2);
+  for (let i = 0; i < arr.length; i++) {
+    let soma = 0, n = 0;
+    for (let j = Math.max(0, i - w); j <= Math.min(arr.length - 1, i + w); j++) {
+      soma += arr[j]; n++;
+    }
+    out.push(n ? soma / n : 0);
+  }
+  return out;
+}
+/* Cubic Bezier suave através dos pontos (Catmull-Rom convertido). */
+function relBezierPath(pontos) {
+  if (!pontos || pontos.length < 2) return '';
+  if (pontos.length === 2) return 'M ' + pontos[0].x + ' ' + pontos[0].y +
+    ' L ' + pontos[1].x + ' ' + pontos[1].y;
+  const tension = 0.18;
+  let d = 'M ' + pontos[0].x.toFixed(2) + ' ' + pontos[0].y.toFixed(2);
+  for (let i = 0; i < pontos.length - 1; i++) {
+    const p0 = pontos[i - 1] || pontos[i];
+    const p1 = pontos[i];
+    const p2 = pontos[i + 1];
+    const p3 = pontos[i + 2] || p2;
+    const cp1x = p1.x + (p2.x - p0.x) * tension;
+    const cp1y = p1.y + (p2.y - p0.y) * tension;
+    const cp2x = p2.x - (p3.x - p1.x) * tension;
+    const cp2y = p2.y - (p3.y - p1.y) * tension;
+    d += ' C ' + cp1x.toFixed(2) + ' ' + cp1y.toFixed(2) +
+         ', ' + cp2x.toFixed(2) + ' ' + cp2y.toFixed(2) +
+         ', ' + p2.x.toFixed(2) + ' ' + p2.y.toFixed(2);
+  }
+  return d;
+}
+
+/* ----- Filtro mestre: gasto entra em consumo? ----- */
+function _relGastoConta(g) {
+  if (!g) return false;
+  if (g.isInvest) return false;
+  if (g.isAjuste) return false;
+  if (g.isPagamentoFatura) return false; /* v0.15.0: saída técnica não é consumo */
+  return true;
+}
+function relCategoriasIncluidas() {
+  const base = ['casa', 'marina', 'heitor', 'juliana'];
+  return relState.incluiTiago ? base.concat(['tiago']) : base;
+}
+
+/* ----- Cálculos ----- */
+
+function relCalcCatSubcats(catKey, ym) {
+  const buckets = new Map();
+  let totalPago = 0, totalPrev = 0;
+  state.gastos.forEach(g => {
+    if (g.categoria !== catKey || g.ym !== ym) return;
+    if (!_relGastoConta(g)) return;
+    const sc = g.subcategoria || '—';
+    const v = Number(g.valor) || 0;
+    if (!buckets.has(sc)) buckets.set(sc, { nome: sc, pago: 0, previsto: 0 });
+    const b = buckets.get(sc);
+    if (g.pago === false) { b.previsto += v; totalPrev += v; }
+    else { b.pago += v; totalPago += v; }
+  });
+  const subcats = Array.from(buckets.values())
+    .map(b => ({ nome: b.nome, pago: b.pago, previsto: b.previsto, total: b.pago + b.previsto }))
+    .filter(b => b.total > 0)
+    .sort((a, b) => b.total - a.total);
+  return { subcats: subcats, totalPago: totalPago, totalPrev: totalPrev, total: totalPago + totalPrev };
+}
+
+function relCalcHero(ym, cats) {
+  let pago = 0, prev = 0, fixos = 0;
+  state.gastos.forEach(g => {
+    if (g.ym !== ym) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (!_relGastoConta(g)) return;
+    const v = Number(g.valor) || 0;
+    if (g.pago === false) prev += v; else pago += v;
+    if (g.isFixo) fixos += v;
+  });
+  const total = pago + prev;
+  return {
+    pago: pago, prev: prev, total: total, fixos: fixos,
+    pctFixos: total > 0 ? (fixos / total) * 100 : 0
+  };
+}
+
+function relCalcTotalConsolidado(ym, cats) {
+  const porCat = {};
+  cats.forEach(k => { porCat[k] = { pago: 0, previsto: 0, total: 0 }; });
+  state.gastos.forEach(g => {
+    if (g.ym !== ym) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (!_relGastoConta(g)) return;
+    const v = Number(g.valor) || 0;
+    if (g.pago === false) porCat[g.categoria].previsto += v;
+    else porCat[g.categoria].pago += v;
+  });
+  cats.forEach(k => { porCat[k].total = porCat[k].pago + porCat[k].previsto; });
+  const totalGeral = cats.reduce((s, k) => s + porCat[k].total, 0);
+  return { porCat: porCat, totalGeral: totalGeral };
+}
+
+function relCalcHistorico(ymAtual, n, cats) {
+  const yms = relYmsHistorico(ymAtual, n);
+  return yms.map(ym => {
+    const c = relCalcTotalConsolidado(ym, cats);
+    return { ym: ym, porCat: c.porCat, total: c.totalGeral };
+  });
+}
+
+function relCalcGrupos(yms, cats) {
+  const buckets = new Map();
+  state.gastos.forEach(g => {
+    if (yms.indexOf(g.ym) < 0) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (!_relGastoConta(g)) return;
+    if (!g.grupoId) return;
+    if (!buckets.has(g.grupoId)) {
+      let grupoNome = '(grupo)';
+      const allCats = ['casa', 'marina', 'heitor', 'juliana', 'tiago'];
+      for (const k of allCats) {
+        const gr = (state.grupos[k] || []).find(x => x.id === g.grupoId);
+        if (gr) { grupoNome = gr.nome; break; }
+      }
+      buckets.set(g.grupoId, {
+        id: g.grupoId, nome: grupoNome, total: 0,
+        cats: new Set(), gastos: []
+      });
+    }
+    const b = buckets.get(g.grupoId);
+    b.total += Number(g.valor) || 0;
+    b.cats.add(g.categoria);
+    b.gastos.push(g);
+  });
+  return Array.from(buckets.values())
+    .map(b => ({
+      id: b.id, nome: b.nome, total: b.total,
+      cats: Array.from(b.cats),
+      crossCutting: b.cats.size > 1,
+      count: b.gastos.length
+    }))
+    .sort((a, b) => b.total - a.total);
+}
+
+function relCalcTopNomes(yms, cats, limit) {
+  limit = limit || 10;
+  const buckets = new Map();
+  state.gastos.forEach(g => {
+    if (yms.indexOf(g.ym) < 0) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (!_relGastoConta(g)) return;
+    const key = normNome(g.nome);
+    if (!key) return;
+    if (!buckets.has(key)) buckets.set(key, {
+      key: key, nome: g.nome || key, count: 0, total: 0, cats: new Set()
+    });
+    const b = buckets.get(key);
+    b.count++;
+    b.total += Number(g.valor) || 0;
+    b.cats.add(g.categoria);
+    if (g.nome && g.nome.length > 0 && b.nome === b.nome.toUpperCase()) b.nome = g.nome;
+  });
+  return Array.from(buckets.values())
+    .map(b => ({
+      key: b.key, nome: b.nome, count: b.count,
+      total: b.total, cats: Array.from(b.cats)
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
+}
+
+function relCalcTopIdentificacoes(yms, cats, limit) {
+  limit = limit || 10;
+  const buckets = new Map();
+  state.gastos.forEach(g => {
+    if (yms.indexOf(g.ym) < 0) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (!_relGastoConta(g)) return;
+    const idf = (g.identificacao || '').trim();
+    if (!idf) return;
+    const key = idf.toLowerCase();
+    if (!buckets.has(key)) buckets.set(key, {
+      key: key, identificacao: idf, count: 0, total: 0, cats: new Set()
+    });
+    const b = buckets.get(key);
+    b.count++;
+    b.total += Number(g.valor) || 0;
+    b.cats.add(g.categoria);
+  });
+  return Array.from(buckets.values())
+    .map(b => ({
+      key: b.key, identificacao: b.identificacao, count: b.count,
+      total: b.total, cats: Array.from(b.cats)
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
+}
+
+/* ----- RENDER principal ----- */
+
+function renderRelatorios() {
+  if (!relState.ym) relState.ym = currentYM();
+  const host = document.getElementById('relatoriosContent');
+  if (!host) return;
+
+  const cats = relCategoriasIncluidas();
+  const periodo = REL_PERIODOS.find(p => p.id === relState.periodo) || REL_PERIODOS[0];
+  const ym = relState.ym;
+  const yms = relYmsHistorico(ym, periodo.months);
+
+  const hero = relCalcHero(ym, cats);
+  const consolidado = relCalcTotalConsolidado(ym, cats);
+
+  let html = '';
+  html += _relHeaderHtml(ym, periodo, hero);
+  html += _relSecaoTotalHtml(consolidado, cats);
+  html += _relSecaoCategoriasHtml(ym, cats);
+
+  if (periodo.months > 1) {
+    const historico = relCalcHistorico(ym, periodo.months, cats);
+    html += _relSecaoMultiMesHtml(historico, cats, periodo);
+    html += _relSecaoSmallMultiplesHtml(historico, cats);
+  }
+
+  const grupos = relCalcGrupos(yms, cats);
+  const topNomes = relCalcTopNomes(yms, cats);
+  const topIdfs = relCalcTopIdentificacoes(yms, cats);
+
+  html += _relSecaoGruposHtml(grupos);
+  html += _relSecaoNomesHtml(topNomes);
+  html += _relSecaoIdfsHtml(topIdfs);
+
+  host.innerHTML = html;
+  _relBindEvents();
+}
+
+function _relHeaderHtml(ym, periodo, hero) {
+  const ymLabel = MESES_PT[Number(ym.split('-')[1]) - 1] + ' / ' + ym.split('-')[0].slice(2);
+  const eyebrowLabel = periodo.id === 'mes' ? 'mês corrente' : ('últimos ' + periodo.months + ' meses · hero do mês');
+
+  const heroBlock = `
+    <div class="rel-hero">
+      <div class="rh-eyebrow">gastos & saídas · ${escapeHtml(eyebrowLabel)}</div>
+      <div class="rh-total">${_relFmtBR(hero.total)}</div>
+      <div class="rh-meta">
+        <span class="rh-pago">${_relFmtBR(hero.pago)}</span> pago${hero.prev > 0 ? '&nbsp;+&nbsp;<span class="rh-prev">' + _relFmtBR(hero.prev) + ' previsto</span>' : ''}
+        ${hero.total > 0 ? '<span class="rh-comp">' + hero.pctFixos.toFixed(0) + '% comprometido em gastos fixos</span>' : ''}
+      </div>
+    </div>
+  `;
+
+  const periodoHtml = REL_PERIODOS.map(p =>
+    '<button class="rp ' + (p.id === relState.periodo ? 'active' : '') + '" data-rel-periodo="' + p.id + '">' + escapeHtml(p.label) + '</button>'
+  ).join('');
+
+  return `
+    <div class="rel-monthnav">
+      <button id="relPrev" aria-label="Mês anterior">‹</button>
+      <span class="rel-monthlabel">${escapeHtml(ymLabel)}</span>
+      <button id="relNext" aria-label="Próximo mês">›</button>
+    </div>
+    <div class="rel-periodo">${periodoHtml}</div>
+    <div class="rel-toggle-tiago ${relState.incluiTiago ? 'on' : ''}" id="relToggleTiago">
+      <div class="rt-sw"></div>
+      <div class="rt-label">Incluir gastos de Tiago como mais uma categoria</div>
+    </div>
+    ${heroBlock}
+  `;
+}
+
+function _relSecaoTotalHtml(consolidado, cats) {
+  const total = consolidado.totalGeral;
+  if (total === 0) {
+    return `<div class="rel-section">
+      <div class="rel-section-title"><span class="rst-icon">📊</span> total consolidado</div>
+      <div class="rel-empty"><div class="re-icon">∅</div>Nenhum gasto registrado no mês.</div>
+    </div>`;
+  }
+
+  const segHtml = cats.map(k => {
+    const c = consolidado.porCat[k];
+    if (!c || c.total === 0) return '';
+    const pctPago = (c.pago / total) * 100;
+    const pctPrev = (c.previsto / total) * 100;
+    const color = relCatColor(k);
+    let s = '';
+    if (c.pago > 0)     s += '<div class="rct-seg" style="height:' + pctPago.toFixed(2) + '%;background:' + color + ';"></div>';
+    if (c.previsto > 0) s += '<div class="rct-seg previsto" style="height:' + pctPrev.toFixed(2) + '%;background:' + color + ';"></div>';
+    return s;
+  }).join('');
+
+  const legendaHtml = cats.map(k => {
+    const c = consolidado.porCat[k];
+    const m = state.members[k];
+    if (!m) return '';
+    const off = !c || c.total === 0;
+    return `
+      <div class="rct-litem ${off ? 'off' : ''}">
+        <span class="rct-swatch" style="background:${relCatColor(k)};"></span>
+        <span class="rct-lname">${escapeHtml(m.nome)}</span>
+        <span class="rct-lval">${_relFmtBR(c ? c.total : 0)}</span>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="rel-section">
+      <div class="rel-section-title"><span class="rst-icon">📊</span> total consolidado</div>
+      <div class="rel-chart-total">
+        <div class="rct-col" style="height:100%;">${segHtml}</div>
+        <div class="rct-legend">${legendaHtml}</div>
+      </div>
+    </div>
+  `;
+}
+
+function _relSecaoCategoriasHtml(ym, cats) {
+  const dados = cats.map(k => {
+    const r = relCalcCatSubcats(k, ym);
+    return { catKey: k, subcats: r.subcats, total: r.total };
+  });
+  const maxTotal = Math.max.apply(null, dados.map(d => d.total).concat([0]));
+  if (maxTotal === 0) return '';
+
+  const colsHtml = dados.map(d => {
+    const m = state.members[d.catKey];
+    if (!m) return '';
+    const altPct = maxTotal > 0 ? (d.total / maxTotal) * 100 : 2;
+    if (d.total === 0) {
+      return `
+        <div class="rcc-col" style="height:2%;">
+          <div class="rcc-col-total">—</div>
+          <div class="rcc-col-label">${escapeHtml(m.nome)}</div>
+        </div>
+      `;
+    }
+    const totalSc = d.subcats.length;
+    let segs = '';
+    d.subcats.forEach((sc, idx) => {
+      const color = relSubcatColor(d.catKey, idx, totalSc);
+      const pctPago = (sc.pago / d.total) * 100;
+      const pctPrev = (sc.previsto / d.total) * 100;
+      const scAttr = d.catKey + '|' + sc.nome;
+      if (sc.pago > 0) {
+        segs += '<div class="rcc-seg" data-rel-subcat="' + escapeHtml(scAttr) + '" style="height:' + pctPago.toFixed(2) + '%;background:' + color + ';" title="' + escapeHtml(sc.nome) + ': ' + _relFmtBR(sc.pago) + ' pago"></div>';
+      }
+      if (sc.previsto > 0) {
+        segs += '<div class="rcc-seg previsto" data-rel-subcat="' + escapeHtml(scAttr) + '" style="height:' + pctPrev.toFixed(2) + '%;background:' + color + ';" title="' + escapeHtml(sc.nome) + ': ' + _relFmtBR(sc.previsto) + ' previsto"></div>';
+      }
+    });
+    return `
+      <div class="rcc-col" style="height:${altPct.toFixed(2)}%;">
+        <div class="rcc-col-total">${_relFmtBR(d.total)}</div>
+        ${segs}
+        <div class="rcc-col-label">${escapeHtml(m.nome)}</div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="rel-section">
+      <div class="rel-section-title"><span class="rst-icon">🪟</span> por categoria · subcategorias</div>
+      <div class="rel-chart-cats">${colsHtml}</div>
+      <div style="font-size:10.5px;color:var(--ink-mute);margin-top:8px;padding:0 4px;line-height:1.5;">
+        Toque numa faixa pra ver os gastos. Faixa tracejada = previsto.
+      </div>
+    </div>
+  `;
+}
+
+function _relSecaoMultiMesHtml(historico, cats, periodo) {
+  const N = historico.length;
+  if (N === 0) return '';
+
+  const W = 360, H = 200;
+  const padTop = 18, padBot = 8, padL = 6, padR = 6;
+  const usableW = W - padL - padR;
+  const usableH = H - padTop - padBot;
+  const colW = (usableW / N) * 0.74;
+  const gap = (usableW / N) * 0.26;
+
+  const totais = historico.map(h => h.total);
+  const maxTotal = Math.max.apply(null, totais.concat([1]));
+
+  let bars = '';
+  const topPts = [];
+  historico.forEach((h, i) => {
+    const x = padL + i * (colW + gap) + gap / 2;
+    let yCur = H - padBot;
+    cats.forEach(k => {
+      const c = h.porCat[k];
+      if (!c || c.total === 0) return;
+      const hPx = (c.total / maxTotal) * usableH;
+      const segY = yCur - hPx;
+      const color = relCatColor(k);
+      bars += '<rect x="' + x.toFixed(2) + '" y="' + segY.toFixed(2) + '" width="' + colW.toFixed(2) + '" height="' + hPx.toFixed(2) + '" fill="' + color + '"/>';
+      yCur = segY;
+    });
+    topPts.push({ x: x + colW / 2, total: h.total });
+  });
+
+  const med = relMediana(totais);
+  const medY = H - padBot - (med / maxTotal) * usableH;
+
+  const mmValores = relMediaMovel(totais, 3);
+  const mmPontos = mmValores.map((v, i) => ({
+    x: topPts[i].x,
+    y: H - padBot - (v / maxTotal) * usableH
+  }));
+  const mmPath = relBezierPath(mmPontos);
+
+  const labels = historico.map(h => '<span>' + escapeHtml(relYmLabelAbbr(h.ym)) + '</span>').join('');
+
+  return `
+    <div class="rel-section">
+      <div class="rel-section-title"><span class="rst-icon">📈</span> evolução · ${escapeHtml(periodo.label)} (${N} meses)</div>
+      <div class="rel-chart-multi">
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+          ${bars}
+          <line x1="${padL}" y1="${medY.toFixed(2)}" x2="${W - padR}" y2="${medY.toFixed(2)}"
+            stroke="var(--ink)" stroke-width="1" stroke-dasharray="2,3" opacity="0.55"/>
+          <path d="${mmPath}" stroke="var(--ink)" stroke-width="1.25" fill="none"
+            stroke-linecap="round" stroke-linejoin="round" opacity="0.78"/>
+        </svg>
+      </div>
+      <div class="rel-chart-multi-labels">${labels}</div>
+      <div class="rel-multi-legend">
+        <div class="rml-item"><span class="rml-line dashed"></span> mediana ${_relFmtBR(med)}</div>
+        <div class="rml-item"><span class="rml-line"></span> tendência (média móvel 3)</div>
+      </div>
+    </div>
+  `;
+}
+
+function _relSecaoSmallMultiplesHtml(historico, cats) {
+  const N = historico.length;
+  if (N < 2) return '';
+
+  const W = 100, H = 50;
+  const padTop = 3, padBot = 3, padL = 3, padR = 3;
+  const usableW = W - padL - padR;
+  const usableH = H - padTop - padBot;
+  const colW = (usableW / N) * 0.74;
+  const gap = (usableW / N) * 0.26;
+
+  const cardsHtml = cats.map(k => {
+    const m = state.members[k];
+    if (!m) return '';
+    const serie = historico.map(h => (h.porCat[k] && h.porCat[k].total) || 0);
+    const maxSerie = Math.max.apply(null, serie.concat([1]));
+    const med = relMediana(serie);
+    const mm = relMediaMovel(serie, 3);
+
+    let bars = '';
+    const topPts = [];
+    serie.forEach((v, i) => {
+      const x = padL + i * (colW + gap) + gap / 2;
+      const hPx = (v / maxSerie) * usableH;
+      const y = H - padBot - hPx;
+      bars += '<rect x="' + x.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + colW.toFixed(2) + '" height="' + Math.max(0, hPx).toFixed(2) + '" fill="' + relCatColor(k) + '"/>';
+      topPts.push({ x: x + colW / 2, total: v });
+    });
+
+    const medY = H - padBot - (med / maxSerie) * usableH;
+    const mmPontos = mm.map((v, i) => ({
+      x: topPts[i].x,
+      y: H - padBot - (v / maxSerie) * usableH
+    }));
+    const mmPath = relBezierPath(mmPontos);
+
+    let trendCls = 'flat', trendTxt = '→ estável';
+    if (mm.length >= 2 && mm[0] > 0) {
+      const delta = (mm[mm.length - 1] - mm[0]) / mm[0];
+      if (delta > 0.05) { trendCls = 'up'; trendTxt = '↑ ' + (delta * 100).toFixed(0) + '%'; }
+      else if (delta < -0.05) { trendCls = 'down'; trendTxt = '↓ ' + (Math.abs(delta) * 100).toFixed(0) + '%'; }
+    }
+
+    return `
+      <div class="rel-small">
+        <div class="rel-small-title">
+          <span class="rs-dot" style="background:${relCatColor(k)};"></span>${escapeHtml(m.nome)}
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+          ${bars}
+          <line x1="${padL}" y1="${medY.toFixed(2)}" x2="${W - padR}" y2="${medY.toFixed(2)}"
+            stroke="var(--ink)" stroke-width="0.7" stroke-dasharray="1.5,2" opacity="0.5"/>
+          <path d="${mmPath}" stroke="var(--ink)" stroke-width="0.9" fill="none"
+            stroke-linecap="round" opacity="0.7"/>
+        </svg>
+        <div class="rel-small-foot">
+          <span>med ${_relFmtBR(med)}</span>
+          <span class="rs-trend ${trendCls}">${escapeHtml(trendTxt)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="rel-section">
+      <div class="rel-section-title"><span class="rst-icon">🔍</span> por categoria · histórico individual</div>
+      <div class="rel-smalls">${cardsHtml}</div>
+    </div>
+  `;
+}
+
+function _relSecaoGruposHtml(grupos) {
+  if (!grupos.length) {
+    return `
+      <div class="rel-section">
+        <div class="rel-section-title"><span class="rst-icon">📋</span> grupos cross-cutting</div>
+        <div class="rel-empty" style="padding:14px;">Nenhum gasto agrupado no período.</div>
+      </div>
+    `;
+  }
+  const chipsHtml = grupos.map(gp =>
+    '<button class="rel-grupo-chip" data-rel-grupo="' + escapeHtml(gp.id) + '">' +
+    (gp.crossCutting ? '<span title="Cross-cutting">✦</span>' : '') +
+    '<strong>' + escapeHtml(gp.nome) + '</strong>' +
+    '<span class="rgc-val">' + _relFmtBR(gp.total) + '</span>' +
+    '</button>'
+  ).join('');
+  const hasCross = grupos.some(g => g.crossCutting);
+  return `
+    <div class="rel-section">
+      <div class="rel-section-title"><span class="rst-icon">📋</span> grupos cross-cutting</div>
+      <div class="rel-grupos">${chipsHtml}</div>
+      ${hasCross ? '<div style="font-size:10.5px;color:var(--ink-mute);margin-top:10px;line-height:1.5;">✦ grupos com gastos somados em mais de uma categoria.</div>' : ''}
+    </div>
+  `;
+}
+
+function _relSecaoNomesHtml(topNomes) {
+  if (!topNomes.length) {
+    return `
+      <div class="rel-section">
+        <div class="rel-section-title"><span class="rst-icon">🏷</span> top nomes</div>
+        <div class="rel-empty" style="padding:14px;">Sem gastos no período.</div>
+      </div>
+    `;
+  }
+  const maxTotal = topNomes[0].total;
+  const rowsHtml = topNomes.map(t => {
+    const cat = t.cats[0];
+    const color = relCatColor(cat);
+    const m = state.members[cat];
+    const w = maxTotal > 0 ? (t.total / maxTotal) * 100 : 0;
+    const catLabel = t.cats.length > 1 ? (t.cats.length + ' categorias') : ((m && m.nome) || cat);
+    return `
+      <div class="rel-list-row" data-rel-nome="${escapeHtml(t.key)}">
+        <span class="rlr-dot" style="background:${color};"></span>
+        <div class="rlr-body">
+          <div class="rlr-name">${escapeHtml(t.nome)}</div>
+          <div class="rlr-sub">${t.count} ${t.count === 1 ? 'lançamento' : 'lançamentos'} · ${escapeHtml(catLabel)}</div>
+          <div class="rlr-bar-bg"><div class="rlr-bar-fg" style="width:${w.toFixed(1)}%;background:${color};"></div></div>
+        </div>
+        <span class="rlr-val">${_relFmtBR(t.total)}</span>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="rel-section">
+      <div class="rel-section-title"><span class="rst-icon">🏷</span> top nomes</div>
+      ${rowsHtml}
+    </div>
+  `;
+}
+
+function _relSecaoIdfsHtml(topIdfs) {
+  if (!topIdfs.length) {
+    return `
+      <div class="rel-section">
+        <div class="rel-section-title"><span class="rst-icon">✦</span> top identificações</div>
+        <div class="rel-empty" style="padding:14px;">Nenhum gasto com identificação no período.</div>
+      </div>
+    `;
+  }
+  const maxTotal = topIdfs[0].total;
+  const rowsHtml = topIdfs.map(t => {
+    const cat = t.cats[0];
+    const color = relCatColor(cat);
+    const m = state.members[cat];
+    const w = maxTotal > 0 ? (t.total / maxTotal) * 100 : 0;
+    const catLabel = t.cats.length > 1 ? (t.cats.length + ' categorias') : ((m && m.nome) || cat);
+    return `
+      <div class="rel-list-row" data-rel-idf="${escapeHtml(t.key)}">
+        <span class="rlr-dot" style="background:${color};"></span>
+        <div class="rlr-body">
+          <div class="rlr-name">${escapeHtml(t.identificacao)}</div>
+          <div class="rlr-sub">${t.count} ${t.count === 1 ? 'lançamento' : 'lançamentos'} · ${escapeHtml(catLabel)}</div>
+          <div class="rlr-bar-bg"><div class="rlr-bar-fg" style="width:${w.toFixed(1)}%;background:${color};"></div></div>
+        </div>
+        <span class="rlr-val">${_relFmtBR(t.total)}</span>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="rel-section">
+      <div class="rel-section-title"><span class="rst-icon">✦</span> top identificações</div>
+      ${rowsHtml}
+    </div>
+  `;
+}
+
+function _relBindEvents() {
+  const el = document.getElementById('relatoriosContent');
+  if (!el) return;
+
+  const btnPrev = document.getElementById('relPrev');
+  const btnNext = document.getElementById('relNext');
+  if (btnPrev) btnPrev.onclick = () => { relState.ym = ymPrev(relState.ym); renderRelatorios(); };
+  if (btnNext) btnNext.onclick = () => { relState.ym = ymNext(relState.ym); renderRelatorios(); };
+
+  el.querySelectorAll('[data-rel-periodo]').forEach(b => {
+    b.onclick = () => { relState.periodo = b.dataset.relPeriodo; renderRelatorios(); };
+  });
+
+  const togTiago = document.getElementById('relToggleTiago');
+  if (togTiago) togTiago.onclick = () => { relState.incluiTiago = !relState.incluiTiago; renderRelatorios(); };
+
+  el.querySelectorAll('[data-rel-subcat]').forEach(seg => {
+    seg.onclick = (e) => {
+      e.stopPropagation();
+      const parts = seg.dataset.relSubcat.split('|');
+      _relDrillSubcat(parts[0], parts[1]);
+    };
+  });
+  el.querySelectorAll('[data-rel-grupo]').forEach(c => {
+    c.onclick = () => _relDrillGrupo(c.dataset.relGrupo);
+  });
+  el.querySelectorAll('[data-rel-nome]').forEach(r => {
+    r.onclick = () => _relDrillNome(r.dataset.relNome);
+  });
+  el.querySelectorAll('[data-rel-idf]').forEach(r => {
+    r.onclick = () => _relDrillIdf(r.dataset.relIdf);
+  });
+}
+
+/* ----- Drill-down sheets ----- */
+
+function _relDrillSubcat(catKey, subc) {
+  const periodo = REL_PERIODOS.find(p => p.id === relState.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(relState.ym, periodo.months);
+  const gastos = state.gastos.filter(g =>
+    g.categoria === catKey && g.subcategoria === subc &&
+    yms.indexOf(g.ym) >= 0 && _relGastoConta(g)
+  );
+  const m = state.members[catKey];
+  const title = ((m && m.nome) || catKey) + ' · ' + subc;
+  sheet.open(title, _relDrillListaHtml(gastos));
+}
+
+function _relDrillGrupo(grupoId) {
+  const periodo = REL_PERIODOS.find(p => p.id === relState.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(relState.ym, periodo.months);
+  const cats = relCategoriasIncluidas();
+  const gastos = state.gastos.filter(g =>
+    g.grupoId === grupoId && yms.indexOf(g.ym) >= 0 &&
+    cats.indexOf(g.categoria) >= 0 && _relGastoConta(g)
+  );
+  let grupoNome = '(grupo)';
+  const allCats = ['casa', 'marina', 'heitor', 'juliana', 'tiago'];
+  for (const k of allCats) {
+    const gr = (state.grupos[k] || []).find(x => x.id === grupoId);
+    if (gr) { grupoNome = gr.nome; break; }
+  }
+  sheet.open('Grupo · ' + grupoNome, _relDrillListaHtml(gastos));
+}
+
+function _relDrillNome(normKey) {
+  const periodo = REL_PERIODOS.find(p => p.id === relState.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(relState.ym, periodo.months);
+  const cats = relCategoriasIncluidas();
+  const gastos = state.gastos.filter(g =>
+    normNome(g.nome) === normKey && yms.indexOf(g.ym) >= 0 &&
+    cats.indexOf(g.categoria) >= 0 && _relGastoConta(g)
+  );
+  const titulo = (gastos[0] && gastos[0].nome) || normKey;
+  sheet.open('Nome · ' + titulo, _relDrillListaHtml(gastos));
+}
+
+function _relDrillIdf(idfKey) {
+  const periodo = REL_PERIODOS.find(p => p.id === relState.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(relState.ym, periodo.months);
+  const cats = relCategoriasIncluidas();
+  const gastos = state.gastos.filter(g =>
+    (g.identificacao || '').toLowerCase() === idfKey &&
+    yms.indexOf(g.ym) >= 0 && cats.indexOf(g.categoria) >= 0 && _relGastoConta(g)
+  );
+  const titulo = (gastos[0] && gastos[0].identificacao) || idfKey;
+  sheet.open('Identificação · ' + titulo, _relDrillListaHtml(gastos));
+}
+
+function _relDrillListaHtml(gastos) {
+  if (!gastos.length) {
+    return '<div class="rel-empty" style="padding:20px;">Nenhum gasto encontrado.</div>';
+  }
+  const sorted = [...gastos].sort((a, b) => {
+    if (a.pago !== b.pago) return a.pago ? 1 : -1;
+    return (b.data || '').localeCompare(a.data || '');
+  });
+  let total = 0, totalPago = 0, totalPrev = 0;
+  const rowsHtml = sorted.map(g => {
+    const v = Number(g.valor) || 0;
+    total += v;
+    if (g.pago === false) totalPrev += v; else totalPago += v;
+    const tags = [];
+    if (g.isFixo) tags.push('<span class="rdr-tag">🔁 fixo</span>');
+    if (g.parcela && g.parcela.total > 1) tags.push('<span class="rdr-tag">' + g.parcela.atual + '/' + g.parcela.total + '</span>');
+    if (g.isFixoProjetado || g.isParcelaProjetada) tags.push('<span class="rdr-tag">proj</span>');
+    if (g.pago === false && !g.isFixoProjetado && !g.isParcelaProjetada) tags.push('<span class="rdr-tag">a pagar</span>');
+    const m = state.members[g.categoria];
+    const card = g.cardId ? state.cards.find(c => c.id === g.cardId) : null;
+    const dataStr = g.data ? g.data.split('-').reverse().slice(0, 2).join('/') : '';
+    const ymLabel = MESES_PT_ABBR[Number(g.ym.split('-')[1]) - 1] + '/' + g.ym.split('-')[0].slice(2);
+    return `
+      <div class="rel-drill-row">
+        <div class="rdr-body">
+          <div class="rdr-name">${escapeHtml(g.nome || '(sem nome)')} ${tags.join('')}</div>
+          <div class="rdr-meta">
+            ${dataStr ? escapeHtml(dataStr) + ' · ' : ''}${escapeHtml(ymLabel)}
+            ${card ? ' · ' + escapeHtml(card.nome) : ''}
+            ${m ? ' · ' + escapeHtml(m.nome) : ''}
+            ${g.subcategoria ? ' · ' + escapeHtml(g.subcategoria) : ''}
+          </div>
+        </div>
+        <div class="rdr-val ${g.pago === false ? 'previsto' : ''}">${_relFmtBR(v)}</div>
+      </div>
+    `;
+  }).join('');
+  const totalBar = `
+    <div class="rel-drill-totalbar">
+      <span>${gastos.length} ${gastos.length === 1 ? 'lançamento' : 'lançamentos'} · pago ${_relFmtBR(totalPago)}${totalPrev > 0 ? ' · previsto ' + _relFmtBR(totalPrev) : ''}</span>
+      <span class="rdt-val">${_relFmtBR(total)}</span>
+    </div>
+  `;
+  return rowsHtml + totalBar;
+}
 
 /* ===== Helpers ===== */
 
