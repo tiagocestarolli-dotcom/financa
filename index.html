@@ -3388,7 +3388,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.14.1 · projeções sincronizadas
+  Finança · v0.14.2 · projeções de parcelas sincronizadas
 </div>
 
   </section>
@@ -6275,6 +6275,22 @@ function limparProjecoesFuturasDoFixo(fixoId) {
   return antes - state.gastos.length;
 }
 
+/* v0.14.2: limpa projeções FUTURAS (pago=false, ym > corrente) de uma compra
+   parcelada (identificada pela parcelaChave). Usado quando o usuário deleta um
+   gasto-parcela — pra que as parcelas seguintes projetadas saiam junto.
+   Mantém o histórico pago (parcelas reais que já caíram em meses passados). */
+function limparProjecoesFuturasDeParcela(parcelaChave) {
+  if (!parcelaChave) return 0;
+  const ymCorrente = currentYM();
+  const antes = state.gastos.length;
+  state.gastos = state.gastos.filter(g => !(
+    g.parcelaChave === parcelaChave &&
+    g.pago === false &&
+    g.ym > ymCorrente
+  ));
+  return antes - state.gastos.length;
+}
+
 /* v0.14.1: atualiza projeções FUTURAS (pago=false, ym > corrente) com dados
    atuais do fixedExpense (nome, valor, dia, categoria, forma de pagamento).
    Usado após editar o fixo — mantém o que já foi pago intacto. */
@@ -7431,11 +7447,25 @@ function openGastoForm(id, defaultCategoria, opts) {
   if (editing) {
     document.getElementById('g_delete').onclick = async () => {
       const isClone = editing.isFixo && editing.parentFixoId;
+      /* v0.14.2: detecta projeções futuras de parcelas relacionadas (mesma parcelaChave).
+         Se houver, avisa o usuário no diálogo de confirmação. */
+      const ymCorrenteDel = currentYM();
+      const projetadasFuturas = editing.parcelaChave
+        ? state.gastos.filter(g =>
+            g.id !== editing.id &&
+            g.parcelaChave === editing.parcelaChave &&
+            g.pago === false &&
+            g.ym > ymCorrenteDel
+          )
+        : [];
       let msg;
       if (isClone) {
         msg = 'Excluir apenas este lançamento deste mês? A recorrência mensal continua ativa — para parar de replicar todo mês, use Config → Gastos fixos.';
       } else {
         msg = `${fmtBRL(editing.valor)} em ${editing.data.split('-').reverse().join('/')} será removido.`;
+        if (projetadasFuturas.length > 0) {
+          msg += `\n\n⚠️ Esta compra parcelada tem ${projetadasFuturas.length} parcela${projetadasFuturas.length > 1 ? 's' : ''} projetada${projetadasFuturas.length > 1 ? 's' : ''} em meses futuros — também ${projetadasFuturas.length > 1 ? 'serão removidas' : 'será removida'}.`;
+        }
       }
       const ok = await askConfirm({
         title: 'Excluir lançamento?',
@@ -7445,7 +7475,10 @@ function openGastoForm(id, defaultCategoria, opts) {
       });
       if (!ok) return;
       const wasTiago = editing.categoria === 'tiago';
+      const parcelaChaveDel = editing.parcelaChave; /* captura ANTES do filter */
       state.gastos = state.gastos.filter(x => x.id !== id);
+      /* v0.14.2: limpa projeções futuras da mesma compra parcelada (se houver) */
+      if (parcelaChaveDel) limparProjecoesFuturasDeParcela(parcelaChaveDel);
       saveState(state);
       sheet.close();
       /* Re-renderiza todas as views que podem estar mostrando este gasto.
@@ -7455,7 +7488,11 @@ function openGastoForm(id, defaultCategoria, opts) {
       try { if (wasTiago) renderTiagoView(); else renderFamiliaContent(); } catch (e) {}
       try { renderContas(); } catch (e) {}
       renderConfigCounts();
-      toast('Excluído');
+      if (projetadasFuturas.length > 0) {
+        toast(`Excluído + ${projetadasFuturas.length} parcela${projetadasFuturas.length > 1 ? 's' : ''} projetada${projetadasFuturas.length > 1 ? 's' : ''}`);
+      } else {
+        toast('Excluído');
+      }
     };
   } else {
     document.getElementById('g_cancel').onclick = () => sheet.close();
