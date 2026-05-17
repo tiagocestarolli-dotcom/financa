@@ -3405,6 +3405,148 @@ label {
   color: var(--ink); font-variant-numeric: tabular-nums;
 }
 
+/* ============================================================
+   RELATÓRIOS · Fatia 5.2 (v0.17.0) — Fluxo de Caixa
+   ============================================================ */
+.rel-tabs {
+  display: flex; gap: 6px; margin: 4px 0 14px; overflow-x: auto;
+  padding-bottom: 2px; scrollbar-width: none;
+}
+.rel-tabs::-webkit-scrollbar { display: none; }
+.rel-tab {
+  padding: 9px 16px; font-size: 13px; border: 1px solid var(--line);
+  border-radius: 20px; white-space: nowrap; color: var(--ink-soft);
+  background: var(--bg-elevated); font-weight: 500; cursor: pointer;
+  font-family: var(--font-body);
+  transition: all 0.12s ease;
+}
+.rel-tab.active {
+  background: var(--ink); color: var(--bg); border-color: var(--ink);
+  font-weight: 600;
+}
+
+/* Hero de 3 colunas (Entradas · Saídas · Investimentos) */
+.rel2-hero3 {
+  background: var(--bg-elevated); border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px 14px 14px; margin-bottom: 14px;
+}
+.rel2-hero3 .rh3-eyebrow {
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-mute); margin-bottom: 10px; font-weight: 600;
+}
+.rel2-hero3 .rh3-cols {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+}
+.rel2-hero3 .rh3-col { text-align: left; min-width: 0; }
+.rel2-hero3 .rh3-col-label {
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  font-weight: 600; margin-bottom: 3px;
+  display: flex; align-items: center; gap: 5px;
+}
+.rel2-hero3 .rh3-col-label .rh3-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.rel2-hero3 .rh3-col.entradas .rh3-col-label { color: var(--flow-in); }
+.rel2-hero3 .rh3-col.entradas .rh3-dot      { background: var(--flow-in); }
+.rel2-hero3 .rh3-col.saidas   .rh3-col-label { color: var(--flow-out); }
+.rel2-hero3 .rh3-col.saidas   .rh3-dot      { background: var(--flow-out); }
+.rel2-hero3 .rh3-col.invest   .rh3-col-label { color: var(--flow-invest); }
+.rel2-hero3 .rh3-col.invest   .rh3-dot      { background: var(--flow-invest); }
+.rel2-hero3 .rh3-val {
+  font-family: var(--font-display); font-size: 22px; font-weight: 500;
+  letter-spacing: -0.015em; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rel2-hero3 .rh3-col.entradas .rh3-val { color: var(--flow-in); }
+.rel2-hero3 .rh3-col.saidas   .rh3-val { color: var(--flow-out); }
+.rel2-hero3 .rh3-col.invest   .rh3-val { color: var(--flow-invest); }
+.rel2-hero3 .rh3-trend {
+  font-size: 10px; color: var(--ink-mute); margin-top: 2px;
+  font-weight: 500; letter-spacing: 0.02em;
+}
+.rel2-hero3 .rh3-saldo {
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.rel2-hero3 .rh3-saldo-label {
+  font-size: 11px; color: var(--ink-mute); font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.rel2-hero3 .rh3-saldo-val {
+  font-family: var(--font-display); font-size: 18px; font-weight: 500;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+}
+.rel2-hero3 .rh3-saldo-val.pos { color: var(--flow-in); }
+.rel2-hero3 .rh3-saldo-val.neg { color: var(--flow-out); }
+.rel2-hero3 .rh3-microcopy {
+  font-size: 10.5px; color: var(--ink-mute); margin-top: 8px;
+  line-height: 1.5; font-style: italic;
+}
+
+/* Gráfico multi-mês com 3 barras agrupadas por mês */
+.rel2-chart-grouped { position: relative; height: 220px; margin: 4px 0 6px; padding-top: 4px; }
+.rel2-chart-grouped svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.rel2-chart-grouped-labels {
+  display: flex; justify-content: space-around;
+  font-size: 10px; color: var(--ink-soft); margin-top: 6px;
+  font-weight: 500;
+}
+.rel2-legend {
+  display: flex; gap: 12px; font-size: 10.5px; color: var(--ink-mute);
+  margin: 10px 0 0; padding: 0 4px; flex-wrap: wrap;
+  align-items: center;
+}
+.rel2-legend .rl-item { display: flex; align-items: center; gap: 5px; }
+.rel2-legend .rl-sq { width: 9px; height: 9px; border-radius: 2px; }
+.rel2-legend .rl-sq.entradas { background: var(--flow-in); }
+.rel2-legend .rl-sq.saidas   { background: var(--flow-out); }
+.rel2-legend .rl-sq.invest   { background: var(--flow-invest); }
+.rel2-legend .rl-line {
+  width: 16px; height: 0; border-top: 1.5px solid var(--ink-soft);
+  border-style: dashed;
+}
+
+/* Lista de fluxo (fontes, contas, etc) */
+.rel2-flow-list { margin-top: 4px; }
+.rel2-flow-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 0; border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.rel2-flow-row:last-child { border-bottom: none; }
+.rel2-flow-row .rfr-dot {
+  width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+}
+.rel2-flow-row.entradas .rfr-dot { background: var(--flow-in); }
+.rel2-flow-row.saidas   .rfr-dot { background: var(--flow-out); }
+.rel2-flow-row.invest   .rfr-dot { background: var(--flow-invest); }
+.rel2-flow-row .rfr-body { flex: 1; min-width: 0; }
+.rel2-flow-row .rfr-name {
+  font-size: 14px; font-weight: 500; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rel2-flow-row .rfr-sub {
+  font-size: 11px; color: var(--ink-mute); margin-top: 1px;
+}
+.rel2-flow-row .rfr-bar-bg {
+  height: 3px; background: var(--line); border-radius: 2px;
+  margin-top: 5px; overflow: hidden;
+}
+.rel2-flow-row .rfr-bar-fg { height: 100%; border-radius: 2px; }
+.rel2-flow-row.entradas .rfr-bar-fg { background: var(--flow-in); }
+.rel2-flow-row.saidas   .rfr-bar-fg { background: var(--flow-out); }
+.rel2-flow-row.invest   .rfr-bar-fg { background: var(--flow-invest); }
+.rel2-flow-row .rfr-val {
+  font-family: var(--font-display); font-size: 16px; font-weight: 500;
+  color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+
+/* Pré-cabeçalho de seção colorido por fluxo */
+.rel-section.fluxo-entradas .rel-section-title { color: var(--flow-in); }
+.rel-section.fluxo-saidas   .rel-section-title { color: var(--flow-out); }
+.rel-section.fluxo-invest   .rel-section-title { color: var(--flow-invest); }
+
 </style>
 
 </head>
@@ -3702,7 +3844,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.16.0 · relatórios fatia 1
+  Finança · v0.17.0 · relatórios fatia 2
 </div>
 
   </section>
@@ -6570,9 +6712,37 @@ function relCalcTopIdentificacoes(yms, cats, limit) {
 
 /* ----- RENDER principal ----- */
 
+/* ----- DISPATCHER + PILLS (v0.17.0) -----
+   Tabs no topo trocam entre relatórios. Cada relatório renderiza dentro de
+   #relInner — o host externo só hospeda as pills. */
+let relView = 'rel1'; /* 'rel1' (5.1: Gastos & Saídas) | 'rel2' (5.2: Fluxo de Caixa) */
+
+const REL_TABS = [
+  { id: 'rel1', label: 'Gastos & Saídas' },
+  { id: 'rel2', label: 'Fluxo de Caixa' }
+];
+
 function renderRelatorios() {
-  if (!relState.ym) relState.ym = currentYM();
   const host = document.getElementById('relatoriosContent');
+  if (!host) return;
+
+  const pillsHtml = REL_TABS.map(t =>
+    '<button class="rel-tab ' + (t.id === relView ? 'active' : '') + '" data-rel-view="' + t.id + '">' + escapeHtml(t.label) + '</button>'
+  ).join('');
+
+  host.innerHTML = '<div class="rel-tabs">' + pillsHtml + '</div><div id="relInner"></div>';
+
+  host.querySelectorAll('[data-rel-view]').forEach(b => {
+    b.onclick = () => { relView = b.dataset.relView; renderRelatorios(); };
+  });
+
+  if (relView === 'rel1') _renderRel1Inner();
+  else if (relView === 'rel2') _renderRel2Inner();
+}
+
+function _renderRel1Inner() {
+  if (!relState.ym) relState.ym = currentYM();
+  const host = document.getElementById('relInner');
   if (!host) return;
 
   const cats = relCategoriasIncluidas();
@@ -6974,7 +7144,7 @@ function _relSecaoIdfsHtml(topIdfs) {
 }
 
 function _relBindEvents() {
-  const el = document.getElementById('relatoriosContent');
+  const el = document.getElementById('relInner');
   if (!el) return;
 
   const btnPrev = document.getElementById('relPrev');
@@ -7102,6 +7272,625 @@ function _relDrillListaHtml(gastos) {
   const totalBar = `
     <div class="rel-drill-totalbar">
       <span>${gastos.length} ${gastos.length === 1 ? 'lançamento' : 'lançamentos'} · pago ${_relFmtBR(totalPago)}${totalPrev > 0 ? ' · previsto ' + _relFmtBR(totalPrev) : ''}</span>
+      <span class="rdt-val">${_relFmtBR(total)}</span>
+    </div>
+  `;
+  return rowsHtml + totalBar;
+}
+
+/* =============================================================
+   v0.17.0 — RELATÓRIO 2 · Fatia 5.2
+   Fluxo de Caixa (Entradas / Saídas / Investimentos)
+   Visão FINANCEIRA: gastos contam quando saem da conta (cartão de
+   crédito só aparece via pagamento da fatura).
+   ============================================================= */
+
+let rel2State = {
+  ym: null,
+  periodo: 'mes',
+  incluiTiago: false
+};
+
+/* ----- Filtro mestre: saída ou investimento conta como FLUXO?
+   Critério visão FINANCEIRA:
+   - exclui ajustes (não é movimento real)
+   - exclui não-pagos (ainda não saiu)
+   - exclui pagamento=cartao (só conta no pagamento da fatura)
+   Pagamentos de fatura (isPagamentoFatura=true) entram naturalmente
+   porque têm pagamento='conta' e pago=true. */
+function _rel2FluxoConta(g) {
+  if (!g) return false;
+  if (g.isAjuste) return false;
+  if (g.pago === false) return false;
+  if (g.pagamento === 'cartao') return false;
+  return true;
+}
+
+function rel2CategoriasSaidas() {
+  const base = ['casa', 'marina', 'heitor', 'juliana'];
+  return rel2State.incluiTiago ? base.concat(['tiago']) : base;
+}
+
+/* ----- Cálculos ----- */
+
+function rel2CalcEntradas(ym) {
+  /* Entradas: schema atual não tem campo de membro, então todas contam. */
+  let total = 0;
+  state.entradas.forEach(e => {
+    if (e.ym !== ym) return;
+    total += Number(e.valor) || 0;
+  });
+  return total;
+}
+
+function rel2CalcSaidas(ym, cats) {
+  let total = 0;
+  state.gastos.forEach(g => {
+    if (g.ym !== ym) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (g.isInvest) return;
+    if (!_rel2FluxoConta(g)) return;
+    total += Number(g.valor) || 0;
+  });
+  return total;
+}
+
+function rel2CalcInvestimentos(ym, cats) {
+  let total = 0;
+  state.gastos.forEach(g => {
+    if (g.ym !== ym) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (!g.isInvest) return;
+    if (!_rel2FluxoConta(g)) return;
+    total += Number(g.valor) || 0;
+  });
+  return total;
+}
+
+function rel2CalcHistorico(ymAtual, n, cats) {
+  const yms = relYmsHistorico(ymAtual, n);
+  return yms.map(ym => ({
+    ym: ym,
+    entradas: rel2CalcEntradas(ym),
+    saidas: rel2CalcSaidas(ym, cats),
+    invest: rel2CalcInvestimentos(ym, cats)
+  }));
+}
+
+/* Lente 1: Entradas por fonte */
+function rel2CalcEntradasPorFonte(yms) {
+  const buckets = new Map();
+  state.entradas.forEach(e => {
+    if (yms.indexOf(e.ym) < 0) return;
+    const fid = e.fonteId || '_sem';
+    if (!buckets.has(fid)) {
+      const fonte = state.fontesRenda.find(f => f.id === fid);
+      buckets.set(fid, {
+        id: fid,
+        nome: (fonte && fonte.nome) || '(fonte removida)',
+        tipo: (fonte && fonte.tipo) || null,
+        total: 0,
+        count: 0
+      });
+    }
+    const b = buckets.get(fid);
+    b.total += Number(e.valor) || 0;
+    b.count++;
+  });
+  return Array.from(buckets.values()).sort((a, b) => b.total - a.total);
+}
+
+/* Lente 2: Saídas por categoria */
+function rel2CalcSaidasPorCategoria(yms, cats) {
+  const buckets = {};
+  cats.forEach(k => { buckets[k] = { catKey: k, total: 0, count: 0 }; });
+  state.gastos.forEach(g => {
+    if (yms.indexOf(g.ym) < 0) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (g.isInvest) return;
+    if (!_rel2FluxoConta(g)) return;
+    buckets[g.categoria].total += Number(g.valor) || 0;
+    buckets[g.categoria].count++;
+  });
+  return cats.map(k => buckets[k]).filter(b => b.total > 0)
+    .sort((a, b) => b.total - a.total);
+}
+
+/* Lente 3: Investimentos por subcategoria */
+function rel2CalcInvestPorSubcat(yms, cats) {
+  const buckets = new Map();
+  state.gastos.forEach(g => {
+    if (yms.indexOf(g.ym) < 0) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (!g.isInvest) return;
+    if (!_rel2FluxoConta(g)) return;
+    const sc = g.subcategoria || '—';
+    if (!buckets.has(sc)) buckets.set(sc, { nome: sc, total: 0, count: 0 });
+    const b = buckets.get(sc);
+    b.total += Number(g.valor) || 0;
+    b.count++;
+  });
+  return Array.from(buckets.values()).sort((a, b) => b.total - a.total);
+}
+
+/* Lente 4: Saídas por conta (de onde o dinheiro saiu) */
+function rel2CalcSaidasPorConta(yms, cats) {
+  const buckets = new Map();
+  state.gastos.forEach(g => {
+    if (yms.indexOf(g.ym) < 0) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (g.isInvest) return;
+    if (!_rel2FluxoConta(g)) return;
+    if (!g.contaId) return;
+    if (!buckets.has(g.contaId)) {
+      const conta = state.contas.find(c => c.id === g.contaId);
+      buckets.set(g.contaId, {
+        id: g.contaId,
+        nome: (conta && conta.nome) || '(conta removida)',
+        cor: (conta && conta.cor) || '#888',
+        total: 0,
+        count: 0
+      });
+    }
+    const b = buckets.get(g.contaId);
+    b.total += Number(g.valor) || 0;
+    b.count++;
+  });
+  return Array.from(buckets.values()).sort((a, b) => b.total - a.total);
+}
+
+/* ----- Render ----- */
+
+function _renderRel2Inner() {
+  if (!rel2State.ym) rel2State.ym = currentYM();
+  const host = document.getElementById('relInner');
+  if (!host) return;
+
+  const cats = rel2CategoriasSaidas();
+  const periodo = REL_PERIODOS.find(p => p.id === rel2State.periodo) || REL_PERIODOS[0];
+  const ym = rel2State.ym;
+  const yms = relYmsHistorico(ym, periodo.months);
+
+  /* Hero do mês corrente sempre (consistência com Rel 1) */
+  const entradas = rel2CalcEntradas(ym);
+  const saidas = rel2CalcSaidas(ym, cats);
+  const invest = rel2CalcInvestimentos(ym, cats);
+
+  let html = '';
+  html += _rel2HeaderHtml(ym, periodo);
+  html += _rel2HeroHtml(entradas, saidas, invest, ym, cats);
+
+  if (periodo.months > 1) {
+    const historico = rel2CalcHistorico(ym, periodo.months, cats);
+    html += _rel2SecaoMultiMesHtml(historico, periodo);
+  }
+
+  const entradasPorFonte = rel2CalcEntradasPorFonte(yms);
+  const saidasPorCat = rel2CalcSaidasPorCategoria(yms, cats);
+  const investPorSubcat = rel2CalcInvestPorSubcat(yms, cats);
+  const saidasPorConta = rel2CalcSaidasPorConta(yms, cats);
+
+  html += _rel2SecaoEntradasFontesHtml(entradasPorFonte);
+  html += _rel2SecaoSaidasCatHtml(saidasPorCat);
+  html += _rel2SecaoInvestHtml(investPorSubcat);
+  html += _rel2SecaoSaidasContaHtml(saidasPorConta);
+
+  host.innerHTML = html;
+  _rel2BindEvents();
+}
+
+function _rel2HeaderHtml(ym, periodo) {
+  const ymLabel = MESES_PT[Number(ym.split('-')[1]) - 1] + ' / ' + ym.split('-')[0].slice(2);
+  const periodoHtml = REL_PERIODOS.map(p =>
+    '<button class="rp ' + (p.id === rel2State.periodo ? 'active' : '') + '" data-rel2-periodo="' + p.id + '">' + escapeHtml(p.label) + '</button>'
+  ).join('');
+  return `
+    <div class="rel-monthnav">
+      <button id="rel2Prev" aria-label="Mês anterior">‹</button>
+      <span class="rel-monthlabel">${escapeHtml(ymLabel)}</span>
+      <button id="rel2Next" aria-label="Próximo mês">›</button>
+    </div>
+    <div class="rel-periodo">${periodoHtml}</div>
+    <div class="rel-toggle-tiago ${rel2State.incluiTiago ? 'on' : ''}" id="rel2ToggleTiago">
+      <div class="rt-sw"></div>
+      <div class="rt-label">Incluir Tiago no fluxo da família</div>
+    </div>
+  `;
+}
+
+function _rel2HeroHtml(entradas, saidas, invest, ym, cats) {
+  const saldo = entradas - saidas - invest;
+  const saldoCls = saldo >= 0 ? 'pos' : 'neg';
+  const saldoStr = (saldo >= 0 ? '+ ' : '− ') + _relFmtBR(Math.abs(saldo));
+
+  /* Trends: comparar mês corrente com mediana dos últimos 6 (se houver) */
+  const yms6 = relYmsHistorico(ym, 6);
+  const histE = yms6.map(y => rel2CalcEntradas(y));
+  const histS = yms6.map(y => rel2CalcSaidas(y, cats));
+  const histI = yms6.map(y => rel2CalcInvestimentos(y, cats));
+  const trend = (atual, hist) => {
+    const med = relMediana(hist.slice(0, -1));
+    if (!med) return '';
+    const delta = (atual - med) / med;
+    if (Math.abs(delta) < 0.05) return '→ próximo da mediana';
+    const arrow = delta > 0 ? '↑' : '↓';
+    return arrow + ' ' + (Math.abs(delta) * 100).toFixed(0) + '% vs mediana 6m';
+  };
+
+  const microcopy = rel2State.incluiTiago
+    ? 'entradas: família · saídas + invest: família + Tiago'
+    : 'entradas e saídas: apenas família';
+
+  return `
+    <div class="rel2-hero3">
+      <div class="rh3-eyebrow">fluxo financeiro · mês corrente</div>
+      <div class="rh3-cols">
+        <div class="rh3-col entradas">
+          <div class="rh3-col-label"><span class="rh3-dot"></span>entradas</div>
+          <div class="rh3-val">${_relFmtBR(entradas)}</div>
+          <div class="rh3-trend">${escapeHtml(trend(entradas, histE))}</div>
+        </div>
+        <div class="rh3-col saidas">
+          <div class="rh3-col-label"><span class="rh3-dot"></span>saídas</div>
+          <div class="rh3-val">${_relFmtBR(saidas)}</div>
+          <div class="rh3-trend">${escapeHtml(trend(saidas, histS))}</div>
+        </div>
+        <div class="rh3-col invest">
+          <div class="rh3-col-label"><span class="rh3-dot"></span>invest.</div>
+          <div class="rh3-val">${_relFmtBR(invest)}</div>
+          <div class="rh3-trend">${escapeHtml(trend(invest, histI))}</div>
+        </div>
+      </div>
+      <div class="rh3-saldo">
+        <span class="rh3-saldo-label">saldo do mês</span>
+        <span class="rh3-saldo-val ${saldoCls}">${escapeHtml(saldoStr)}</span>
+      </div>
+      <div class="rh3-microcopy">${escapeHtml(microcopy)}</div>
+    </div>
+  `;
+}
+
+function _rel2SecaoMultiMesHtml(historico, periodo) {
+  const N = historico.length;
+  if (N === 0) return '';
+
+  const W = 360, H = 220;
+  const padTop = 18, padBot = 12, padL = 8, padR = 8;
+  const usableW = W - padL - padR;
+  const usableH = H - padTop - padBot;
+  const grupoW = usableW / N;
+  const gap = grupoW * 0.20;
+  const barW = (grupoW - gap) / 3;
+
+  /* Escala única: max de E, S, I, e |saldo| pra acomodar tudo */
+  const allVals = [];
+  historico.forEach(h => { allVals.push(h.entradas, h.saidas, h.invest); });
+  const maxVal = Math.max.apply(null, allVals.concat([1]));
+
+  let bars = '';
+  const saldoPts = [];
+  historico.forEach((h, i) => {
+    const xBase = padL + i * grupoW + gap / 2;
+    const xE = xBase;
+    const xS = xBase + barW;
+    const xI = xBase + barW * 2;
+    const hE = (h.entradas / maxVal) * usableH;
+    const hS = (h.saidas / maxVal) * usableH;
+    const hI = (h.invest / maxVal) * usableH;
+    const yBase = H - padBot;
+    bars += '<rect x="' + xE.toFixed(2) + '" y="' + (yBase - hE).toFixed(2) + '" width="' + barW.toFixed(2) + '" height="' + hE.toFixed(2) + '" fill="var(--flow-in)"/>';
+    bars += '<rect x="' + xS.toFixed(2) + '" y="' + (yBase - hS).toFixed(2) + '" width="' + barW.toFixed(2) + '" height="' + hS.toFixed(2) + '" fill="var(--flow-out)"/>';
+    bars += '<rect x="' + xI.toFixed(2) + '" y="' + (yBase - hI).toFixed(2) + '" width="' + barW.toFixed(2) + '" height="' + hI.toFixed(2) + '" fill="var(--flow-invest)"/>';
+    /* Ponto do saldo: centro do grupo, altura = (entrada - saida - invest) / maxVal */
+    const saldo = h.entradas - h.saidas - h.invest;
+    const ySaldo = yBase - (saldo / maxVal) * usableH;
+    saldoPts.push({ x: xBase + grupoW / 2 - gap / 2, y: ySaldo });
+  });
+
+  /* Linha de saldo sobreposta (suave) — discreta, cinza */
+  const saldoPath = relBezierPath(saldoPts);
+
+  const labels = historico.map(h =>
+    '<span>' + escapeHtml(relYmLabelAbbr(h.ym)) + '</span>'
+  ).join('');
+
+  return `
+    <div class="rel-section">
+      <div class="rel-section-title"><span class="rst-icon">📊</span> evolução · ${escapeHtml(periodo.label)} (${N} meses)</div>
+      <div class="rel2-chart-grouped">
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+          ${bars}
+          <path d="${saldoPath}" stroke="var(--ink)" stroke-width="1.25" fill="none"
+            stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3,2" opacity="0.55"/>
+        </svg>
+      </div>
+      <div class="rel2-chart-grouped-labels">${labels}</div>
+      <div class="rel2-legend">
+        <div class="rl-item"><span class="rl-sq entradas"></span> entradas</div>
+        <div class="rl-item"><span class="rl-sq saidas"></span> saídas</div>
+        <div class="rl-item"><span class="rl-sq invest"></span> investimentos</div>
+        <div class="rl-item"><span class="rl-line"></span> saldo</div>
+      </div>
+    </div>
+  `;
+}
+
+function _rel2SecaoEntradasFontesHtml(fontes) {
+  if (!fontes.length) {
+    return `
+      <div class="rel-section fluxo-entradas">
+        <div class="rel-section-title"><span class="rst-icon">💰</span> entradas · por fonte</div>
+        <div class="rel-empty" style="padding:14px;">Nenhuma entrada no período.</div>
+      </div>
+    `;
+  }
+  const maxTotal = fontes[0].total;
+  const rowsHtml = fontes.map(f => {
+    const w = maxTotal > 0 ? (f.total / maxTotal) * 100 : 0;
+    const tipoLabel = f.tipo === 'fixo' ? 'fixo' : (f.tipo === 'misto' ? 'misto' : (f.tipo === 'variavel' ? 'variável' : 'fonte'));
+    return `
+      <div class="rel2-flow-row entradas" data-rel2-fonte="${escapeHtml(f.id)}">
+        <span class="rfr-dot"></span>
+        <div class="rfr-body">
+          <div class="rfr-name">${escapeHtml(f.nome)}</div>
+          <div class="rfr-sub">${f.count} ${f.count === 1 ? 'lançamento' : 'lançamentos'} · ${escapeHtml(tipoLabel)}</div>
+          <div class="rfr-bar-bg"><div class="rfr-bar-fg" style="width:${w.toFixed(1)}%;"></div></div>
+        </div>
+        <span class="rfr-val">${_relFmtBR(f.total)}</span>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="rel-section fluxo-entradas">
+      <div class="rel-section-title"><span class="rst-icon">💰</span> entradas · por fonte</div>
+      <div class="rel2-flow-list">${rowsHtml}</div>
+    </div>
+  `;
+}
+
+function _rel2SecaoSaidasCatHtml(cats) {
+  if (!cats.length) {
+    return `
+      <div class="rel-section fluxo-saidas">
+        <div class="rel-section-title"><span class="rst-icon">📤</span> saídas · por categoria</div>
+        <div class="rel-empty" style="padding:14px;">Nenhuma saída no período.</div>
+      </div>
+    `;
+  }
+  const maxTotal = cats[0].total;
+  const rowsHtml = cats.map(c => {
+    const m = state.members[c.catKey];
+    const w = maxTotal > 0 ? (c.total / maxTotal) * 100 : 0;
+    return `
+      <div class="rel2-flow-row saidas" data-rel2-saidacat="${escapeHtml(c.catKey)}">
+        <span class="rfr-dot" style="background:${relCatColor(c.catKey)};"></span>
+        <div class="rfr-body">
+          <div class="rfr-name">${escapeHtml((m && m.nome) || c.catKey)}</div>
+          <div class="rfr-sub">${c.count} ${c.count === 1 ? 'lançamento' : 'lançamentos'}</div>
+          <div class="rfr-bar-bg"><div class="rfr-bar-fg" style="width:${w.toFixed(1)}%;background:${relCatColor(c.catKey)};"></div></div>
+        </div>
+        <span class="rfr-val">${_relFmtBR(c.total)}</span>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="rel-section fluxo-saidas">
+      <div class="rel-section-title"><span class="rst-icon">📤</span> saídas · por categoria</div>
+      <div class="rel2-flow-list">${rowsHtml}</div>
+    </div>
+  `;
+}
+
+function _rel2SecaoInvestHtml(subcats) {
+  if (!subcats.length) {
+    return `
+      <div class="rel-section fluxo-invest">
+        <div class="rel-section-title"><span class="rst-icon">📈</span> investimentos · por subcategoria</div>
+        <div class="rel-empty" style="padding:14px;">Nenhum investimento no período.</div>
+      </div>
+    `;
+  }
+  const maxTotal = subcats[0].total;
+  const rowsHtml = subcats.map(sc => {
+    const w = maxTotal > 0 ? (sc.total / maxTotal) * 100 : 0;
+    return `
+      <div class="rel2-flow-row invest" data-rel2-invest="${escapeHtml(sc.nome)}">
+        <span class="rfr-dot"></span>
+        <div class="rfr-body">
+          <div class="rfr-name">${escapeHtml(sc.nome)}</div>
+          <div class="rfr-sub">${sc.count} ${sc.count === 1 ? 'lançamento' : 'lançamentos'}</div>
+          <div class="rfr-bar-bg"><div class="rfr-bar-fg" style="width:${w.toFixed(1)}%;"></div></div>
+        </div>
+        <span class="rfr-val">${_relFmtBR(sc.total)}</span>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="rel-section fluxo-invest">
+      <div class="rel-section-title"><span class="rst-icon">📈</span> investimentos · por subcategoria</div>
+      <div class="rel2-flow-list">${rowsHtml}</div>
+    </div>
+  `;
+}
+
+function _rel2SecaoSaidasContaHtml(contas) {
+  if (!contas.length) {
+    return '';
+  }
+  const maxTotal = contas[0].total;
+  const rowsHtml = contas.map(c => {
+    const w = maxTotal > 0 ? (c.total / maxTotal) * 100 : 0;
+    return `
+      <div class="rel2-flow-row saidas" data-rel2-conta="${escapeHtml(c.id)}">
+        <span class="rfr-dot" style="background:${c.cor};"></span>
+        <div class="rfr-body">
+          <div class="rfr-name">${escapeHtml(c.nome)}</div>
+          <div class="rfr-sub">${c.count} ${c.count === 1 ? 'saída' : 'saídas'}</div>
+          <div class="rfr-bar-bg"><div class="rfr-bar-fg" style="width:${w.toFixed(1)}%;background:${c.cor};"></div></div>
+        </div>
+        <span class="rfr-val">${_relFmtBR(c.total)}</span>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="rel-section fluxo-saidas">
+      <div class="rel-section-title"><span class="rst-icon">🏦</span> saídas · por conta de origem</div>
+      <div class="rel2-flow-list">${rowsHtml}</div>
+    </div>
+  `;
+}
+
+function _rel2BindEvents() {
+  const el = document.getElementById('relInner');
+  if (!el) return;
+
+  const btnPrev = document.getElementById('rel2Prev');
+  const btnNext = document.getElementById('rel2Next');
+  if (btnPrev) btnPrev.onclick = () => { rel2State.ym = ymPrev(rel2State.ym); renderRelatorios(); };
+  if (btnNext) btnNext.onclick = () => { rel2State.ym = ymNext(rel2State.ym); renderRelatorios(); };
+
+  el.querySelectorAll('[data-rel2-periodo]').forEach(b => {
+    b.onclick = () => { rel2State.periodo = b.dataset.rel2Periodo; renderRelatorios(); };
+  });
+
+  const togTiago = document.getElementById('rel2ToggleTiago');
+  if (togTiago) togTiago.onclick = () => { rel2State.incluiTiago = !rel2State.incluiTiago; renderRelatorios(); };
+
+  el.querySelectorAll('[data-rel2-fonte]').forEach(r => {
+    r.onclick = () => _rel2DrillFonte(r.dataset.rel2Fonte);
+  });
+  el.querySelectorAll('[data-rel2-saidacat]').forEach(r => {
+    r.onclick = () => _rel2DrillSaidaCat(r.dataset.rel2Saidacat);
+  });
+  el.querySelectorAll('[data-rel2-invest]').forEach(r => {
+    r.onclick = () => _rel2DrillInvest(r.dataset.rel2Invest);
+  });
+  el.querySelectorAll('[data-rel2-conta]').forEach(r => {
+    r.onclick = () => _rel2DrillConta(r.dataset.rel2Conta);
+  });
+}
+
+/* ----- Drill-downs ----- */
+
+function _rel2DrillFonte(fonteId) {
+  const periodo = REL_PERIODOS.find(p => p.id === rel2State.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(rel2State.ym, periodo.months);
+  const entradas = state.entradas.filter(e =>
+    e.fonteId === fonteId && yms.indexOf(e.ym) >= 0
+  );
+  const fonte = state.fontesRenda.find(f => f.id === fonteId);
+  sheet.open('Entradas · ' + ((fonte && fonte.nome) || 'fonte'), _rel2DrillEntradasHtml(entradas));
+}
+
+function _rel2DrillSaidaCat(catKey) {
+  const periodo = REL_PERIODOS.find(p => p.id === rel2State.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(rel2State.ym, periodo.months);
+  const gastos = state.gastos.filter(g =>
+    g.categoria === catKey && !g.isInvest &&
+    yms.indexOf(g.ym) >= 0 && _rel2FluxoConta(g)
+  );
+  const m = state.members[catKey];
+  sheet.open('Saídas · ' + ((m && m.nome) || catKey), _rel2DrillGastosHtml(gastos));
+}
+
+function _rel2DrillInvest(subcatNome) {
+  const periodo = REL_PERIODOS.find(p => p.id === rel2State.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(rel2State.ym, periodo.months);
+  const cats = rel2CategoriasSaidas();
+  const gastos = state.gastos.filter(g =>
+    g.isInvest && g.subcategoria === subcatNome &&
+    cats.indexOf(g.categoria) >= 0 &&
+    yms.indexOf(g.ym) >= 0 && _rel2FluxoConta(g)
+  );
+  sheet.open('Investimentos · ' + subcatNome, _rel2DrillGastosHtml(gastos));
+}
+
+function _rel2DrillConta(contaId) {
+  const periodo = REL_PERIODOS.find(p => p.id === rel2State.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(rel2State.ym, periodo.months);
+  const cats = rel2CategoriasSaidas();
+  const gastos = state.gastos.filter(g =>
+    g.contaId === contaId && !g.isInvest &&
+    cats.indexOf(g.categoria) >= 0 &&
+    yms.indexOf(g.ym) >= 0 && _rel2FluxoConta(g)
+  );
+  const conta = state.contas.find(c => c.id === contaId);
+  sheet.open('Saídas · ' + ((conta && conta.nome) || 'conta'), _rel2DrillGastosHtml(gastos));
+}
+
+function _rel2DrillEntradasHtml(entradas) {
+  if (!entradas.length) {
+    return '<div class="rel-empty" style="padding:20px;">Nenhuma entrada encontrada.</div>';
+  }
+  const sorted = [...entradas].sort((a, b) =>
+    (b.data || '').localeCompare(a.data || '')
+  );
+  let total = 0;
+  const rowsHtml = sorted.map(e => {
+    const v = Number(e.valor) || 0;
+    total += v;
+    const dataStr = e.data ? e.data.split('-').reverse().slice(0, 2).join('/') : '';
+    const ymLabel = MESES_PT_ABBR[Number(e.ym.split('-')[1]) - 1] + '/' + e.ym.split('-')[0].slice(2);
+    const conta = e.contaId ? state.contas.find(c => c.id === e.contaId) : null;
+    return `
+      <div class="rel-drill-row">
+        <div class="rdr-body">
+          <div class="rdr-name">${escapeHtml(e.observacao || 'Entrada')}</div>
+          <div class="rdr-meta">
+            ${dataStr ? escapeHtml(dataStr) + ' · ' : ''}${escapeHtml(ymLabel)}
+            ${conta ? ' · ' + escapeHtml(conta.nome) : ''}
+          </div>
+        </div>
+        <div class="rdr-val" style="color: var(--flow-in);">${_relFmtBR(v)}</div>
+      </div>
+    `;
+  }).join('');
+  const totalBar = `
+    <div class="rel-drill-totalbar">
+      <span>${entradas.length} ${entradas.length === 1 ? 'lançamento' : 'lançamentos'}</span>
+      <span class="rdt-val">${_relFmtBR(total)}</span>
+    </div>
+  `;
+  return rowsHtml + totalBar;
+}
+
+function _rel2DrillGastosHtml(gastos) {
+  if (!gastos.length) {
+    return '<div class="rel-empty" style="padding:20px;">Nenhum lançamento encontrado.</div>';
+  }
+  const sorted = [...gastos].sort((a, b) =>
+    (b.data || '').localeCompare(a.data || '')
+  );
+  let total = 0;
+  const rowsHtml = sorted.map(g => {
+    const v = Number(g.valor) || 0;
+    total += v;
+    const tags = [];
+    if (g.isPagamentoFatura) tags.push('<span class="rdr-tag">🔄 fatura</span>');
+    if (g.isFixo) tags.push('<span class="rdr-tag">🔁 fixo</span>');
+    if (g.parcela && g.parcela.total > 1) tags.push('<span class="rdr-tag">' + g.parcela.atual + '/' + g.parcela.total + '</span>');
+    if (g.isInvest) tags.push('<span class="rdr-tag">📈 invest</span>');
+    const m = state.members[g.categoria];
+    const conta = g.contaId ? state.contas.find(c => c.id === g.contaId) : null;
+    const dataStr = g.data ? g.data.split('-').reverse().slice(0, 2).join('/') : '';
+    const ymLabel = MESES_PT_ABBR[Number(g.ym.split('-')[1]) - 1] + '/' + g.ym.split('-')[0].slice(2);
+    return `
+      <div class="rel-drill-row">
+        <div class="rdr-body">
+          <div class="rdr-name">${escapeHtml(g.nome || '(sem nome)')} ${tags.join('')}</div>
+          <div class="rdr-meta">
+            ${dataStr ? escapeHtml(dataStr) + ' · ' : ''}${escapeHtml(ymLabel)}
+            ${conta ? ' · ' + escapeHtml(conta.nome) : ''}
+            ${m ? ' · ' + escapeHtml(m.nome) : ''}
+          </div>
+        </div>
+        <div class="rdr-val">${_relFmtBR(v)}</div>
+      </div>
+    `;
+  }).join('');
+  const totalBar = `
+    <div class="rel-drill-totalbar">
+      <span>${gastos.length} ${gastos.length === 1 ? 'lançamento' : 'lançamentos'}</span>
       <span class="rdt-val">${_relFmtBR(total)}</span>
     </div>
   `;
