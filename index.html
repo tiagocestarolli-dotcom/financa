@@ -3258,9 +3258,15 @@ label {
 }
 .rel-chart-cats .rcc-col {
   flex: 1; max-width: 52px;
-  display: flex; flex-direction: column-reverse;
-  border-radius: 6px 6px 0 0; overflow: hidden;
   position: relative; min-height: 0; min-width: 0;
+  display: flex; align-items: stretch;
+  /* SEM overflow:hidden aqui — senão corta os labels absolutos */
+}
+.rel-chart-cats .rcc-col-stack {
+  width: 100%;
+  display: flex; flex-direction: column-reverse;
+  border-radius: 6px 6px 0 0;
+  overflow: hidden;
 }
 .rel-chart-cats .rcc-col-label {
   position: absolute; bottom: -22px; left: -8px; right: -8px; text-align: center;
@@ -3567,10 +3573,16 @@ label {
 .rel-chart-subcats::-webkit-scrollbar { display: none; }
 .rel-chart-subcats .rsc-col {
   width: 48px; flex-shrink: 0;
-  display: flex; flex-direction: column-reverse;
-  border-radius: 6px 6px 0 0; overflow: hidden;
   position: relative; min-height: 0;
   cursor: pointer;
+  display: flex; align-items: stretch;
+  /* SEM overflow:hidden aqui */
+}
+.rel-chart-subcats .rsc-col-stack {
+  width: 100%;
+  display: flex; flex-direction: column-reverse;
+  border-radius: 6px 6px 0 0;
+  overflow: hidden;
 }
 .rel-chart-subcats .rsc-col-label {
   position: absolute; bottom: -30px; left: -10px; right: -10px;
@@ -3958,7 +3970,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.18.0 · relatórios fatia 2 ajustes
+  Finança · v0.18.1 · fix labels
 </div>
 
   </section>
@@ -7033,7 +7045,7 @@ function _relSecaoCategoriasHtml(ym, cats) {
     return `
       <div class="rcc-col" style="height:${altPct.toFixed(2)}%;">
         <div class="rcc-col-total">${_relFmtBR(d.total)}</div>
-        ${segs}
+        <div class="rcc-col-stack">${segs}</div>
         <div class="rcc-col-label">${escapeHtml(m.nome)}</div>
       </div>
     `;
@@ -7070,7 +7082,7 @@ function _relSecaoSubcatsConsolidadasHtml(ym, cats) {
     return `
       <div class="rsc-col" style="height:${altPct.toFixed(2)}%;" data-rel-subcat-cons="${escapeHtml(sc.nome)}">
         <div class="rsc-col-total">${_relFmtBR(sc.total)}</div>
-        ${segs}
+        <div class="rsc-col-stack">${segs}</div>
         <div class="rsc-col-label">${escapeHtml(sc.nome)}</div>
       </div>
     `;
