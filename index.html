@@ -4067,7 +4067,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.19.1 · fix investimento
+  Finança · v0.20.1 · fix caixa cartão
 </div>
 
   </section>
@@ -6777,6 +6777,18 @@ function _relGastoConta(g) {
   if (g.isPagamentoFatura) return false; /* v0.15.0: saída técnica não é consumo */
   return true;
 }
+
+/* v0.20.0: filtro pra SAÍDAS totais (consumo + invest). Usado em hero e
+   totais agregados. Decisão original do projeto: invest debita conta, então
+   soma na "saída total" — mas NÃO entra em consumo (que tem filtro separado).
+   Exclui: ajustes (não é movimento real) e pagamento de fatura (saída técnica
+   evita dupla contagem do consumo de cartão). */
+function _relGastoSaida(g) {
+  if (!g) return false;
+  if (g.isAjuste) return false;
+  if (g.isPagamentoFatura) return false;
+  return true;
+}
 function relCategoriasIncluidas() {
   const base = ['casa', 'marina', 'heitor', 'juliana'];
   return relState.incluiTiago ? base.concat(['tiago']) : base;
@@ -6829,44 +6841,88 @@ function relCalcSubcatsConsolidadas(ym, cats, limit) {
     .slice(0, limit);
 }
 
-function relCalcHero(ym, cats) {
-  let pago = 0, prev = 0, fixos = 0;
+/* v0.20.0: lente de investimentos por subcategoria — análoga à de consumo
+   mas filtrando APENAS gastos invest. Usada no Rel 1 (e via reuso no Rel 3). */
+function relCalcInvestSubcats(ym, cats, limit) {
+  limit = limit || 8;
+  const buckets = new Map();
   state.gastos.forEach(g => {
     if (g.ym !== ym) return;
     if (cats.indexOf(g.categoria) < 0) return;
-    if (!_relGastoConta(g)) return;
+    if (!_relGastoSaida(g)) return;
+    if (!_isInvestRuntime(g)) return;
+    const sc = g.subcategoria || '—';
+    if (!buckets.has(sc)) buckets.set(sc, {
+      nome: sc, pago: 0, previsto: 0, count: 0
+    });
+    const b = buckets.get(sc);
     const v = Number(g.valor) || 0;
+    if (g.pago === false) b.previsto += v;
+    else b.pago += v;
+    b.count++;
+  });
+  return Array.from(buckets.values())
+    .map(b => ({ ...b, total: b.pago + b.previsto }))
+    .filter(b => b.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
+}
+
+function relCalcHero(ym, cats) {
+  /* v0.20.0: total agora é consumo + invest (conforme decisão original do projeto).
+     Mantém pago/prev/fixos referentes APENAS ao consumo. pctFixos calculado
+     sobre consumo (mais útil que sobre total). */
+  let pago = 0, prev = 0, fixos = 0, invest = 0;
+  state.gastos.forEach(g => {
+    if (g.ym !== ym) return;
+    if (cats.indexOf(g.categoria) < 0) return;
+    if (!_relGastoSaida(g)) return;
+    const v = Number(g.valor) || 0;
+    if (_isInvestRuntime(g)) {
+      invest += v;
+      return;
+    }
     if (g.pago === false) prev += v; else pago += v;
     if (g.isFixo) fixos += v;
   });
-  const total = pago + prev;
+  const consumo = pago + prev;
+  const total = consumo + invest;
   return {
-    pago: pago, prev: prev, total: total, fixos: fixos,
-    pctFixos: total > 0 ? (fixos / total) * 100 : 0
+    pago: pago, prev: prev, consumo: consumo, invest: invest,
+    total: total, fixos: fixos,
+    pctFixos: consumo > 0 ? (fixos / consumo) * 100 : 0
   };
 }
 
 function relCalcTotalConsolidado(ym, cats) {
+  /* v0.20.0: além de porCat (consumo), também retorna invest agregado.
+     totalGeral = consumo total + invest. */
   const porCat = {};
   cats.forEach(k => { porCat[k] = { pago: 0, previsto: 0, total: 0 }; });
+  let invest = 0;
   state.gastos.forEach(g => {
     if (g.ym !== ym) return;
     if (cats.indexOf(g.categoria) < 0) return;
-    if (!_relGastoConta(g)) return;
+    if (!_relGastoSaida(g)) return;
     const v = Number(g.valor) || 0;
+    if (_isInvestRuntime(g)) {
+      invest += v;
+      return;
+    }
     if (g.pago === false) porCat[g.categoria].previsto += v;
     else porCat[g.categoria].pago += v;
   });
   cats.forEach(k => { porCat[k].total = porCat[k].pago + porCat[k].previsto; });
-  const totalGeral = cats.reduce((s, k) => s + porCat[k].total, 0);
-  return { porCat: porCat, totalGeral: totalGeral };
+  const totalConsumo = cats.reduce((s, k) => s + porCat[k].total, 0);
+  const totalGeral = totalConsumo + invest;
+  return { porCat: porCat, invest: invest, totalConsumo: totalConsumo, totalGeral: totalGeral };
 }
 
 function relCalcHistorico(ymAtual, n, cats) {
   const yms = relYmsHistorico(ymAtual, n);
   return yms.map(ym => {
     const c = relCalcTotalConsolidado(ym, cats);
-    return { ym: ym, porCat: c.porCat, total: c.totalGeral };
+    return { ym: ym, porCat: c.porCat, invest: c.invest, total: c.totalGeral };
   });
 }
 
@@ -7008,6 +7064,7 @@ function _renderRel1Inner() {
   html += _relSecaoTotalHtml(consolidado, cats);
   html += _relSecaoCategoriasHtml(ym, cats);
   html += _relSecaoSubcatsConsolidadasHtml(ym, cats);
+  html += _relSecaoInvestSubcatsHtml(ym, cats);
 
   if (periodo.months > 1) {
     const historico = relCalcHistorico(ym, periodo.months, cats);
@@ -7036,8 +7093,10 @@ function _relHeaderHtml(ym, periodo, hero) {
       <div class="rh-eyebrow">gastos & saídas · ${escapeHtml(eyebrowLabel)}</div>
       <div class="rh-total">${_relFmtBR(hero.total)}</div>
       <div class="rh-meta">
-        <span class="rh-pago">${_relFmtBR(hero.pago)}</span> pago${hero.prev > 0 ? '&nbsp;+&nbsp;<span class="rh-prev">' + _relFmtBR(hero.prev) + ' previsto</span>' : ''}
-        ${hero.total > 0 ? '<span class="rh-comp">' + hero.pctFixos.toFixed(0) + '% comprometido em gastos fixos</span>' : ''}
+        <span class="rh-pago">${_relFmtBR(hero.consumo)}</span> em consumo${hero.invest > 0 ? '&nbsp;+&nbsp;<span style="color:var(--flow-invest);font-weight:500;">' + _relFmtBR(hero.invest) + ' investimentos</span>' : ''}
+        ${hero.prev > 0 ? '<span class="rh-comp" style="margin-top:1px;">dos R$ do consumo, ' + _relFmtBR(hero.pago) + ' pago + ' + _relFmtBR(hero.prev) + ' previsto</span>' : ''}
+        ${hero.consumo > 0 ? '<span class="rh-comp">' + hero.pctFixos.toFixed(0) + '% do consumo comprometido em fixos</span>' : ''}
+        <span class="rh-comp" style="opacity:0.7;font-style:italic;">regime econômico: gastos contam no mês em que aconteceram</span>
       </div>
     </div>
   `;
@@ -7082,6 +7141,13 @@ function _relSecaoTotalHtml(consolidado, cats) {
     return s;
   }).join('');
 
+  /* v0.20.0: camada invest empilhada no topo (cor navy) */
+  let segInvestHtml = '';
+  if (consolidado.invest > 0) {
+    const pctInvest = (consolidado.invest / total) * 100;
+    segInvestHtml = '<div class="rct-seg" style="height:' + pctInvest.toFixed(2) + '%;background:var(--flow-invest);"></div>';
+  }
+
   const legendaHtml = cats.map(k => {
     const c = consolidado.porCat[k];
     const m = state.members[k];
@@ -7096,12 +7162,21 @@ function _relSecaoTotalHtml(consolidado, cats) {
     `;
   }).join('');
 
+  /* v0.20.0: legenda invest */
+  const investLegenda = consolidado.invest > 0 ? `
+    <div class="rct-litem">
+      <span class="rct-swatch" style="background:var(--flow-invest);"></span>
+      <span class="rct-lname">Investimentos</span>
+      <span class="rct-lval">${_relFmtBR(consolidado.invest)}</span>
+    </div>
+  ` : '';
+
   return `
     <div class="rel-section">
       <div class="rel-section-title"><span class="rst-icon">📊</span> total consolidado</div>
       <div class="rel-chart-total">
-        <div class="rct-col" style="height:100%;">${segHtml}</div>
-        <div class="rct-legend">${legendaHtml}</div>
+        <div class="rct-col" style="height:100%;">${segInvestHtml}${segHtml}</div>
+        <div class="rct-legend">${legendaHtml}${investLegenda}</div>
       </div>
     </div>
   `;
@@ -7198,6 +7273,44 @@ function _relSecaoSubcatsConsolidadasHtml(ym, cats) {
   `;
 }
 
+/* v0.20.0: gráfico de investimentos por subcategoria — análogo ao de consumo
+   mas com cor navy (var(--flow-invest)) pra diferenciar. */
+function _relSecaoInvestSubcatsHtml(ym, cats) {
+  const subcats = relCalcInvestSubcats(ym, cats, 10);
+  if (!subcats.length) return '';
+
+  const maxTotal = subcats[0].total;
+  const colsHtml = subcats.map(sc => {
+    const altPct = maxTotal > 0 ? (sc.total / maxTotal) * 100 : 2;
+    const pctPago = sc.total > 0 ? (sc.pago / sc.total) * 100 : 0;
+    const pctPrev = sc.total > 0 ? (sc.previsto / sc.total) * 100 : 0;
+    let segs = '';
+    if (sc.pago > 0) {
+      segs += '<div class="rsc-bar" data-rel-invest-subcat="' + escapeHtml(sc.nome) + '" style="height:' + pctPago.toFixed(2) + '%;background:var(--flow-invest);"></div>';
+    }
+    if (sc.previsto > 0) {
+      segs += '<div class="rsc-bar" data-rel-invest-subcat="' + escapeHtml(sc.nome) + '" style="height:' + pctPrev.toFixed(2) + '%;background:var(--flow-invest);opacity:0.55;background-image:repeating-linear-gradient(135deg,transparent 0 4px,rgba(255,255,255,0.28) 4px 6px);"></div>';
+    }
+    return `
+      <div class="rsc-col" style="height:${altPct.toFixed(2)}%;" data-rel-invest-subcat="${escapeHtml(sc.nome)}">
+        <div class="rsc-col-total">${_relFmtBR(sc.total)}</div>
+        <div class="rsc-col-stack">${segs}</div>
+        <div class="rsc-col-label">${escapeHtml(sc.nome)}</div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="rel-section">
+      <div class="rel-section-title" style="color:var(--flow-invest);"><span class="rst-icon">📈</span> investimentos · por modalidade</div>
+      <div class="rel-chart-subcats">${colsHtml}</div>
+      <div style="font-size:10.5px;color:var(--ink-mute);margin-top:14px;padding:0 4px;line-height:1.5;">
+        Saem da conta e somam no total do mês, mas não contam como consumo.
+      </div>
+    </div>
+  `;
+}
+
 function _relSecaoMultiMesHtml(historico, cats, periodo) {
   const N = historico.length;
   if (N === 0) return '';
@@ -7226,6 +7339,12 @@ function _relSecaoMultiMesHtml(historico, cats, periodo) {
       bars += '<rect x="' + x.toFixed(2) + '" y="' + segY.toFixed(2) + '" width="' + colW.toFixed(2) + '" height="' + hPx.toFixed(2) + '" fill="' + color + '"/>';
       yCur = segY;
     });
+    /* v0.20.0: camada invest no topo */
+    if (h.invest > 0) {
+      const hPx = (h.invest / maxTotal) * usableH;
+      const segY = yCur - hPx;
+      bars += '<rect x="' + x.toFixed(2) + '" y="' + segY.toFixed(2) + '" width="' + colW.toFixed(2) + '" height="' + hPx.toFixed(2) + '" fill="var(--flow-invest)"/>';
+    }
     topPts.push({ x: x + colW / 2, total: h.total });
   });
 
@@ -7460,6 +7579,12 @@ function _relBindEvents() {
       _relDrillSubcatConsolidada(seg.dataset.relSubcatCons);
     };
   });
+  el.querySelectorAll('[data-rel-invest-subcat]').forEach(seg => {
+    seg.onclick = (e) => {
+      e.stopPropagation();
+      _relDrillInvestSubcat(seg.dataset.relInvestSubcat);
+    };
+  });
   el.querySelectorAll('[data-rel-grupo]').forEach(c => {
     c.onclick = () => _relDrillGrupo(c.dataset.relGrupo);
   });
@@ -7483,6 +7608,21 @@ function _relDrillSubcat(catKey, subc) {
   const m = state.members[catKey];
   const title = ((m && m.nome) || catKey) + ' · ' + subc;
   sheet.open(title, _relDrillListaHtml(gastos));
+}
+
+/* v0.20.0: drill-down de subcat de invest (qualquer categoria) */
+function _relDrillInvestSubcat(subc) {
+  const periodo = REL_PERIODOS.find(p => p.id === relState.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(relState.ym, periodo.months);
+  const cats = relCategoriasIncluidas();
+  const gastos = state.gastos.filter(g =>
+    g.subcategoria === subc &&
+    cats.indexOf(g.categoria) >= 0 &&
+    yms.indexOf(g.ym) >= 0 &&
+    _isInvestRuntime(g) &&
+    _relGastoSaida(g)
+  );
+  sheet.open('Investimento · ' + subc, _relDrillListaHtml(gastos));
 }
 
 /* v0.18.0: drill-down de subcat consolidada (qualquer categoria) */
@@ -7598,18 +7738,51 @@ let rel2State = {
   incluiTiago: false
 };
 
-/* ----- Filtro mestre: saída ou investimento conta como FLUXO?
-   Critério visão FINANCEIRA:
-   - exclui ajustes (não é movimento real)
-   - exclui não-pagos (ainda não saiu)
-   - exclui pagamento=cartao (só conta no pagamento da fatura)
-   Pagamentos de fatura (isPagamentoFatura=true) entram naturalmente
-   porque têm pagamento='conta' e pago=true. */
+/* v0.20.1: cache de faturas pagas (cardId:ym → boolean). Construído lazy
+   na primeira consulta; invalidado pelo `_renderRel2Inner` antes de cada
+   render. Evita O(n²) de `buscarPagamentoFatura` em cada gasto. */
+let _rel2CachePagamentos = null;
+function _rel2InvalidaCachePagamentos() { _rel2CachePagamentos = null; }
+function _rel2FaturaPaga(cardId, ym) {
+  if (_rel2CachePagamentos === null) {
+    _rel2CachePagamentos = new Set();
+    state.gastos.forEach(g => {
+      if (g.isPagamentoFatura && g.faturaCardId && g.faturaYm) {
+        _rel2CachePagamentos.add(g.faturaCardId + ':' + g.faturaYm);
+      }
+    });
+  }
+  return _rel2CachePagamentos.has(cardId + ':' + ym);
+}
+
+/* v0.20.1: helper pra resolver a conta de onde o gasto sai.
+   - Pagamento direto (conta/manual): usa g.contaId
+   - Compra de cartão de crédito (fatura paga): usa card.contaPagamentoId */
+function _rel2ContaSaida(g) {
+  if (g.contaId) return g.contaId;
+  if (g.pagamento === 'cartao' && g.cardId) {
+    const card = state.cards.find(c => c.id === g.cardId);
+    return card && card.contaPagamentoId;
+  }
+  return null;
+}
+
+/* v0.20.1: filtro mestre da visão FINANCEIRA reformulado.
+   - Exclui ajustes (não é movimento real)
+   - Exclui gastos previstos (pago=false): não saiu ainda
+   - Exclui saída técnica de pagamento de fatura (artefato pra saldo da conta;
+     o detalhe das compras individuais é mais informativo)
+   - Compras de cartão (pagamento='cartao'): só entram SE a fatura desse
+     (cardId, ym) já foi paga. Caso contrário ainda não saíram do caixa. */
 function _rel2FluxoConta(g) {
   if (!g) return false;
   if (g.isAjuste) return false;
   if (g.pago === false) return false;
-  if (g.pagamento === 'cartao') return false;
+  if (g.isPagamentoFatura) return false;
+  if (g.pagamento === 'cartao') {
+    if (!g.cardId) return false;
+    return _rel2FaturaPaga(g.cardId, g.ym);
+  }
   return true;
 }
 
@@ -7728,18 +7901,19 @@ function rel2CalcSaidasPorConta(yms, cats) {
     if (cats.indexOf(g.categoria) < 0) return;
     if (_isInvestRuntime(g)) return;
     if (!_rel2FluxoConta(g)) return;
-    if (!g.contaId) return;
-    if (!buckets.has(g.contaId)) {
-      const conta = state.contas.find(c => c.id === g.contaId);
-      buckets.set(g.contaId, {
-        id: g.contaId,
+    const contaId = _rel2ContaSaida(g); /* v0.20.1: resolve conta (incluindo cartão→contaPagamentoId) */
+    if (!contaId) return;
+    if (!buckets.has(contaId)) {
+      const conta = state.contas.find(c => c.id === contaId);
+      buckets.set(contaId, {
+        id: contaId,
         nome: (conta && conta.nome) || '(conta removida)',
         cor: (conta && conta.cor) || '#888',
         total: 0,
         count: 0
       });
     }
-    const b = buckets.get(g.contaId);
+    const b = buckets.get(contaId);
     b.total += Number(g.valor) || 0;
     b.count++;
   });
@@ -7752,6 +7926,8 @@ function _renderRel2Inner() {
   if (!rel2State.ym) rel2State.ym = currentYM();
   const host = document.getElementById('relInner');
   if (!host) return;
+
+  _rel2InvalidaCachePagamentos(); /* v0.20.1: rebuilds cache de faturas pagas */
 
   const cats = rel2CategoriasSaidas();
   const periodo = REL_PERIODOS.find(p => p.id === rel2State.periodo) || REL_PERIODOS[0];
@@ -7854,6 +8030,9 @@ function _rel2HeroHtml(entradas, saidas, invest, ym, cats) {
         <span class="rh3-saldo-val ${saldoCls}">${escapeHtml(saldoStr)}</span>
       </div>
       <div class="rh3-microcopy">${escapeHtml(microcopy)}</div>
+      <div class="rh3-microcopy" style="margin-top:2px;opacity:0.7;">
+        regime de caixa: compras de cartão entram no mês em que a fatura é paga. Faturas não pagas ainda não saíram.
+      </div>
     </div>
   `;
 }
@@ -8255,7 +8434,7 @@ function _rel2DrillConta(contaId) {
   const yms = relYmsHistorico(rel2State.ym, periodo.months);
   const cats = rel2CategoriasSaidas();
   const gastos = state.gastos.filter(g =>
-    g.contaId === contaId && !_isInvestRuntime(g) &&
+    _rel2ContaSaida(g) === contaId && !_isInvestRuntime(g) &&
     cats.indexOf(g.categoria) >= 0 &&
     yms.indexOf(g.ym) >= 0 && _rel2FluxoConta(g)
   );
@@ -8409,6 +8588,7 @@ function _renderRel3Inner() {
 
   /* Por subcategoria (sempre só Tiago) — reusa a infra do Rel 1 */
   html += _rel3SecaoSubcatsHtml(ym);
+  html += _relSecaoInvestSubcatsHtml(ym, REL3_CATS_TIAGO);
 
   /* Multi-mês: comparativo se ON, só Tiago se OFF */
   if (periodo.months > 1) {
@@ -8461,8 +8641,9 @@ function _rel3HeroSoloHtml(hero) {
       <div class="rh-eyebrow">meus gastos · mês corrente</div>
       <div class="rh-total" style="color:${REL3_COR_TIAGO};">${_relFmtBR(hero.total)}</div>
       <div class="rh-meta">
-        <span class="rh-pago">${_relFmtBR(hero.pago)}</span> pago${hero.prev > 0 ? '&nbsp;+&nbsp;<span class="rh-prev">' + _relFmtBR(hero.prev) + ' previsto</span>' : ''}
-        ${hero.total > 0 ? '<span class="rh-comp">' + hero.pctFixos.toFixed(0) + '% comprometido em gastos fixos</span>' : ''}
+        <span class="rh-pago">${_relFmtBR(hero.consumo)}</span> em consumo${hero.invest > 0 ? '&nbsp;+&nbsp;<span style="color:var(--flow-invest);font-weight:500;">' + _relFmtBR(hero.invest) + ' investimentos</span>' : ''}
+        ${hero.prev > 0 ? '<span class="rh-comp" style="margin-top:1px;">dos R$ do consumo, ' + _relFmtBR(hero.pago) + ' pago + ' + _relFmtBR(hero.prev) + ' previsto</span>' : ''}
+        ${hero.consumo > 0 ? '<span class="rh-comp">' + hero.pctFixos.toFixed(0) + '% do consumo comprometido em fixos</span>' : ''}
       </div>
     </div>
   `;
@@ -8794,6 +8975,16 @@ function _rel3BindEvents() {
     };
   });
 
+  /* v0.20.0: drill-down de subcat invest reusa do Rel 1 mas o _relDrillInvestSubcat
+     usa relCategoriasIncluidas() (Rel 1). Pro Rel 3 precisamos filtrar em ['tiago'].
+     Vamos rebindar pra um drill específico do Rel 3. */
+  el.querySelectorAll('[data-rel-invest-subcat]').forEach(seg => {
+    seg.onclick = (e) => {
+      e.stopPropagation();
+      _rel3DrillInvestSubcat(seg.dataset.relInvestSubcat);
+    };
+  });
+
   /* Lentes reusadas do Rel 1 (grupos/nomes/idfs) — usam data-rel-* originais.
      Mas o drill-down delas usa relState (do Rel 1). Vamos rebindar pra usar rel3State. */
   el.querySelectorAll('[data-rel-grupo]').forEach(c => {
@@ -8817,6 +9008,18 @@ function _rel3DrillSubcat(subc) {
     yms.indexOf(g.ym) >= 0 && _relGastoConta(g)
   );
   sheet.open('Tiago · ' + subc, _relDrillListaHtml(gastos));
+}
+
+/* v0.20.0: drill-down de invest do Tiago — filtra `categoria === 'tiago'` */
+function _rel3DrillInvestSubcat(subc) {
+  const periodo = REL_PERIODOS.find(p => p.id === rel3State.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(rel3State.ym, periodo.months);
+  const gastos = state.gastos.filter(g =>
+    g.categoria === 'tiago' && g.subcategoria === subc &&
+    yms.indexOf(g.ym) >= 0 &&
+    _isInvestRuntime(g) && _relGastoSaida(g)
+  );
+  sheet.open('Tiago · investimento · ' + subc, _relDrillListaHtml(gastos));
 }
 
 function _rel3DrillGrupo(grupoId) {
