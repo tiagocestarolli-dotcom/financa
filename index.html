@@ -4067,7 +4067,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.19.0 · relatórios fatia 3
+  Finança · v0.19.1 · fix investimento
 </div>
 
   </section>
@@ -6772,7 +6772,7 @@ function relBezierPath(pontos) {
 /* ----- Filtro mestre: gasto entra em consumo? ----- */
 function _relGastoConta(g) {
   if (!g) return false;
-  if (g.isInvest) return false;
+  if (_isInvestRuntime(g)) return false; /* v0.19.1: detecta invest pela subcat também */
   if (g.isAjuste) return false;
   if (g.isPagamentoFatura) return false; /* v0.15.0: saída técnica não é consumo */
   return true;
@@ -7635,7 +7635,7 @@ function rel2CalcSaidas(ym, cats) {
   state.gastos.forEach(g => {
     if (g.ym !== ym) return;
     if (cats.indexOf(g.categoria) < 0) return;
-    if (g.isInvest) return;
+    if (_isInvestRuntime(g)) return;
     if (!_rel2FluxoConta(g)) return;
     total += Number(g.valor) || 0;
   });
@@ -7647,7 +7647,7 @@ function rel2CalcInvestimentos(ym, cats) {
   state.gastos.forEach(g => {
     if (g.ym !== ym) return;
     if (cats.indexOf(g.categoria) < 0) return;
-    if (!g.isInvest) return;
+    if (!_isInvestRuntime(g)) return;
     if (!_rel2FluxoConta(g)) return;
     total += Number(g.valor) || 0;
   });
@@ -7694,7 +7694,7 @@ function rel2CalcSaidasPorCategoria(yms, cats) {
   state.gastos.forEach(g => {
     if (yms.indexOf(g.ym) < 0) return;
     if (cats.indexOf(g.categoria) < 0) return;
-    if (g.isInvest) return;
+    if (_isInvestRuntime(g)) return;
     if (!_rel2FluxoConta(g)) return;
     buckets[g.categoria].total += Number(g.valor) || 0;
     buckets[g.categoria].count++;
@@ -7709,7 +7709,7 @@ function rel2CalcInvestPorSubcat(yms, cats) {
   state.gastos.forEach(g => {
     if (yms.indexOf(g.ym) < 0) return;
     if (cats.indexOf(g.categoria) < 0) return;
-    if (!g.isInvest) return;
+    if (!_isInvestRuntime(g)) return;
     if (!_rel2FluxoConta(g)) return;
     const sc = g.subcategoria || '—';
     if (!buckets.has(sc)) buckets.set(sc, { nome: sc, total: 0, count: 0 });
@@ -7726,7 +7726,7 @@ function rel2CalcSaidasPorConta(yms, cats) {
   state.gastos.forEach(g => {
     if (yms.indexOf(g.ym) < 0) return;
     if (cats.indexOf(g.categoria) < 0) return;
-    if (g.isInvest) return;
+    if (_isInvestRuntime(g)) return;
     if (!_rel2FluxoConta(g)) return;
     if (!g.contaId) return;
     if (!buckets.has(g.contaId)) {
@@ -7883,7 +7883,7 @@ function rel2CalcSaidasPorCategoriaMes(ym, cats) {
   state.gastos.forEach(g => {
     if (g.ym !== ym) return;
     if (cats.indexOf(g.categoria) < 0) return;
-    if (g.isInvest) return;
+    if (_isInvestRuntime(g)) return;
     if (!_rel2FluxoConta(g)) return;
     buckets[g.categoria].total += Number(g.valor) || 0;
   });
@@ -8231,7 +8231,7 @@ function _rel2DrillSaidaCat(catKey) {
   const periodo = REL_PERIODOS.find(p => p.id === rel2State.periodo) || REL_PERIODOS[0];
   const yms = relYmsHistorico(rel2State.ym, periodo.months);
   const gastos = state.gastos.filter(g =>
-    g.categoria === catKey && !g.isInvest &&
+    g.categoria === catKey && !_isInvestRuntime(g) &&
     yms.indexOf(g.ym) >= 0 && _rel2FluxoConta(g)
   );
   const m = state.members[catKey];
@@ -8243,7 +8243,7 @@ function _rel2DrillInvest(subcatNome) {
   const yms = relYmsHistorico(rel2State.ym, periodo.months);
   const cats = rel2CategoriasSaidas();
   const gastos = state.gastos.filter(g =>
-    g.isInvest && g.subcategoria === subcatNome &&
+    _isInvestRuntime(g) && g.subcategoria === subcatNome &&
     cats.indexOf(g.categoria) >= 0 &&
     yms.indexOf(g.ym) >= 0 && _rel2FluxoConta(g)
   );
@@ -8255,7 +8255,7 @@ function _rel2DrillConta(contaId) {
   const yms = relYmsHistorico(rel2State.ym, periodo.months);
   const cats = rel2CategoriasSaidas();
   const gastos = state.gastos.filter(g =>
-    g.contaId === contaId && !g.isInvest &&
+    g.contaId === contaId && !_isInvestRuntime(g) &&
     cats.indexOf(g.categoria) >= 0 &&
     yms.indexOf(g.ym) >= 0 && _rel2FluxoConta(g)
   );
@@ -8314,7 +8314,7 @@ function _rel2DrillGastosHtml(gastos) {
     if (g.isPagamentoFatura) tags.push('<span class="rdr-tag">🔄 fatura</span>');
     if (g.isFixo) tags.push('<span class="rdr-tag">🔁 fixo</span>');
     if (g.parcela && g.parcela.total > 1) tags.push('<span class="rdr-tag">' + g.parcela.atual + '/' + g.parcela.total + '</span>');
-    if (g.isInvest) tags.push('<span class="rdr-tag">📈 invest</span>');
+    if (_isInvestRuntime(g)) tags.push('<span class="rdr-tag">📈 invest</span>');
     const m = state.members[g.categoria];
     const conta = g.contaId ? state.contas.find(c => c.id === g.contaId) : null;
     const dataStr = g.data ? g.data.split('-').reverse().slice(0, 2).join('/') : '';
@@ -8857,8 +8857,27 @@ function _rel3DrillIdf(idfKey) {
 /* ===== Helpers ===== */
 
 function isInvest(catKey, subc) {
-  /* Categoriza como investimento se a subcategoria está na lista de investimentos */
-  return state.subcatsInvestimento && state.subcatsInvestimento.includes(subc);
+  /* Categoriza como investimento se a subcategoria está na lista de investimentos.
+     v0.19.1: passa a checar TAMBÉM state.investMods (modalidades configuradas
+     pelo usuário em Config → Modalidades de investimento). Antes só via
+     state.subcatsInvestimento (sem UI; só tinha default 'Consórcio imobiliário'). */
+  if (!subc) return false;
+  if (state.subcatsInvestimento && state.subcatsInvestimento.includes(subc)) return true;
+  if (state.investMods) {
+    const match = state.investMods.find(m => !m.arquivado && m.nome === subc);
+    if (match) return true;
+  }
+  return false;
+}
+
+/* v0.19.1: detecta investimento em runtime (campo armazenado OU subcategoria
+   bate com modalidade ativa). Usado nos filtros dos relatórios pra corrigir
+   retroativamente gastos antigos que ficaram com g.isInvest=false porque a
+   modalidade só existia em state.investMods (não em state.subcatsInvestimento). */
+function _isInvestRuntime(g) {
+  if (!g) return false;
+  if (g.isInvest === true) return true;
+  return isInvest(g.categoria, g.subcategoria);
 }
 
 /* ===== Fatia 3: totais pago/previsto/pendente por categoria + mês =====
@@ -8872,7 +8891,7 @@ function totaisCategoriaMes(catKey, ym) {
   const pendentes = [];
   state.gastos.forEach(g => {
     if (g.categoria !== catKey || g.ym !== ym) return;
-    if (g.isInvest || g.isAjuste) return;
+    if (_isInvestRuntime(g) || g.isAjuste) return;
     const v = Number(g.valor) || 0;
     if (g.pago === false) {
       previsto += v;
@@ -9393,7 +9412,7 @@ function renderFamiliaContent() {
   const totalCat = totaisMes.pago;
   const totalPrevisto = totaisMes.previsto;
   const totalInvest = state.gastos
-    .filter(g => g.categoria === cat && g.ym === famCurrentYM && g.isInvest && !g.isAjuste)
+    .filter(g => g.categoria === cat && g.ym === famCurrentYM && _isInvestRuntime(g) && !g.isAjuste)
     .reduce((s, g) => s + (Number(g.valor) || 0), 0);
 
   /* Comparativo mês anterior (apenas pago de consumo, pra comparar maçã com maçã) */
@@ -9755,7 +9774,7 @@ function renderGastoRow(g) {
   if (g.parcela && g.parcela.total > 1) {
     flags.push(`<span class="gr-flag parcela">${g.parcela.atual}/${g.parcela.total}</span>`);
   }
-  if (g.isInvest) flags.push('<span class="gr-flag invest">📈 invest</span>');
+  if (_isInvestRuntime(g)) flags.push('<span class="gr-flag invest">📈 invest</span>');
   /* Grupo (se houver) — fica em destaque suave */
   if (g.grupoId) {
     const grp = getGrupoById(g.categoria, g.grupoId);
@@ -9773,7 +9792,7 @@ function renderGastoRow(g) {
         ${g.identificacao ? `<div class="gr-ident" style="font-size:12px;color:var(--ink-soft);margin-top:1px;font-family:var(--font-display);font-style:italic;">${escapeHtml(g.identificacao)}</div>` : ''}
         ${flags.length > 0 ? `<div class="gr-flags">${flags.join('')}</div>` : ''}
       </div>
-      <div class="gr-value ${g.isInvest ? 'invest' : ''}">${fmtBRL(g.valor)}</div>
+      <div class="gr-value ${_isInvestRuntime(g) ? "invest" : ""}">${fmtBRL(g.valor)}</div>
     </div>
   `;
 }
@@ -11484,7 +11503,7 @@ function renderTiagoView() {
   const totalConsumo = totaisMesTiago.pago;
   const totalPrevisto = totaisMesTiago.previsto;
   const totalInvest = state.gastos
-    .filter(g => g.categoria === 'tiago' && g.ym === tiagoCurrentYM && g.isInvest && !g.isAjuste)
+    .filter(g => g.categoria === 'tiago' && g.ym === tiagoCurrentYM && _isInvestRuntime(g) && !g.isAjuste)
     .reduce((s, g) => s + (Number(g.valor) || 0), 0);
 
   /* Comparativo mês anterior (pago de consumo) */
@@ -14076,9 +14095,30 @@ function bootApp() {
   /* v0.15.0: dispara pagamentos automáticos de faturas vencidas (cartões com
      debitoAutomatico=true). Cria saída técnica na contaPagamentoId. Idempotente. */
   processarPagamentosFaturaAutomaticos();
+  /* v0.19.1: reconcilia g.isInvest com a lista atual de modalidades (state.investMods).
+     Só seta TRUE em gastos cuja subcategoria virou modalidade depois (idempotente);
+     nunca rebaixa true→false (preserva edições manuais do usuário). */
+  migrarIsInvestV019();
 
   go('familia');
   renderConfigCounts();
+}
+
+/* v0.19.1: reconcilia campo isInvest dos gastos antigos. Idempotente. */
+function migrarIsInvestV019() {
+  if (!state.gastos || !state.investMods) return;
+  let n = 0;
+  state.gastos.forEach(g => {
+    if (g.isInvest === true) return;
+    if (isInvest(g.categoria, g.subcategoria)) {
+      g.isInvest = true;
+      n++;
+    }
+  });
+  if (n > 0) {
+    console.log('[migrarIsInvestV019] ' + n + ' gasto(s) reclassificados como invest.');
+    saveState(state);
+  }
 }
 
 /* Mostra/atualiza erro na tela de login */
