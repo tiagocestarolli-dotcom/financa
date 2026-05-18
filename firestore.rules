@@ -1,0 +1,87 @@
+// =============================================================================
+// Firestore Security Rules — Finança
+// =============================================================================
+//
+// Fonte da verdade: este arquivo.
+// Espelho operacional: Firebase Console → Firestore → Rules.
+// Sempre que mudar aqui, publicar também no console (ou via firebase deploy).
+//
+// Histórico:
+//   2026-05-18  v1.0  Versão auditada e endurecida.
+//                     - Isolamento por UID
+//                     - Delete do doc raiz bloqueado
+//                     - Subcoleções bloqueadas explicitamente
+//                     - Catch-all defense-in-depth
+//                     Validado via Laboratório de Testes do console
+//                     (4 cenários: get dono OK, get estranho NEG,
+//                     delete dono NEG, path fora /users NEG).
+//
+// Modelo de dados protegido por estas regras:
+//   /users/{uid}  — documento único com o estado inteiro do app
+//                   (state.familia, state.cartoes, state.gastos, etc.)
+//   Sem subcoleções. Sem outras coleções no projeto.
+//
+// Como o app conversa com o Firestore (StorageAdapter):
+//   - setDoc('users/{uid}', state)        → create/update
+//   - getDoc('users/{uid}')               → read
+//   - onSnapshot('users/{uid}', ...)      → read (realtime)
+//   Não há delete via cliente por design.
+//
+// =============================================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================================
+    // Helpers
+    // ==========================================================
+    function isOwner(userId) {
+      return request.auth != null
+          && request.auth.uid == userId;
+    }
+
+    // ==========================================================
+    // Regra 1: doc principal do usuário
+    // users/{uid} — estado inteiro do app
+    // ==========================================================
+    match /users/{userId} {
+
+      // Leitura: só o dono.
+      allow read: if isOwner(userId);
+
+      // Criação e atualização: só o dono.
+      // (separadas de read pra ficar explícito; separar create de
+      //  update permitirá no futuro amarrar campos imutáveis tipo
+      //  createdAt via request.resource.data / resource.data).
+      allow create, update: if isOwner(userId);
+
+      // Delete bloqueado por design.
+      // O doc é a fonte da verdade do estado inteiro; apagar = perder
+      // tudo. Se quiser zerar dados, use o fluxo "Reset" do app, que
+      // sobrescreve o doc com state vazio via UPDATE, não delete.
+      // Para excluir conta de verdade, faça via Firebase Console
+      // (autenticação separada e intencional do administrador).
+      allow delete: if false;
+
+      // Bloqueio explícito de subcoleções dentro de users/{userId}.
+      // O app não usa subcoleções hoje. Se um dia precisar (ex.: histórico
+      // particionado para escapar do limite de 1MB por doc), adicionar
+      // match dedicado AQUI, acima deste catch-all interno.
+      match /{subPath=**} {
+        allow read, write: if false;
+      }
+    }
+
+    // ==========================================================
+    // Regra 2: catch-all global — defense-in-depth
+    // ==========================================================
+    // Tecnicamente o Firestore já nega o que não tem match, mas
+    // escrever explícito protege contra um futuro match mal feito
+    // que poderia abrir caminho por engano.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
