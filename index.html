@@ -3634,8 +3634,9 @@ label {
 .rel-compromissos .rcp-seg {
   width: 100%; min-height: 2px;
 }
-.rel-compromissos .rcp-seg.fixos    { background: var(--flow-out); }
-.rel-compromissos .rcp-seg.parcelas { background: #8A5A1F; }
+/* v0.21.2: paleta antagônica azul+âmbar (era terracota+mostarda escura). */
+.rel-compromissos .rcp-seg.fixos    { background: #3A6991; }
+.rel-compromissos .rcp-seg.parcelas { background: #C28846; }
 .rel-compromissos .rcp-legenda {
   flex: 1;
   display: flex; flex-direction: column; justify-content: center;
@@ -3649,8 +3650,8 @@ label {
   width: 12px; height: 12px; border-radius: 3px;
   flex-shrink: 0;
 }
-.rel-compromissos .rcp-leg-swatch.fixos    { background: var(--flow-out); }
-.rel-compromissos .rcp-leg-swatch.parcelas { background: #8A5A1F; }
+.rel-compromissos .rcp-leg-swatch.fixos    { background: #3A6991; }
+.rel-compromissos .rcp-leg-swatch.parcelas { background: #C28846; }
 .rel-compromissos .rcp-leg-body {
   display: flex; flex-direction: column; gap: 2px;
 }
@@ -4127,7 +4128,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.21.1 · cores compromissos
+  Finança · v0.21.2 · cores subcats + compromissos
 </div>
 
   </section>
@@ -6885,7 +6886,10 @@ function relCalcCatSubcats(catKey, ym) {
   return { subcats: subcats, totalPago: totalPago, totalPrev: totalPrev, total: totalPago + totalPrev };
 }
 
-/* v0.18.0: subcategorias consolidadas — soma todas as categorias incluídas */
+/* v0.18.0: subcategorias consolidadas — soma todas as categorias incluídas.
+   v0.21.2: campo `porCat` agora rastreia contribuição de cada categoria pra
+   permitir colorir as colunas do gráfico "consumo · por subcategoria" pela
+   cor da categoria predominante (mais informativo que cor única terracota). */
 function relCalcSubcatsConsolidadas(ym, cats, limit) {
   limit = limit || 8;
   const buckets = new Map();
@@ -6895,19 +6899,38 @@ function relCalcSubcatsConsolidadas(ym, cats, limit) {
     if (!_relGastoConta(g)) return;
     const sc = g.subcategoria || '—';
     if (!buckets.has(sc)) buckets.set(sc, {
-      nome: sc, pago: 0, previsto: 0, count: 0
+      nome: sc, pago: 0, previsto: 0, count: 0,
+      porCat: {} /* v0.21.2: contribuição por categoria pra cor predominante */
     });
     const b = buckets.get(sc);
     const v = Number(g.valor) || 0;
     if (g.pago === false) b.previsto += v;
     else b.pago += v;
     b.count++;
+    b.porCat[g.categoria] = (b.porCat[g.categoria] || 0) + v; /* v0.21.2 */
   });
   return Array.from(buckets.values())
     .map(b => ({ ...b, total: b.pago + b.previsto }))
     .filter(b => b.total > 0)
     .sort((a, b) => b.total - a.total)
     .slice(0, limit);
+}
+
+/* v0.21.2: descobre a categoria com maior contribuição numa subcategoria
+   consolidada. Usado pra colorir as colunas do gráfico "consumo · por
+   subcategoria (top 10)" com a cor do membro predominante — revela
+   visualmente onde mora cada subcategoria, em vez de cor única.
+   Retorna null se sc.porCat não existir (compat com chamadas antigas). */
+function _relSubcatCatDominante(sc) {
+  if (!sc || !sc.porCat) return null;
+  let bestKey = null, bestVal = -1;
+  Object.keys(sc.porCat).forEach(k => {
+    if (sc.porCat[k] > bestVal) {
+      bestVal = sc.porCat[k];
+      bestKey = k;
+    }
+  });
+  return bestKey;
 }
 
 /* v0.20.0: lente de investimentos por subcategoria — análoga à de consumo
@@ -7343,13 +7366,19 @@ function _relSecaoSubcatsConsolidadasHtml(ym, cats) {
     const altPct = maxTotal > 0 ? (sc.total / maxTotal) * 100 : 2;
     const pctPago = sc.total > 0 ? (sc.pago / sc.total) * 100 : 0;
     const pctPrev = sc.total > 0 ? (sc.previsto / sc.total) * 100 : 0;
+    /* v0.21.2: cor deriva da categoria predominante (member com maior
+       contribuição na subcat). Revela visualmente onde mora cada subcat
+       em vez de cor única terracota. Fallback pra var(--flow-out) se
+       porCat ausente (defensivo). */
+    const catDom = _relSubcatCatDominante(sc);
+    const corBase = catDom ? relCatColor(catDom) : 'var(--flow-out)';
     /* Cada coluna tem 1 segmento pago (sólido) + 1 segmento previsto (tracejado) empilhados */
     let segs = '';
     if (sc.pago > 0) {
-      segs += '<div class="rsc-bar" data-rel-subcat-cons="' + escapeHtml(sc.nome) + '" style="height:' + pctPago.toFixed(2) + '%;background:var(--flow-out);"></div>';
+      segs += '<div class="rsc-bar" data-rel-subcat-cons="' + escapeHtml(sc.nome) + '" style="height:' + pctPago.toFixed(2) + '%;background:' + corBase + ';"></div>';
     }
     if (sc.previsto > 0) {
-      segs += '<div class="rsc-bar" data-rel-subcat-cons="' + escapeHtml(sc.nome) + '" style="height:' + pctPrev.toFixed(2) + '%;background:var(--flow-out);opacity:0.55;background-image:repeating-linear-gradient(135deg,transparent 0 4px,rgba(255,255,255,0.28) 4px 6px);"></div>';
+      segs += '<div class="rsc-bar" data-rel-subcat-cons="' + escapeHtml(sc.nome) + '" style="height:' + pctPrev.toFixed(2) + '%;background:' + corBase + ';opacity:0.55;background-image:repeating-linear-gradient(135deg,transparent 0 4px,rgba(255,255,255,0.28) 4px 6px);"></div>';
     }
     return `
       <div class="rsc-col" style="height:${altPct.toFixed(2)}%;" data-rel-subcat-cons="${escapeHtml(sc.nome)}">
@@ -7365,7 +7394,7 @@ function _relSecaoSubcatsConsolidadasHtml(ym, cats) {
       <div class="rel-section-title"><span class="rst-icon">📦</span> consumo · por subcategoria (top ${subcats.length})</div>
       <div class="rel-chart-subcats">${colsHtml}</div>
       <div style="font-size:10.5px;color:var(--ink-mute);margin-top:14px;padding:0 4px;line-height:1.5;">
-        Soma de todas as categorias incluídas. Toque numa coluna pra ver os gastos. Arraste pra ver mais.
+        Cor = categoria predominante na subcategoria. Toque pra ver os gastos. Arraste pra ver mais.
       </div>
     </div>
   `;
