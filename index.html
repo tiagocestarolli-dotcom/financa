@@ -3275,6 +3275,39 @@ label {
   color: var(--flow-invest);
 }
 
+/* Histórico de importações (Config) — v0.23.1 */
+.hist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hist-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+.hist-card-body { flex: 1; min-width: 0; }
+.hist-card-title {
+  font-size: 13.5px;
+  color: var(--ink);
+  font-weight: 500;
+  line-height: 1.35;
+  margin-bottom: 3px;
+}
+.hist-card-meta {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+  font-family: var(--font-display);
+  font-style: italic;
+}
+.hist-btn-undo {
+  flex: 0 0 auto;
+}
+
 /* ============================================================
    RELATÓRIOS — Fatia 5.1 (v0.16.0)
    ============================================================ */
@@ -4362,6 +4395,14 @@ label {
   </div>
   <div class="mi-chev">›</div>
 </button>
+<button class="menu-item" data-cfg="historicoImportacoes">
+  <div class="mi-ico">📥</div>
+  <div class="mi-body">
+    <div class="mi-title">Histórico de importações</div>
+    <div class="mi-sub" id="historicoImportacoesCount">Desfazer importações de extrato</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 
 <div class="section-title">Backup &amp; dados</div>
 <button class="menu-item" data-cfg="export">
@@ -4408,7 +4449,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.23.0 · Etapa 5b — importação de extrato Itaú
+  Finança · v0.23.1 · undo de importação + pré-classificação por alias
 </div>
 
   </section>
@@ -4550,6 +4591,8 @@ function defaultState() {
     entradas: [],       /* {id, fonteId, contaId, valor, data, ym} */
     gastos: [],         /* {id, categoria, subcategoria, grupoId, nome, valor, data, ym, cardId, contaId, pagamento, isFixo, parentFixoId, isInvest, isAjuste, observacao, pago, dataPagamento} */
     transferencias: [], /* {id, contaOrigemId, contaDestinoId, valor, data, ym, observacao} */
+    /* v0.23.1: histórico de lotes de importação (para undo) */
+    lotesImportacao: [], /* {id, tipo, contaId, dataImport, descricao, gastoIds[], entradaIds[]} */
     /* Preferências de UI persistidas */
     uiPrefs: {
       revealFamiliaTotal: false,           /* total no topo da Família */
@@ -5243,6 +5286,23 @@ function renderConfigCounts() {
   document.getElementById('fixedCount').textContent =
     state.fixedExpenses.length === 0 ? 'Nenhum gasto fixo' : `${ativosFx}/${state.fixedExpenses.length} ativos`;
 
+  /* v0.23.1: Histórico de importações */
+  const elHist = document.getElementById('historicoImportacoesCount');
+  if (elHist) {
+    const lotes = state.lotesImportacao || [];
+    const orfaosG = (state.gastos || []).filter(g => g.origem === 'extrato' && !g.loteImportacaoId).length;
+    const orfaosE = (state.entradas || []).filter(e => e.origem === 'extrato' && !e.loteImportacaoId).length;
+    const orfaos = orfaosG + orfaosE;
+    if (lotes.length === 0 && orfaos === 0) {
+      elHist.textContent = 'Nenhuma importação registrada';
+    } else if (orfaos > 0) {
+      elHist.textContent = `${lotes.length} lote${lotes.length !== 1 ? 's' : ''} · ${orfaos} importações antigas pra revisar`;
+      elHist.style.color = 'var(--flow-out)';
+    } else {
+      elHist.textContent = `${lotes.length} lote${lotes.length !== 1 ? 's' : ''} de importação`;
+    }
+  }
+
   /* Conta (email + info de sync) */
   const acEmail = document.getElementById('accountEmail');
   const acSync = document.getElementById('accountSync');
@@ -5288,6 +5348,7 @@ function onConfigClick(btn) {
     case 'aliases':   openAliasesSheet(); break;
     case 'fixed':     openFixedSheet(); break;
     case 'reminders': openRemindersSheet(); break;
+    case 'historicoImportacoes': openHistoricoImportacoesSheet(); break;
     case 'export':    doExport(); break;
     case 'import':    doImport(); break;
     case 'reset':     doReset(); break;
@@ -15293,12 +15354,28 @@ function openRevisaoExtratoSheet() {
   });
 
   document.getElementById('rexCancel').onclick = () => sheet.close();
-  document.getElementById('rexApply').onclick = () => {
+  document.getElementById('rexApply').onclick = async () => {
     const naoExcluidos = revisaoExtratoState.lancs.filter(l => !l.excluir);
     if (naoExcluidos.length === 0) {
       toast('Nada pra importar — todos foram ignorados', 'info');
       return;
     }
+
+    /* v0.23.1: confirmação antes de aplicar */
+    const nSaidas = naoExcluidos.filter(l => l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA' || l.tipo === 'PAGAMENTO_FATURA').length;
+    const nEntradas = naoExcluidos.filter(l => l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO').length;
+    const partes = [];
+    if (nSaidas > 0) partes.push(`${nSaidas} saída${nSaidas !== 1 ? 's' : ''}`);
+    if (nEntradas > 0) partes.push(`${nEntradas} entrada${nEntradas !== 1 ? 's' : ''}`);
+
+    const confirmado = await askConfirm({
+      title: 'Aplicar importação?',
+      message: `Vou criar ${partes.join(' + ')} no app. Você pode desfazer essa importação inteira depois em Config → Histórico de importações.`,
+      confirmLabel: 'Aplicar',
+      cancelLabel: 'Voltar à revisão'
+    });
+    if (!confirmado) return;
+
     aplicarLancamentosExtratoImportados(naoExcluidos, revisaoExtratoState.contaId);
     sheet.close();
   };
@@ -15403,6 +15480,8 @@ function _fmtDataBR(iso) {
 
 
 /* --- Aplicar lançamentos do extrato ao state -------------------------- */
+/* v0.23.1: cria um lote de importação (para undo posterior), pré-classifica
+   via state.aliasItems, e tagga cada registro com loteImportacaoId. */
 function aplicarLancamentosExtratoImportados(lancs, contaId) {
   const conta = (state.contas || []).find(c => c.id === contaId);
   if (!conta) {
@@ -15410,22 +15489,37 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
     return;
   }
 
+  /* Cria o lote ANTES de aplicar os lançamentos */
+  if (!Array.isArray(state.lotesImportacao)) state.lotesImportacao = [];
+  const lote = {
+    id: 'lote_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7),
+    tipo: 'extrato_' + (revisaoExtratoState.banco || 'desconhecido'),
+    contaId,
+    contaNome: conta.nome,
+    dataImport: new Date().toISOString(),
+    descricao: `Extrato ${conta.nome}` + (revisaoExtratoState.metaPeriodo && revisaoExtratoState.metaPeriodo.dataInicio
+      ? ` · ${_fmtDataBR(revisaoExtratoState.metaPeriodo.dataInicio)} → ${_fmtDataBR(revisaoExtratoState.metaPeriodo.dataFim)}`
+      : ''),
+    gastoIds: [],
+    entradaIds: []
+  };
+
   /* Procura uma fonte de renda padrão pra entradas (a primeira ativa) */
   const fontePadrao = (state.fontesRenda || []).find(f => !f.arquivada) || (state.fontesRenda || [])[0];
 
   let nGastos = 0;
   let nEntradas = 0;
   let nIgnoradosClassif = 0;
+  let nClassifPorAlias = 0;
 
   for (const l of lancs) {
-    /* Pagamentos de fatura sem match: criar como gasto técnico isPagamentoFatura
-       Isso é raro — só acontece se o débito automático ainda não rodou no app */
+    /* PAGAMENTO_FATURA sem match — cria como saída técnica isPagamentoFatura */
     if (l.tipo === 'PAGAMENTO_FATURA' && !l.matchPagamentoFaturaId) {
-      /* Procura cartão por descrição: PERS INFINIT 7606-2189 ou ITAU BLACK 3102-5130 */
       const cardId = _identificarCartaoPorDescricao(l.descricaoOriginal);
       const ym = l.dataISO.slice(0, 7);
+      const id = 'g_' + Math.random().toString(36).slice(2, 11);
       state.gastos.push({
-        id: 'g_' + Math.random().toString(36).slice(2, 11),
+        id,
         categoria: 'tiago',
         subcategoria: 'pagamento fatura',
         grupoId: null,
@@ -15445,52 +15539,65 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
         observacao: 'importado do extrato',
         pago: true,
         dataPagamento: l.dataISO,
-        origem: 'extrato'
+        origem: 'extrato',
+        loteImportacaoId: lote.id
       });
+      lote.gastoIds.push(id);
       nGastos++;
       continue;
     }
 
-    if (l.tipo === 'ENTRADA_RENDA') {
+    if (l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO') {
+      const id = 'e_' + Math.random().toString(36).slice(2, 11);
+      const obs = l.tipo === 'ENTRADA_RENDIMENTO'
+        ? 'rendimento de aplicação · ' + l.descricaoOriginal
+        : l.descricaoOriginal;
       state.entradas.push({
-        id: 'e_' + Math.random().toString(36).slice(2, 11),
+        id,
         fonteId: fontePadrao ? fontePadrao.id : null,
         contaId,
         valor: l.valor,
         data: l.dataISO,
         ym: l.dataISO.slice(0, 7),
-        observacao: l.descricaoOriginal,
-        origem: 'extrato'
+        observacao: obs,
+        origem: 'extrato',
+        loteImportacaoId: lote.id
       });
-      nEntradas++;
-      continue;
-    }
-
-    if (l.tipo === 'ENTRADA_RENDIMENTO') {
-      /* Rendimento normalmente não vira entrada do app (é movimento interno).
-         Por padrão excluir=true, então só chega aqui se Tiago desmarcou. */
-      state.entradas.push({
-        id: 'e_' + Math.random().toString(36).slice(2, 11),
-        fonteId: fontePadrao ? fontePadrao.id : null,
-        contaId,
-        valor: l.valor,
-        data: l.dataISO,
-        ym: l.dataISO.slice(0, 7),
-        observacao: 'rendimento de aplicação · ' + l.descricaoOriginal,
-        origem: 'extrato'
-      });
+      lote.entradaIds.push(id);
       nEntradas++;
       continue;
     }
 
     if (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA') {
-      const subcat = l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar';
+      /* v0.23.1: pré-classificação por aliasItems */
+      let categoria = 'tiago';
+      let subcategoria = (l.tipo === 'SAIDA_TARIFA') ? 'tarifa bancária' : 'a classificar';
+      let grupoId = null;
+      let isFixo = false;
+      let usouAlias = false;
+
+      if (typeof buscarAliasParaDescricao === 'function') {
+        const alias = buscarAliasParaDescricao(l.descricaoOriginal, null);
+        if (alias && alias.categoria) {
+          categoria = alias.categoria;
+          subcategoria = alias.subcategoria || subcategoria;
+          grupoId = alias.grupoId || null;
+          isFixo = !!alias.isFixo;
+          usouAlias = true;
+          nClassifPorAlias++;
+          /* Reforça contagem de uso do alias */
+          alias.contagemUso = (alias.contagemUso || 0) + 1;
+          alias.ultimoUsoEm = todayISO();
+        }
+      }
+
       const ym = l.dataISO.slice(0, 7);
+      const id = 'g_' + Math.random().toString(36).slice(2, 11);
       state.gastos.push({
-        id: 'g_' + Math.random().toString(36).slice(2, 11),
-        categoria: 'tiago', /* default Tiago, ele reclassifica se for família */
-        subcategoria: subcat,
-        grupoId: null,
+        id,
+        categoria,
+        subcategoria,
+        grupoId,
         nome: l.descricaoOriginal,
         valor: l.valor,
         data: l.dataISO,
@@ -15498,20 +15605,28 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
         cardId: null,
         contaId,
         pagamento: 'conta',
-        isFixo: false,
+        isFixo,
         isInvest: false,
         isAjuste: false,
         isPagamentoFatura: false,
-        observacao: 'importado do extrato',
+        observacao: 'importado do extrato' + (usouAlias ? ' · classificado por alias' : ''),
         pago: true,
         dataPagamento: l.dataISO,
-        origem: 'extrato'
+        origem: 'extrato',
+        loteImportacaoId: lote.id
       });
+      lote.gastoIds.push(id);
       nGastos++;
       continue;
     }
 
     nIgnoradosClassif++;
+  }
+
+  /* Salva o lote SÓ se houve registros */
+  if (lote.gastoIds.length > 0 || lote.entradaIds.length > 0) {
+    lote.quantidade = lote.gastoIds.length + lote.entradaIds.length;
+    state.lotesImportacao.push(lote);
   }
 
   saveState(state);
@@ -15523,7 +15638,10 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
   const parts = [];
   if (nGastos > 0) parts.push(`${nGastos} saída${nGastos !== 1 ? 's' : ''}`);
   if (nEntradas > 0) parts.push(`${nEntradas} entrada${nEntradas !== 1 ? 's' : ''}`);
-  const msg = parts.length > 0 ? `Importado: ${parts.join(' + ')}` : 'Nada foi importado';
+  const sufAlias = nClassifPorAlias > 0 ? ` (${nClassifPorAlias} por alias)` : '';
+  const msg = parts.length > 0
+    ? `Importado: ${parts.join(' + ')}${sufAlias} · toque em Config → Histórico de importações pra desfazer`
+    : 'Nada foi importado';
   toast(msg, 'success');
 }
 
@@ -15564,6 +15682,164 @@ function abrirSeletorExtrato(contaId) {
   };
   document.body.appendChild(input);
   input.click();
+}
+
+/* =====================================================================
+   v0.23.1 — HISTÓRICO DE IMPORTAÇÕES E UNDO
+   ===================================================================== */
+
+/* Migração retroativa: agrupa todos os gastos/entradas com origem='extrato'
+   que não têm loteImportacaoId num único lote de "recuperação". Roda uma vez,
+   no boot, se houver órfãos. */
+function migrarOrfaosExtratoEmLoteRecovery() {
+  if (!Array.isArray(state.lotesImportacao)) state.lotesImportacao = [];
+
+  const gastosOrfaos = (state.gastos || []).filter(g => g.origem === 'extrato' && !g.loteImportacaoId);
+  const entradasOrfas = (state.entradas || []).filter(e => e.origem === 'extrato' && !e.loteImportacaoId);
+
+  if (gastosOrfaos.length === 0 && entradasOrfas.length === 0) return false;
+
+  /* Identifica a conta predominante dos órfãos (pra rotular o lote) */
+  const contagemPorConta = {};
+  [...gastosOrfaos, ...entradasOrfas].forEach(r => {
+    const k = r.contaId || 'desconhecida';
+    contagemPorConta[k] = (contagemPorConta[k] || 0) + 1;
+  });
+  const contaIdMaisFreq = Object.entries(contagemPorConta).sort((a, b) => b[1] - a[1])[0][0];
+  const conta = (state.contas || []).find(c => c.id === contaIdMaisFreq);
+
+  const lote = {
+    id: 'lote_recovery_' + Date.now().toString(36),
+    tipo: 'recuperacao_v0_23_1',
+    contaId: contaIdMaisFreq,
+    contaNome: conta ? conta.nome : 'múltiplas contas',
+    dataImport: new Date().toISOString(),
+    descricao: `🛟 Recuperação · gastos importados antes do sistema de lote (v0.23.0)`,
+    gastoIds: gastosOrfaos.map(g => g.id),
+    entradaIds: entradasOrfas.map(e => e.id),
+    quantidade: gastosOrfaos.length + entradasOrfas.length,
+    isRecovery: true
+  };
+
+  /* Tagga os registros órfãos com o loteId pra que o undo encontre */
+  gastosOrfaos.forEach(g => { g.loteImportacaoId = lote.id; });
+  entradasOrfas.forEach(e => { e.loteImportacaoId = lote.id; });
+
+  state.lotesImportacao.push(lote);
+  saveState(state);
+  return true;
+}
+
+/* Desfaz um lote: remove TODOS os gastos e entradas tagueados com esse loteId,
+   depois remove o lote do histórico. */
+function desfazerLoteImportacao(loteId) {
+  if (!Array.isArray(state.lotesImportacao)) return false;
+  const lote = state.lotesImportacao.find(l => l.id === loteId);
+  if (!lote) {
+    toast('Lote não encontrado', 'error');
+    return false;
+  }
+
+  const idsGastos = new Set(lote.gastoIds || []);
+  const idsEntradas = new Set(lote.entradaIds || []);
+
+  state.gastos = (state.gastos || []).filter(g => !idsGastos.has(g.id));
+  state.entradas = (state.entradas || []).filter(e => !idsEntradas.has(e.id));
+  state.lotesImportacao = state.lotesImportacao.filter(l => l.id !== loteId);
+
+  saveState(state);
+
+  try { render(); } catch (e) {}
+  try { if (typeof renderContas === 'function') renderContas(); } catch (e) {}
+
+  const total = idsGastos.size + idsEntradas.size;
+  toast(`✓ ${total} lançamento${total !== 1 ? 's' : ''} desfeito${total !== 1 ? 's' : ''}`, 'success');
+  return true;
+}
+
+/* Sheet de histórico de importações */
+function openHistoricoImportacoesSheet() {
+  /* Roda a migração antes de mostrar (caso ainda não tenha rodado) */
+  migrarOrfaosExtratoEmLoteRecovery();
+
+  const lotes = (state.lotesImportacao || []).slice().sort((a, b) =>
+    (b.dataImport || '').localeCompare(a.dataImport || '')
+  );
+
+  if (lotes.length === 0) {
+    sheet.open('Histórico de importações', `
+      <div class="empty" style="padding:32px;">
+        <div class="icon-big">📥</div>
+        Nenhuma importação registrada ainda.
+      </div>
+    `);
+    return;
+  }
+
+  const html = `
+    <div class="rex-microcopy">
+      <em>Cada importação cria um lote. Você pode desfazer um lote inteiro a qualquer momento — todos os
+      lançamentos daquela importação somem do app. Lotes de fatura de cartão não aparecem aqui (só extratos por enquanto).</em>
+    </div>
+    <div class="hist-list">
+      ${lotes.map(l => {
+        const dataBR = _fmtDataHora(l.dataImport);
+        const qtd = (l.gastoIds || []).length + (l.entradaIds || []).length;
+        const recoveryBadge = l.isRecovery ? '<span class="rex-tag rex-tag-dup">recuperação</span>' : '';
+        return `
+          <div class="hist-card" data-lote-id="${l.id}">
+            <div class="hist-card-body">
+              <div class="hist-card-title">${escapeHtml(l.descricao)} ${recoveryBadge}</div>
+              <div class="hist-card-meta">${dataBR} · ${qtd} lançamento${qtd !== 1 ? 's' : ''}</div>
+            </div>
+            <button class="btn btn-secondary hist-btn-undo" data-lote-undo="${l.id}" style="padding:8px 14px;font-size:12.5px;">
+              desfazer
+            </button>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  sheet.open('Histórico de importações', html);
+
+  document.querySelectorAll('[data-lote-undo]').forEach(btn => {
+    btn.onclick = async () => {
+      const loteId = btn.dataset.loteUndo;
+      const lote = (state.lotesImportacao || []).find(l => l.id === loteId);
+      if (!lote) return;
+      const qtd = (lote.gastoIds || []).length + (lote.entradaIds || []).length;
+
+      const confirmado = await askConfirm({
+        title: 'Desfazer importação?',
+        message: `Vou remover ${qtd} lançamento${qtd !== 1 ? 's' : ''} importado${qtd !== 1 ? 's' : ''}. Esta ação não pode ser desfeita (mas você pode reimportar o PDF depois se precisar).`,
+        confirmLabel: 'Sim, desfazer',
+        cancelLabel: 'Cancelar',
+        danger: true
+      });
+
+      if (confirmado) {
+        desfazerLoteImportacao(loteId);
+        sheet.close();
+      }
+    };
+  });
+}
+
+/* Formata "2026-05-19T13:21:45.123Z" → "19/05/2026 às 13:21" */
+function _fmtDataHora(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const ano = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${dia}/${mes}/${ano} às ${hh}:${mm}`;
+  } catch (e) {
+    return iso;
+  }
 }
 
 /* =========================================================================
@@ -15685,6 +15961,12 @@ function bootApp() {
      Só seta TRUE em gastos cuja subcategoria virou modalidade depois (idempotente);
      nunca rebaixa true→false (preserva edições manuais do usuário). */
   migrarIsInvestV019();
+
+  /* v0.23.1: agrupa gastos importados antes do sistema de lote num único lote
+     de recuperação, pra que o Tiago possa desfazer importações antigas. */
+  if (typeof migrarOrfaosExtratoEmLoteRecovery === 'function') {
+    try { migrarOrfaosExtratoEmLoteRecovery(); } catch (e) { console.warn('migracao orfaos extrato falhou:', e); }
+  }
 
   go('familia');
   renderConfigCounts();
