@@ -384,6 +384,21 @@ input[type="color"] {
   cursor: pointer;
 }
 
+/* v0.22.2: o CSS global acima força width:100% + appearance:none em
+   TODOS os inputs, o que transforma <input type="checkbox"> numa
+   "barra branca" de largura total (perde aparência nativa do iOS/web).
+   Aqui restauramos aparência nativa pra todos os checkboxes do app
+   — toggle de "Incluir parcelas no total", forms de cartão/gasto, etc. */
+input[type="checkbox"] {
+  -webkit-appearance: auto !important;
+  appearance: auto !important;
+  width: auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 label {
   display: block;
   font-size: 12px;
@@ -4266,7 +4281,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.22.1 · fix seletores PDF
+  Finança · v0.22.2 · fix checkbox + invest fixo no Rel 1
 </div>
 
   </section>
@@ -7984,13 +7999,24 @@ function _relDrillSubcat(catKey, subc) {
   sheet.open(title, _relDrillListaHtml(gastos));
 }
 
-/* v0.21.0: compromissos do mês — fixos habituais + parcelas de cartão em curso.
+/* Compromissos do mês — fixos habituais + parcelas de cartão em curso.
    Visão complementar pra ver quanto do mês já está pré-comprometido com
-   recorrências e financiamentos. Exclui invest (visão separada) e gastos
-   variáveis sem isFixo nem parcela.
+   recorrências e financiamentos. Exclui ajustes e pagamento de fatura.
+   Variáveis avulsas ficam de fora.
    - fixos: g.isFixo === true E não tem parcela
    - parcelas: g.parcela truthy (qualquer parcelamento, inclui projetadas
-     materializadas pra ver o pipeline) */
+     materializadas pra ver o pipeline)
+
+   v0.22.2: investimentos com isFixo OU parcela passam a contar como
+   compromisso (antes eram excluídos via _isInvestRuntime). Razão: a
+   tela Família/Compromissos sempre incluiu invest fixo na soma de
+   "Gastos fixos", causando divergência entre as duas vistas (R$
+   2.585,35 a menos no Rel 1 do que na Família, exatamente o invest
+   fixo HANSARD). Princípio: uma pergunta financeira ("quanto está
+   comprometido este mês?") deve ter uma só resposta independente de
+   onde for feita. A seção "investimentos · por modalidade" segue
+   mostrando o invest com lente diferente — sobreposição visual
+   aceitável (mesmo gasto sob 2 ângulos distintos). */
 function relCalcCompromissos(ym, cats) {
   let fixos = 0, parcelas = 0;
   const fixosGastos = [], parcelasGastos = [];
@@ -7998,7 +8024,9 @@ function relCalcCompromissos(ym, cats) {
     if (g.ym !== ym) return;
     if (cats.indexOf(g.categoria) < 0) return;
     if (!_relGastoSaida(g)) return;
-    if (_isInvestRuntime(g)) return;
+    /* v0.22.2: invest fixo/parcelado AGORA conta como compromisso.
+       Antes havia `if (_isInvestRuntime(g)) return;` aqui — removido
+       pra unificar soma com a tela Família. */
     const v = Number(g.valor) || 0;
     if (g.parcela) {
       parcelas += v;
@@ -8058,7 +8086,7 @@ function _relSecaoCompromissosHtml(ym, cats) {
         </div>
       </div>
       <div style="font-size:10.5px;color:var(--ink-mute);margin-top:14px;padding:0 4px;line-height:1.5;">
-        Quanto do mês já está pré-comprometido: recorrências fixas + parcelas em curso. Toque pra ver os lançamentos.
+        Quanto do mês já está pré-comprometido: recorrências fixas + parcelas em curso (inclui investimentos marcados como fixos). Toque pra ver os lançamentos.
       </div>
     </div>
   `;
