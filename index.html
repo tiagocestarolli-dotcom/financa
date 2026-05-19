@@ -3831,6 +3831,141 @@ label {
   font-size: 10px; color: var(--ink-mute); font-weight: 500;
 }
 
+/* ============================================================
+   RELATÓRIOS · Fatia 5.5 (v0.22.0) — Exportação PDF
+   Estratégia: window.print() + CSS @media print (em vez de
+   jsPDF + html2canvas). PDF nativo do navegador → texto
+   selecionável, vetorial, leve, sem libs externas.
+   ============================================================ */
+
+/* Linha do header dos relatórios: pills à esquerda, botão PDF à direita */
+.rel-tabs-row {
+  display: flex; align-items: center; gap: 10px;
+  margin: 4px 0 14px;
+}
+.rel-tabs-row .rel-tabs { margin: 0; flex: 1; min-width: 0; }
+.rel-export-btn {
+  flex-shrink: 0; padding: 9px 14px; font-size: 13px;
+  border: 1px solid var(--line); border-radius: 20px;
+  color: var(--ink-soft); background: var(--bg-elevated);
+  font-weight: 500; cursor: pointer; font-family: var(--font-body);
+  white-space: nowrap; transition: all 0.12s ease;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.rel-export-btn:hover, .rel-export-btn:active {
+  background: var(--ink); color: var(--bg); border-color: var(--ink);
+}
+.rel-export-btn .rxb-icon { font-size: 14px; line-height: 1; }
+
+/* Bloco de meta-info que aparece SÓ no PDF impresso (display: none em tela).
+   Populado dinamicamente por _atualizarPrintMeta() antes do window.print(). */
+.rel-print-meta { display: none; }
+
+/* ====== CSS de impressão (PDF) ====== */
+@media print {
+  /* Tamanho A4 com margens generosas pra ficar profissional */
+  @page {
+    size: A4;
+    margin: 16mm 14mm 18mm 14mm;
+  }
+
+  /* Força cores reais (default do navegador é "economy mode" cinza) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Esconder TUDO que não faz parte do relatório */
+  .app-header,
+  .tab-bar,
+  .tabbar,
+  .nav,
+  .header,
+  .rel-tabs-row,
+  .rel-export-btn,
+  .rel-tabs,
+  .rel-header,
+  .nav-month,
+  .rel-period-row,
+  .rel-toggle-row,
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  /* Esconde TODAS as views exceto a de relatórios */
+  .view { display: none !important; }
+  #viewRelatorios { display: block !important; }
+
+  /* Layout limpo: largura total, sem fundos coloridos do app */
+  html, body {
+    background: white !important;
+    color: #1a1a1a !important;
+    font-size: 10pt;
+    line-height: 1.42;
+    margin: 0 !important; padding: 0 !important;
+  }
+  .app, .view, #viewRelatorios, #relInner, #relatoriosContent {
+    background: white !important;
+    padding: 0 !important; margin: 0 !important;
+    max-width: 100% !important; width: 100% !important;
+  }
+
+  /* Meta-info aparece no topo do PDF */
+  .rel-print-meta {
+    display: block !important;
+    margin-bottom: 14pt;
+    padding-bottom: 10pt;
+    border-bottom: 1px solid #bbb;
+  }
+  .rel-print-meta .rpm-titulo {
+    font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+    font-size: 17pt; font-weight: 600; color: #111;
+    margin-bottom: 8pt; line-height: 1.2;
+  }
+  .rel-print-meta .rpm-info {
+    font-size: 8.5pt; color: #555; line-height: 1.55;
+  }
+  .rel-print-meta .rpm-info-row {
+    display: flex; flex-wrap: wrap; gap: 0 14pt;
+  }
+  .rel-print-meta .rpm-info-row span { white-space: nowrap; }
+  .rel-print-meta .rpm-app {
+    font-size: 7.5pt; color: #888;
+    margin-top: 4pt; letter-spacing: 0.03em;
+  }
+
+  /* Quebras de página inteligentes: gráficos não cortam no meio */
+  .rel-section, .rel-hero, .rel2-hero3, .rel3-hero-solo,
+  .rel-compromissos, .rel-chart-subcats,
+  .rel3-chart-comp, .rel-small-multiples {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .rel-section-title {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Remove scrolls horizontais e expande pra largura total */
+  .rel-chart-subcats {
+    overflow-x: visible !important;
+    flex-wrap: wrap; gap: 8pt 6pt;
+  }
+  .rel-chart-subcats .rsc-col { flex-shrink: 1; }
+
+  /* Tipografia mais densa pra caber melhor */
+  .rel-section { margin-bottom: 14pt; }
+  .rel-section-title {
+    font-size: 11pt; margin-bottom: 8pt; font-weight: 600;
+  }
+
+  /* Microcopy mais discreta no print */
+  .rel-section [style*="color:var(--ink-mute)"],
+  .rel-section [style*="color: var(--ink-mute)"] {
+    color: #777 !important;
+  }
+}
+
 </style>
 
 </head>
@@ -4128,7 +4263,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.21.2 · cores subcats + compromissos
+  Finança · v0.22.0 · exportação PDF
 </div>
 
   </section>
@@ -7155,15 +7290,115 @@ function renderRelatorios() {
     '<button class="rel-tab ' + (t.id === relView ? 'active' : '') + '" data-rel-view="' + t.id + '">' + escapeHtml(t.label) + '</button>'
   ).join('');
 
-  host.innerHTML = '<div class="rel-tabs">' + pillsHtml + '</div><div id="relInner"></div>';
+  /* v0.22.0 (Fatia 5.5): linha do header agora tem pills + botão "Exportar PDF".
+     O .rel-print-meta é invisível em tela (CSS), populado dinamicamente
+     antes do window.print() com título do relatório, mês, período, data e
+     identificação do usuário. */
+  host.innerHTML =
+    '<div class="rel-tabs-row">' +
+      '<div class="rel-tabs">' + pillsHtml + '</div>' +
+      '<button class="rel-export-btn" data-rel-export="1" title="Exportar este relatório como PDF">' +
+        '<span class="rxb-icon">📄</span><span>PDF</span>' +
+      '</button>' +
+    '</div>' +
+    '<div class="rel-print-meta"></div>' +
+    '<div id="relInner"></div>';
 
   host.querySelectorAll('[data-rel-view]').forEach(b => {
     b.onclick = () => { relView = b.dataset.relView; renderRelatorios(); };
   });
 
+  /* v0.22.0: bind do botão de exportar PDF */
+  const btnExport = host.querySelector('[data-rel-export]');
+  if (btnExport) btnExport.onclick = exportarRelatorioPDF;
+
   if (relView === 'rel1') _renderRel1Inner();
   else if (relView === 'rel2') _renderRel2Inner();
   else if (relView === 'rel3') _renderRel3Inner();
+}
+
+/* ============================================================
+   v0.22.0 — Fatia 5.5 · Exportação PDF
+   Estratégia: window.print() + CSS @media print.
+   PDF nativo do navegador (texto selecionável, vetorial, leve)
+   em vez de jsPDF + html2canvas (PDF rasterizado, pesado).
+   No iOS: usuário toca PDF → Safari abre diálogo de impressão
+   → pinçar pra ampliar → Compartilhar → Salvar em Arquivos.
+   ============================================================ */
+function exportarRelatorioPDF() {
+  /* Popula meta-info ANTES do print pra o PDF sair completo
+     com título, mês, período, data e identificação do usuário. */
+  _atualizarPrintMeta(relView);
+  /* Pequeno delay garante reflow antes da snapshot do print.
+     Algumas engines printam o DOM "antes" se chamado imediatamente. */
+  setTimeout(function () { window.print(); }, 80);
+}
+
+function _atualizarPrintMeta(viewId) {
+  const meta = document.querySelector('.rel-print-meta');
+  if (!meta) return;
+
+  const nomes = {
+    rel1: 'Relatório de Gastos & Saídas',
+    rel2: 'Relatório de Fluxo de Caixa',
+    rel3: 'Relatório · Meus Gastos (Tiago)'
+  };
+
+  /* Resolve qual state-bag usar conforme view ativo */
+  let stateRel = null;
+  if (viewId === 'rel1' && typeof relState  !== 'undefined') stateRel = relState;
+  if (viewId === 'rel2' && typeof rel2State !== 'undefined') stateRel = rel2State;
+  if (viewId === 'rel3' && typeof rel3State !== 'undefined') stateRel = rel3State;
+
+  const ym = (stateRel && stateRel.ym) ? stateRel.ym : currentYM();
+  const periodoId = (stateRel && stateRel.periodo) ? stateRel.periodo : 'mes';
+  const periodo = REL_PERIODOS.find(p => p.id === periodoId) || REL_PERIODOS[0];
+  const incluiTiago = stateRel && stateRel.incluiTiago;
+
+  /* Mês de referência em formato legível ("maio de 2026") */
+  const [yyyy, mm] = ym.split('-').map(Number);
+  const mesLabel = MESES_PT[mm - 1] + ' de ' + yyyy;
+
+  /* Período em prosa */
+  let periodoLabel;
+  if (periodo.months === 1) periodoLabel = 'mês de ' + mesLabel;
+  else periodoLabel = 'últimos ' + periodo.months + ' meses (até ' + mesLabel + ')';
+
+  /* Data/hora de exportação formato pt-BR */
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mmExp = String(now.getMonth() + 1).padStart(2, '0');
+  const yyExp = now.getFullYear();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const dataExp = dd + '/' + mmExp + '/' + yyExp + ' às ' + hh + 'h' + min;
+
+  /* Nome do usuário via Firebase Auth (se em modo cloud e logado);
+     fallback gracioso pra não ter linha em modo local. */
+  let userName = '';
+  try {
+    if (window.FB && window.FB.auth && window.FB.auth.currentUser) {
+      const u = window.FB.auth.currentUser;
+      if (u.displayName) userName = u.displayName;
+      else if (u.email) userName = u.email.split('@')[0];
+    }
+  } catch (e) { /* offline ou auth não inicializado — ok, segue sem usuário */ }
+
+  /* Variantes do relatório (toggle Tiago / comparar com família) */
+  let variante = '';
+  if (viewId === 'rel1' && incluiTiago) variante = ' · incluindo Tiago no fluxo da família';
+  if (viewId === 'rel3' && incluiTiago) variante = ' · comparativo com a família';
+
+  meta.innerHTML =
+    '<div class="rpm-titulo">' + escapeHtml(nomes[viewId] || 'Relatório') + escapeHtml(variante) + '</div>' +
+    '<div class="rpm-info">' +
+      '<div class="rpm-info-row">' +
+        '<span><strong>Período:</strong> ' + escapeHtml(periodoLabel) + '</span>' +
+        '<span><strong>Exportado em:</strong> ' + escapeHtml(dataExp) + '</span>' +
+        (userName ? '<span><strong>Usuário:</strong> ' + escapeHtml(userName) + '</span>' : '') +
+      '</div>' +
+      '<div class="rpm-app">Finança · v0.22.0</div>' +
+    '</div>';
 }
 
 function _renderRel1Inner() {
