@@ -3149,6 +3149,133 @@ label {
 }
 
 /* ============================================================
+   ETAPA 5b — REVISÃO DE EXTRATO (v0.23.0)
+   ============================================================ */
+.rex-summary {
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+.rex-summary .rex-sum-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+.rex-summary .rex-sum-label {
+  color: var(--ink-mute);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rex-summary .rex-sum-meta {
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.rex-microcopy {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+  font-style: italic;
+  font-family: var(--font-display);
+  line-height: 1.5;
+  margin: 0 0 12px;
+  padding: 0 4px;
+}
+.rex-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.rex-chip {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.rex-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rex-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  transition: opacity .15s;
+}
+.rex-row-main { flex: 1; min-width: 0; }
+.rex-row-title {
+  font-size: 13.5px;
+  color: var(--ink);
+  font-weight: 500;
+  line-height: 1.3;
+  margin-bottom: 2px;
+  word-break: break-word;
+}
+.rex-row-meta {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+}
+.rex-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.rex-row-valor {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.rex-row-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+.rex-row-toggle input[type="checkbox"] {
+  margin: 0;
+}
+.rex-row-toggle .rex-toggle-text {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+  text-transform: lowercase;
+  font-style: italic;
+  font-family: var(--font-display);
+}
+.rex-tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  margin-left: 4px;
+  vertical-align: middle;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+.rex-tag-dup {
+  background: color-mix(in srgb, var(--flow-out) 12%, transparent);
+  color: var(--flow-out);
+}
+.rex-tag-pgfat {
+  background: color-mix(in srgb, var(--flow-invest) 12%, transparent);
+  color: var(--flow-invest);
+}
+
+/* ============================================================
    RELATÓRIOS — Fatia 5.1 (v0.16.0)
    ============================================================ */
 .rel-monthnav {
@@ -4280,8 +4407,8 @@ label {
 </button>
 
 <div style="height: 28px;"></div>
-<div class="center muted" style="font-size:12px;">
-  Finança · v0.22.2 · fix checkbox + invest fixo no Rel 1
+<div class="center muted" id="appVersionTag" style="font-size:12px;">
+  Finança · v0.23.0 · Etapa 5b — importação de extrato Itaú
 </div>
 
   </section>
@@ -7343,6 +7470,20 @@ function renderRelatorios() {
    No iOS: usuário toca PDF → Safari abre diálogo de impressão
    → pinçar pra ampliar → Compartilhar → Salvar em Arquivos.
    ============================================================ */
+/* Lê a versão do app a partir do rodapé único do Config (#appVersionTag)
+   e retorna a forma curta (sem a descrição da fatia).
+   Single-source-of-truth: a versão só vive no HTML do Config; este helper
+   serve qualquer outro lugar que precise dela (PDF meta, telemetria, etc).
+   O texto do rodapé tem 3 segmentos separados por " bullet ":
+   nome + versao + descricao. Retornamos apenas nome + versao. */
+function _appVersionShort() {
+  const tag = document.getElementById('appVersionTag');
+  const txt = tag ? (tag.textContent || '').trim() : 'Finança';
+  const partes = txt.split(' · ');
+  if (partes.length >= 2) return partes[0] + ' · ' + partes[1];
+  return txt;
+}
+
 function exportarRelatorioPDF() {
   /* Popula meta-info ANTES do print pra o PDF sair completo
      com título, mês, período, data e identificação do usuário. */
@@ -7415,7 +7556,7 @@ function _atualizarPrintMeta(viewId) {
         '<span><strong>Exportado em:</strong> ' + escapeHtml(dataExp) + '</span>' +
         (userName ? '<span><strong>Usuário:</strong> ' + escapeHtml(userName) + '</span>' : '') +
       '</div>' +
-      '<div class="rpm-app">Finança · v0.22.0</div>' +
+      '<div class="rpm-app">' + escapeHtml(_appVersionShort()) + '</div>' +
     '</div>';
 }
 
@@ -11787,6 +11928,7 @@ function renderContasDetail(contaId) {
     <div class="contas-actions">
       <button class="btn" id="btnAjustarSaldo"><span class="ai">⚖</span> Ajustar saldo</button>
       <button class="btn" id="btnEditarConta"><span class="ai">✎</span> Editar conta</button>
+      <button class="btn" id="btnImportarExtrato"><span class="ai">📥</span> Importar extrato</button>
     </div>
 
     <div class="contas-section-h">
@@ -11825,6 +11967,7 @@ function renderContasDetail(contaId) {
   };
   document.getElementById('btnAjustarSaldo').onclick = () => openAjusteSaldoForm(contaId);
   document.getElementById('btnEditarConta').onclick = () => openContaForm(contaId);
+  document.getElementById('btnImportarExtrato').onclick = () => abrirSeletorExtrato(contaId);
 }
 
 /* ===== Formulário: Cadastrar/Editar conta ===== */
@@ -14721,6 +14864,706 @@ function aplicarLancamentosImportados(lancs, cardId) {
   } else {
     toast(`${novos} lançamentos aplicados`, 'success');
   }
+}
+
+
+/* =========================================================================
+   ETAPA 5b (v0.23.0) — IMPORTAÇÃO DE EXTRATO BANCÁRIO
+   =========================================================================
+   Reuso máximo:
+     · extrairTextoDoPDF()  — mesma infra PDF.js da fatura
+     · sheet                — mesmo componente modal
+     · parseValor           — mesmo parser numérico BR
+     · state.aliases        — reusa apelidos já memorizados
+
+   O extrato é gap-filler: NÃO substitui registro manual, preenche o que
+   passou. Detecta pagamentos de fatura (já existentes como
+   isPagamentoFatura) e NÃO duplica. Dedup contra state.gastos + entradas
+   por (contaId + valor ± R$ 0,01 + data ± 2 dias).
+
+   Schema: zero mudanças. Reuso state.gastos e state.entradas existentes.
+   ========================================================================= */
+
+/* --- Detector de banco do extrato ------------------------------------- */
+/* Hierarquia: emissor (CPF/CNPJ/nome jurídico) > marcadores de produto.
+   Diferente da fatura, o extrato tem o cabeçalho com nome do banco bem
+   visível na maioria dos casos. */
+function detectarBancoExtrato(textoBruto) {
+  const t = (textoBruto || '').toLowerCase();
+
+  /* Itaú — marcadores fortes: número da agência/conta no formato Itaú,
+     "extrato conta / lançamentos", "saldo em conta", "Limite da Conta" */
+  if (/extrato\s+conta\s*\/\s*lan(ç|c)amentos/i.test(textoBruto) ||
+      /limite\s+da\s+conta\s+(utilizado|dispon(í|i)vel|total)/i.test(textoBruto)) {
+    return 'itau';
+  }
+
+  /* Itaú genérico — telefone 4004 4828 ou domínio itau.com.br no rodapé */
+  if (/4004\s*4828|itau\.com\.br/i.test(textoBruto)) return 'itau';
+
+  /* Sicoob — placeholder pra Fatia 5b.3 */
+  if (/sicoob|bancoob/i.test(textoBruto)) return 'sicoob';
+
+  /* BTG — placeholder pra Fatia 5b.4 */
+  if (/btg\s*pactual|30\.306\.294/i.test(textoBruto)) return 'btg';
+
+  return null;
+}
+
+/* --- Dispatcher ------------------------------------------------------- */
+function parseExtrato(textoBruto, hintBanco = null) {
+  const banco = hintBanco || detectarBancoExtrato(textoBruto);
+  let lancs = [];
+  let metaPeriodo = { dataInicio: null, dataFim: null };
+
+  switch (banco) {
+    case 'itau': {
+      const result = parserExtratoItau(textoBruto);
+      lancs = result.lancs;
+      metaPeriodo = result.metaPeriodo || metaPeriodo;
+      break;
+    }
+    case 'sicoob':
+    case 'btg':
+      throw new Error(`Parser de extrato do ${banco.toUpperCase()} ainda não implementado (Fatias 5b.3 e 5b.4)`);
+    default:
+      throw new Error('Banco não identificado no extrato. Confira se é mesmo um extrato bancário.');
+  }
+
+  window.__extratoDebug = {
+    banco,
+    textoLength: (textoBruto || '').length,
+    lancamentosBrutos: lancs.length,
+    metaPeriodo,
+    lancs
+  };
+
+  return { banco, lancs, metaPeriodo };
+}
+
+/* --- Parser Itaú extrato --------------------------------------------- */
+/* Layout do extrato Itaú (5 páginas típico):
+   - Header: TIAGO CESTAROLLI, agência, conta, saldo
+   - "período de visualização: DD/MM/YYYY até DD/MM/YYYY"
+   - Linhas: "DD/MM/YYYY  DESCRIÇÃO  VALOR  [SALDO]"
+   - SALDO DO DIA: linha sem valor de movimento, só saldo
+
+   Cada linha vem como:
+     "19/05/2026 PIX TRANSF Sthefan19/05 -130,00"
+     "12/05/2026 REND PAGO APLIC AUT MAIS 13,33"
+     "30/04/2026 TED 756.5004.SAITGSOCIED 57.300,18"
+
+   Valores negativos com '-' colado, positivos sem sinal. */
+function parserExtratoItau(textoBruto) {
+  const linhas = (textoBruto || '').split(/\r?\n/);
+  const lancs = [];
+  const metaPeriodo = { dataInicio: null, dataFim: null };
+
+  /* Extrai período do header */
+  const mPer = textoBruto.match(/per(í|i)odo\s+de\s+visualiza(ç|c)(ã|a)o:\s*(\d{2}\/\d{2}\/\d{4})\s+at(é|e)\s+(\d{2}\/\d{2}\/\d{4})/i);
+  if (mPer) {
+    metaPeriodo.dataInicio = _itauDataPdfParaISO(mPer[4]);
+    metaPeriodo.dataFim = _itauDataPdfParaISO(mPer[6]);
+  }
+
+  /* Regex de linha de movimento:
+     começa com data DD/MM/YYYY
+     seguida da descrição (tudo até o valor)
+     valor no fim: [-]?[\d.]+,\d{2}
+     opcionalmente saldo após */
+  const reLinha = /^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(-?[\d.]+,\d{2})(?:\s+([\d.]+,\d{2}))?\s*$/;
+
+  for (const linha of linhas) {
+    const m = linha.match(reLinha);
+    if (!m) continue;
+
+    const dataPdf = m[1];
+    let desc = m[2].trim();
+    const valorRaw = m[3];
+
+    /* Ignora "SALDO DO DIA" — não é lançamento, é só linha de saldo
+       (mas o regex já filtra: linhas de saldo do dia não casam porque
+       só têm o saldo, não valor de movimento). Safety check: */
+    if (/^SALDO\s+DO\s+DIA$/i.test(desc)) continue;
+
+    const valor = parseValor(valorRaw);
+    if (!isFinite(valor) || valor === 0) continue;
+
+    const dataISO = _itauDataPdfParaISO(dataPdf);
+    if (!dataISO) continue;
+
+    /* Limpa sufixo " DD/MM" na descrição (PAY/PIX vêm com data do
+       evento no final, ex: "PIX TRANSF GILSON 18/05") */
+    desc = desc.replace(/\s+\d{2}\/\d{2}$/, '').trim();
+    /* Também limpa sufixo colado: "PIX TRANSF Sthefan19/05" */
+    desc = desc.replace(/(\D)(\d{2}\/\d{2})$/, '$1').trim();
+
+    lancs.push({
+      dataISO,
+      dataPdf,
+      descricaoOriginal: desc,
+      valor: Math.abs(valor),
+      sinal: valor < 0 ? '-' : '+',
+      /* Classificação preenchida no passo seguinte */
+      tipo: null,
+      subcategoria: null,
+      categoria: null,
+      excluir: false,
+      matchPagamentoFaturaId: null
+    });
+  }
+
+  return { lancs, metaPeriodo };
+}
+
+/* Converte "DD/MM/YYYY" -> "YYYY-MM-DD" */
+function _itauDataPdfParaISO(dataPdf) {
+  if (!dataPdf) return null;
+  const m = dataPdf.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+
+/* --- Classificação de lançamentos do extrato -------------------------- */
+/* Atribui um TIPO a cada lançamento parseado.
+   Tipos:
+     'PAGAMENTO_FATURA' — match com gasto isPagamentoFatura existente
+     'ENTRADA_RENDA'    — crédito > R$ 10 (TED, PIX recebido)
+     'ENTRADA_RENDIMENTO' — REND PAGO APLIC AUT (rendimento de aplicação)
+     'SAIDA_CONSUMO'    — débito normal (PAY, PIX enviado, boleto)
+     'SAIDA_TARIFA'     — SEGURO, taxa
+     'IGNORAR'          — SALDO DO DIA e ruídos diversos */
+function classificarLancamentosExtrato(lancs, contaId) {
+  const isItauConta = (() => {
+    const c = (state.contas || []).find(co => co.id === contaId);
+    return c && /ita(u|ú)/i.test(c.nome || '');
+  })();
+
+  for (const l of lancs) {
+    const desc = (l.descricaoOriginal || '').toUpperCase();
+    const sinal = l.sinal;
+
+    /* SALDO DO DIA — não deveria nem chegar aqui, mas safety */
+    if (/^SALDO\s+DO\s+DIA/i.test(desc)) {
+      l.tipo = 'IGNORAR';
+      l.excluir = true;
+      continue;
+    }
+
+    /* PAGAMENTO DE FATURA — Itaú escreve "PERS INFINIT XXXX-XXXX" ou
+       "ITAU BLACK XXXX-XXXX" no extrato. São saídas técnicas que já
+       existem como isPagamentoFatura no app. */
+    if (sinal === '-' && (/^PERS\s+INFINIT/i.test(desc) ||
+                          /^ITAU\s+BLACK/i.test(desc) ||
+                          /^ITAU.*FATURA/i.test(desc))) {
+      const match = _matchPagamentoFatura(l, contaId);
+      if (match) {
+        l.tipo = 'PAGAMENTO_FATURA';
+        l.matchPagamentoFaturaId = match.id;
+        l.excluir = true; /* já existe, vai ser ignorado */
+      } else {
+        /* Não achou no app — talvez fatura ainda não foi paga automaticamente.
+           Marca como pagamento de fatura mas sem match, Tiago decide. */
+        l.tipo = 'PAGAMENTO_FATURA';
+        l.matchPagamentoFaturaId = null;
+        l.excluir = false; /* mostra na tela de revisão */
+      }
+      continue;
+    }
+
+    /* ENTRADAS (sinal +) */
+    if (sinal === '+') {
+      if (/^REND\s+PAGO\s+APLIC/i.test(desc)) {
+        l.tipo = 'ENTRADA_RENDIMENTO';
+        l.excluir = true; /* rendimento por padrão NÃO entra como entrada do app
+                             porque é movimentação interna da conta. Tiago pode
+                             ativar se quiser. */
+        continue;
+      }
+      /* Outras entradas: TED, PIX recebido — entrada de renda */
+      l.tipo = 'ENTRADA_RENDA';
+      l.excluir = false;
+      continue;
+    }
+
+    /* TARIFAS — seguros e taxas */
+    if (/^SEG\s+TRANSACAO|^SEGURO\s+CARTAO|^IOF|^TARIFA|^CESTA\s+SERVICOS/i.test(desc)) {
+      l.tipo = 'SAIDA_TARIFA';
+      l.excluir = false;
+      continue;
+    }
+
+    /* SAIDA_CONSUMO — default pra qualquer débito não classificado acima
+       (PAY, PIX TRANSF, PIX QRS, PAG BOLETO, DA, TED enviada) */
+    l.tipo = 'SAIDA_CONSUMO';
+    l.excluir = false;
+  }
+
+  return lancs;
+}
+
+/* Procura no state.gastos um pagamento de fatura que case com este
+   lançamento do extrato (mesmo valor, ±2 dias, mesma conta, isPagamentoFatura) */
+function _matchPagamentoFatura(lanc, contaId) {
+  const valorAlvo = lanc.valor;
+  const dataAlvo = lanc.dataISO;
+
+  return (state.gastos || []).find(g => {
+    if (!g.isPagamentoFatura) return false;
+    if (g.contaId !== contaId) return false;
+    if (Math.abs((Number(g.valor) || 0) - valorAlvo) > 0.02) return false;
+    /* Janela de ±2 dias */
+    const diff = _diasEntre(g.data, dataAlvo);
+    return Math.abs(diff) <= 2;
+  });
+}
+
+/* Diferença em dias entre duas datas ISO (YYYY-MM-DD) */
+function _diasEntre(isoA, isoB) {
+  if (!isoA || !isoB) return Infinity;
+  const a = new Date(isoA + 'T00:00:00');
+  const b = new Date(isoB + 'T00:00:00');
+  return Math.round((b - a) / (1000 * 60 * 60 * 24));
+}
+
+/* --- Dedup contra registros já existentes ----------------------------- */
+/* Para cada lançamento do extrato, procura se já existe um gasto/entrada
+   no app com mesma contaId + valor ± R$ 0,01 + data ± 2 dias.
+   Se sim, marca como duplicata (l.duplicataDe = id do registro existente). */
+function dedupExtrato(lancs, contaId) {
+  for (const l of lancs) {
+    if (l.excluir || l.tipo === 'IGNORAR') continue;
+    if (l.tipo === 'PAGAMENTO_FATURA' && l.matchPagamentoFaturaId) continue; /* já tratado */
+
+    const eUsadasSaida = l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA';
+    const eUsadasEntrada = l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO';
+
+    if (eUsadasSaida) {
+      const existente = (state.gastos || []).find(g => {
+        if (g.contaId !== contaId) return false;
+        if (g.pagamento === 'cartao') return false; /* gasto de cartão não conta */
+        if (g.isAjuste || g.isPagamentoFatura) return false;
+        if (Math.abs((Number(g.valor) || 0) - l.valor) > 0.01) return false;
+        return Math.abs(_diasEntre(g.data, l.dataISO)) <= 2;
+      });
+      if (existente) {
+        l.duplicataDe = existente.id;
+        l.duplicataKind = 'gasto';
+        l.excluir = true;
+      }
+      continue;
+    }
+
+    if (eUsadasEntrada) {
+      const existente = (state.entradas || []).find(e => {
+        if (e.contaId !== contaId) return false;
+        if (Math.abs((Number(e.valor) || 0) - l.valor) > 0.01) return false;
+        return Math.abs(_diasEntre(e.data, l.dataISO)) <= 2;
+      });
+      if (existente) {
+        l.duplicataDe = existente.id;
+        l.duplicataKind = 'entrada';
+        l.excluir = true;
+      }
+    }
+  }
+  return lancs;
+}
+
+
+/* =====================================================================
+   ESTADO GLOBAL DA TELA DE REVISÃO DE EXTRATO
+   ===================================================================== */
+let revisaoExtratoState = {
+  contaId: null,
+  lancs: [],
+  banco: null,
+  metaPeriodo: null,
+  filtroTipo: 'todos'  /* 'todos' | 'entradas' | 'saidas' | 'tarifas' | 'pagfat' | 'ignorados' */
+};
+
+/* --- Pipeline completo de importação do extrato ----------------------- */
+async function importarExtratoBancario(file, contaId) {
+  if (!file) return;
+  const conta = (state.contas || []).find(c => c.id === contaId);
+  if (!conta) {
+    toast('Conta não encontrada', 'error');
+    return;
+  }
+
+  toast(`Lendo extrato do ${conta.nome}…`, 'info');
+
+  try {
+    const { textoBruto } = await extrairTextoDoPDF(file);
+    const { banco, lancs, metaPeriodo } = parseExtrato(textoBruto);
+
+    if (!banco) {
+      toast('Banco não identificado no PDF. Confira se é mesmo um extrato.', 'error');
+      return;
+    }
+
+    if (lancs.length === 0) {
+      toast('Nenhum lançamento encontrado no PDF.', 'error');
+      return;
+    }
+
+    classificarLancamentosExtrato(lancs, contaId);
+    dedupExtrato(lancs, contaId);
+
+    revisaoExtratoState = { contaId, lancs, banco, metaPeriodo, filtroTipo: 'todos' };
+
+    setTimeout(() => openRevisaoExtratoSheet(), 250);
+
+  } catch (err) {
+    console.error('[importarExtrato] erro:', err);
+    toast(err.message || 'Erro ao importar extrato', 'error');
+  }
+}
+
+/* --- Tela de revisão do extrato --------------------------------------- */
+function openRevisaoExtratoSheet() {
+  const { contaId, lancs, banco, metaPeriodo } = revisaoExtratoState;
+  const conta = (state.contas || []).find(c => c.id === contaId);
+  if (!conta) return;
+
+  const bancoLabel = { itau: 'Itaú', sicoob: 'Sicoob', btg: 'BTG' }[banco] || banco;
+
+  /* Contadores por tipo */
+  const cont = {
+    todos: lancs.length,
+    entradas: lancs.filter(l => l.tipo === 'ENTRADA_RENDA').length,
+    saidas: lancs.filter(l => l.tipo === 'SAIDA_CONSUMO').length,
+    tarifas: lancs.filter(l => l.tipo === 'SAIDA_TARIFA').length,
+    pagfat: lancs.filter(l => l.tipo === 'PAGAMENTO_FATURA').length,
+    ignorados: lancs.filter(l => l.excluir).length,
+    rendimento: lancs.filter(l => l.tipo === 'ENTRADA_RENDIMENTO').length
+  };
+  const naoExcluidos = lancs.filter(l => !l.excluir).length;
+
+  const html = `
+    <div class="rex-summary">
+      <div class="rex-sum-line">
+        <span class="rex-sum-label">Extrato ${bancoLabel}</span>
+        <span class="rex-sum-meta">${metaPeriodo && metaPeriodo.dataInicio ? _fmtDataBR(metaPeriodo.dataInicio) + ' → ' + _fmtDataBR(metaPeriodo.dataFim) : ''}</span>
+      </div>
+      <div class="rex-sum-line">
+        <span class="rex-sum-label">Conta</span>
+        <span class="rex-sum-meta" style="color:${conta.cor};">${conta.icone || '🏦'} ${escapeHtml(conta.nome)}</span>
+      </div>
+      <div class="rex-sum-line">
+        <span class="rex-sum-label">Lançamentos detectados</span>
+        <span class="rex-sum-meta"><strong>${cont.todos}</strong> · ${naoExcluidos} pra importar</span>
+      </div>
+    </div>
+
+    <div class="rex-microcopy">
+      <em>Pagamentos de fatura já registrados no app são detectados automaticamente e ignorados.
+      Duplicatas (lançamentos que você já registrou) também são marcadas pra você decidir.</em>
+    </div>
+
+    <div class="rex-filtros">
+      ${_rexFiltroChip('todos', `todos (${cont.todos})`)}
+      ${_rexFiltroChip('saidas', `saídas (${cont.saidas})`, 'var(--flow-out)')}
+      ${_rexFiltroChip('entradas', `entradas (${cont.entradas})`, 'var(--flow-in)')}
+      ${_rexFiltroChip('tarifas', `tarifas (${cont.tarifas})`)}
+      ${cont.pagfat > 0 ? _rexFiltroChip('pagfat', `🔄 fatura (${cont.pagfat})`) : ''}
+      ${_rexFiltroChip('ignorados', `ignorados (${cont.ignorados})`)}
+    </div>
+
+    <div id="rexList" class="rex-list"></div>
+  `;
+
+  const footer = `
+    <button class="btn btn-secondary" id="rexCancel">cancelar</button>
+    <button class="btn btn-primary" id="rexApply">aplicar ${naoExcluidos} lançamento${naoExcluidos !== 1 ? 's' : ''}</button>
+  `;
+
+  sheet.open(`Revisão · Extrato ${bancoLabel}`, html, footer);
+  _rexRenderList();
+
+  /* Hooks de filtro */
+  document.querySelectorAll('[data-rex-filtro]').forEach(el => {
+    el.onclick = () => {
+      revisaoExtratoState.filtroTipo = el.dataset.rexFiltro;
+      document.querySelectorAll('[data-rex-filtro]').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      _rexRenderList();
+    };
+  });
+
+  document.getElementById('rexCancel').onclick = () => sheet.close();
+  document.getElementById('rexApply').onclick = () => {
+    const naoExcluidos = revisaoExtratoState.lancs.filter(l => !l.excluir);
+    if (naoExcluidos.length === 0) {
+      toast('Nada pra importar — todos foram ignorados', 'info');
+      return;
+    }
+    aplicarLancamentosExtratoImportados(naoExcluidos, revisaoExtratoState.contaId);
+    sheet.close();
+  };
+}
+
+function _rexFiltroChip(key, label, cor) {
+  const sel = revisaoExtratoState.filtroTipo === key ? 'selected' : '';
+  const style = cor ? `style="--chip-color:${cor};"` : '';
+  return `<button class="chip rex-chip ${sel}" data-rex-filtro="${key}" ${style}>${label}</button>`;
+}
+
+function _rexRenderList() {
+  const host = document.getElementById('rexList');
+  if (!host) return;
+
+  const f = revisaoExtratoState.filtroTipo;
+  const todos = revisaoExtratoState.lancs;
+
+  const filtrados = todos.filter(l => {
+    if (f === 'todos') return true;
+    if (f === 'saidas') return l.tipo === 'SAIDA_CONSUMO';
+    if (f === 'entradas') return l.tipo === 'ENTRADA_RENDA';
+    if (f === 'tarifas') return l.tipo === 'SAIDA_TARIFA';
+    if (f === 'pagfat') return l.tipo === 'PAGAMENTO_FATURA';
+    if (f === 'ignorados') return l.excluir;
+    return true;
+  });
+
+  if (filtrados.length === 0) {
+    host.innerHTML = '<div class="empty" style="padding:24px;">Nenhum lançamento neste filtro.</div>';
+    return;
+  }
+
+  host.innerHTML = filtrados.map((l, idxFiltrado) => {
+    const idxGlobal = todos.indexOf(l);
+    const tipoLabel = _rexTipoLabel(l);
+    const sinal = l.sinal === '-' ? '−' : '+';
+    const corValor = l.sinal === '-' ? 'var(--flow-out)' : 'var(--flow-in)';
+    const dataBR = _fmtDataBR(l.dataISO);
+    const dupLabel = l.duplicataDe ? '<span class="rex-tag rex-tag-dup">dup. no app</span>' : '';
+    const pgfatLabel = l.tipo === 'PAGAMENTO_FATURA' && l.matchPagamentoFaturaId ? '<span class="rex-tag rex-tag-pgfat">🔄 já registrado</span>' : '';
+    const ignoradoOpacity = l.excluir ? 'opacity:0.5;' : '';
+
+    return `
+      <div class="rex-row" data-rex-idx="${idxGlobal}" style="${ignoradoOpacity}">
+        <div class="rex-row-main">
+          <div class="rex-row-title">
+            ${escapeHtml(l.descricaoOriginal)}
+            ${dupLabel}${pgfatLabel}
+          </div>
+          <div class="rex-row-meta">${dataBR} · ${tipoLabel}</div>
+        </div>
+        <div class="rex-row-right">
+          <div class="rex-row-valor" style="color:${corValor};">${sinal} ${fmtBRL(l.valor)}</div>
+          <label class="rex-row-toggle">
+            <input type="checkbox" data-rex-incluir="${idxGlobal}" ${!l.excluir ? 'checked' : ''}>
+            <span class="rex-toggle-text">${!l.excluir ? 'incluir' : 'ignorar'}</span>
+          </label>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  /* Hook nas checkboxes — toggle entre incluir/ignorar */
+  host.querySelectorAll('[data-rex-incluir]').forEach(cb => {
+    cb.onchange = (ev) => {
+      const idx = Number(cb.dataset.rexIncluir);
+      revisaoExtratoState.lancs[idx].excluir = !cb.checked;
+      /* Atualiza apenas o texto/opacity, sem re-renderizar tudo */
+      const row = cb.closest('.rex-row');
+      if (row) {
+        row.style.opacity = cb.checked ? '1' : '0.5';
+        const t = row.querySelector('.rex-toggle-text');
+        if (t) t.textContent = cb.checked ? 'incluir' : 'ignorar';
+      }
+      /* Atualiza contador no botão de aplicar */
+      const naoExcluidos = revisaoExtratoState.lancs.filter(l => !l.excluir).length;
+      const btnApply = document.getElementById('rexApply');
+      if (btnApply) btnApply.textContent = `aplicar ${naoExcluidos} lançamento${naoExcluidos !== 1 ? 's' : ''}`;
+    };
+  });
+}
+
+function _rexTipoLabel(l) {
+  if (l.duplicataDe) return 'duplicata — já no app';
+  if (l.tipo === 'PAGAMENTO_FATURA') {
+    return l.matchPagamentoFaturaId ? 'pagamento de fatura (já registrado)' : 'pagamento de fatura (sem match)';
+  }
+  if (l.tipo === 'ENTRADA_RENDA') return 'entrada de renda';
+  if (l.tipo === 'ENTRADA_RENDIMENTO') return 'rendimento de aplicação';
+  if (l.tipo === 'SAIDA_CONSUMO') return 'saída';
+  if (l.tipo === 'SAIDA_TARIFA') return 'tarifa';
+  return l.tipo || '?';
+}
+
+function _fmtDataBR(iso) {
+  if (!iso) return '';
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+
+/* --- Aplicar lançamentos do extrato ao state -------------------------- */
+function aplicarLancamentosExtratoImportados(lancs, contaId) {
+  const conta = (state.contas || []).find(c => c.id === contaId);
+  if (!conta) {
+    toast('Conta não encontrada', 'error');
+    return;
+  }
+
+  /* Procura uma fonte de renda padrão pra entradas (a primeira ativa) */
+  const fontePadrao = (state.fontesRenda || []).find(f => !f.arquivada) || (state.fontesRenda || [])[0];
+
+  let nGastos = 0;
+  let nEntradas = 0;
+  let nIgnoradosClassif = 0;
+
+  for (const l of lancs) {
+    /* Pagamentos de fatura sem match: criar como gasto técnico isPagamentoFatura
+       Isso é raro — só acontece se o débito automático ainda não rodou no app */
+    if (l.tipo === 'PAGAMENTO_FATURA' && !l.matchPagamentoFaturaId) {
+      /* Procura cartão por descrição: PERS INFINIT 7606-2189 ou ITAU BLACK 3102-5130 */
+      const cardId = _identificarCartaoPorDescricao(l.descricaoOriginal);
+      const ym = l.dataISO.slice(0, 7);
+      state.gastos.push({
+        id: 'g_' + Math.random().toString(36).slice(2, 11),
+        categoria: 'tiago',
+        subcategoria: 'pagamento fatura',
+        grupoId: null,
+        nome: l.descricaoOriginal,
+        valor: l.valor,
+        data: l.dataISO,
+        ym,
+        cardId: null,
+        contaId,
+        pagamento: 'conta',
+        isFixo: false,
+        isInvest: false,
+        isAjuste: false,
+        isPagamentoFatura: true,
+        faturaCardId: cardId,
+        faturaYm: ym,
+        observacao: 'importado do extrato',
+        pago: true,
+        dataPagamento: l.dataISO,
+        origem: 'extrato'
+      });
+      nGastos++;
+      continue;
+    }
+
+    if (l.tipo === 'ENTRADA_RENDA') {
+      state.entradas.push({
+        id: 'e_' + Math.random().toString(36).slice(2, 11),
+        fonteId: fontePadrao ? fontePadrao.id : null,
+        contaId,
+        valor: l.valor,
+        data: l.dataISO,
+        ym: l.dataISO.slice(0, 7),
+        observacao: l.descricaoOriginal,
+        origem: 'extrato'
+      });
+      nEntradas++;
+      continue;
+    }
+
+    if (l.tipo === 'ENTRADA_RENDIMENTO') {
+      /* Rendimento normalmente não vira entrada do app (é movimento interno).
+         Por padrão excluir=true, então só chega aqui se Tiago desmarcou. */
+      state.entradas.push({
+        id: 'e_' + Math.random().toString(36).slice(2, 11),
+        fonteId: fontePadrao ? fontePadrao.id : null,
+        contaId,
+        valor: l.valor,
+        data: l.dataISO,
+        ym: l.dataISO.slice(0, 7),
+        observacao: 'rendimento de aplicação · ' + l.descricaoOriginal,
+        origem: 'extrato'
+      });
+      nEntradas++;
+      continue;
+    }
+
+    if (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA') {
+      const subcat = l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar';
+      const ym = l.dataISO.slice(0, 7);
+      state.gastos.push({
+        id: 'g_' + Math.random().toString(36).slice(2, 11),
+        categoria: 'tiago', /* default Tiago, ele reclassifica se for família */
+        subcategoria: subcat,
+        grupoId: null,
+        nome: l.descricaoOriginal,
+        valor: l.valor,
+        data: l.dataISO,
+        ym,
+        cardId: null,
+        contaId,
+        pagamento: 'conta',
+        isFixo: false,
+        isInvest: false,
+        isAjuste: false,
+        isPagamentoFatura: false,
+        observacao: 'importado do extrato',
+        pago: true,
+        dataPagamento: l.dataISO,
+        origem: 'extrato'
+      });
+      nGastos++;
+      continue;
+    }
+
+    nIgnoradosClassif++;
+  }
+
+  saveState(state);
+
+  /* Refresh da view atual */
+  try { render(); } catch (e) {}
+  try { if (typeof renderContas === 'function') renderContas(); } catch (e) {}
+
+  const parts = [];
+  if (nGastos > 0) parts.push(`${nGastos} saída${nGastos !== 1 ? 's' : ''}`);
+  if (nEntradas > 0) parts.push(`${nEntradas} entrada${nEntradas !== 1 ? 's' : ''}`);
+  const msg = parts.length > 0 ? `Importado: ${parts.join(' + ')}` : 'Nada foi importado';
+  toast(msg, 'success');
+}
+
+function _identificarCartaoPorDescricao(desc) {
+  const d = (desc || '').toUpperCase();
+  /* PERS INFINIT XXXX-XXXX → Itaú Visa Infinite
+     ITAU BLACK XXXX-XXXX → Itaú MC Black */
+  if (/^PERS\s+INFINIT/i.test(d)) {
+    const c = (state.cards || []).find(card =>
+      /infinit|personnalit/i.test(card.nome || '') ||
+      /visa.*infinit/i.test(card.bandeira || '')
+    );
+    return c ? c.id : null;
+  }
+  if (/^ITAU\s+BLACK/i.test(d)) {
+    const c = (state.cards || []).find(card =>
+      /black/i.test(card.nome || '') ||
+      /mastercard.*black/i.test(card.bandeira || '')
+    );
+    return c ? c.id : null;
+  }
+  return null;
+}
+
+/* --- Trigger UI: chamado pelo botão "Importar extrato" --------------- */
+function abrirSeletorExtrato(contaId) {
+  /* Cria input file invisível e dispara */
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/pdf,.pdf';
+  input.style.display = 'none';
+  input.onchange = (ev) => {
+    const file = ev.target.files && ev.target.files[0];
+    if (file) {
+      importarExtratoBancario(file, contaId);
+    }
+    document.body.removeChild(input);
+  };
+  document.body.appendChild(input);
+  input.click();
 }
 
 /* =========================================================================
