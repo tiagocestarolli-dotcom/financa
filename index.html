@@ -3875,12 +3875,15 @@ label {
     print-color-adjust: exact !important;
   }
 
-  /* Esconder TUDO que não faz parte do relatório */
-  .app-header,
-  .tab-bar,
-  .tabbar,
-  .nav,
-  .header,
+  /* Esconder TUDO que não faz parte do relatório.
+     v0.22.1: seletores corrigidos pra estrutura real do DOM:
+     - tab bar é .bottom-nav / #bottomNav (não .tab-bar nem .tabbar)
+     - view de relatórios é .view[data-view="relatorios"] (não tem id) */
+  .bottom-nav,
+  #bottomNav,
+  .fab,
+  .sheet, .sheet-backdrop, .sheet-handle,
+  .toast-host,
   .rel-tabs-row,
   .rel-export-btn,
   .rel-tabs,
@@ -3892,9 +3895,9 @@ label {
     display: none !important;
   }
 
-  /* Esconde TODAS as views exceto a de relatórios */
+  /* Mostra APENAS a view de relatórios (esconde as outras 6) */
   .view { display: none !important; }
-  #viewRelatorios { display: block !important; }
+  .view[data-view="relatorios"] { display: block !important; }
 
   /* Layout limpo: largura total, sem fundos coloridos do app */
   html, body {
@@ -3904,7 +3907,7 @@ label {
     line-height: 1.42;
     margin: 0 !important; padding: 0 !important;
   }
-  .app, .view, #viewRelatorios, #relInner, #relatoriosContent {
+  .app, .view, .view[data-view="relatorios"], #relInner, #relatoriosContent {
     background: white !important;
     padding: 0 !important; margin: 0 !important;
     max-width: 100% !important; width: 100% !important;
@@ -4263,7 +4266,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" style="font-size:12px;">
-  Finança · v0.22.0 · exportação PDF
+  Finança · v0.22.1 · fix seletores PDF
 </div>
 
   </section>
