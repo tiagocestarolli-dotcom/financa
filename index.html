@@ -4174,6 +4174,63 @@ label {
   border-bottom: 1px solid var(--line);
 }
 .rel-det-chip { font-size: 12.5px; }
+/* v0.25.0: ativa o destaque do escopo selecionado — a variável --chip-color já
+   era definida inline em cada chip mas nenhuma regra a consumia. Família (sem
+   cor de membro) cai no ink neutro. */
+.rel-det-chip.active {
+  background: var(--chip-color, var(--ink));
+  border-color: var(--chip-color, var(--ink));
+  color: #fff;
+  font-weight: 600;
+}
+
+/* v0.25.0 (Fatia 5c.1.a): filtros por subcategoria e grupo dentro do escopo */
+.rel-det-filtros {
+  margin: 0 0 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.rel-det-filtro-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.rel-det-filtro-titulo {
+  font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-mute); font-weight: 600;
+}
+.rel-det-filtro-limpar {
+  background: none; border: none; padding: 2px 4px;
+  font-size: 11.5px; color: var(--flow-out); font-weight: 600;
+  font-family: var(--font-body); cursor: pointer;
+}
+.rel-det-filtro-limpar:active { opacity: 0.6; }
+.rel-det-filtro-label {
+  font-size: 10px; color: var(--ink-faint); font-style: italic;
+  margin: 6px 0 5px;
+}
+.rel-det-filtro-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.rel-det-filtro-chip {
+  font-size: 12px; padding: 6px 11px;
+}
+.rel-det-filtro-chip em {
+  font-style: normal; color: var(--ink-faint); font-size: 10.5px;
+  margin-left: 3px;
+}
+.rel-det-filtro-chip.selected {
+  background: var(--ink); border-color: var(--ink); color: var(--bg);
+}
+.rel-det-filtro-chip.selected em { color: rgba(255,255,255,0.7); }
+.rel-det-filtro-grupo.selected { background: #3A6991; border-color: #3A6991; }
+
+/* v0.25.0 (Fatia 5c.1.b): toggle "incluir lista detalhada no PDF" */
+.rel-pdf-opts { margin: 0 0 10px; }
+.rel-pdf-opt {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--ink-soft); cursor: pointer;
+}
+.rel-pdf-opt input[type="checkbox"] { width: 17px; height: 17px; flex-shrink: 0; }
 
 .rel-det-summary-card {
   background: var(--bg-sunken);
@@ -4385,6 +4442,8 @@ label {
 /* Bloco de meta-info que aparece SÓ no PDF impresso (display: none em tela).
    Populado dinamicamente por _atualizarPrintMeta() antes do window.print(). */
 .rel-print-meta { display: none; }
+/* v0.25.0: apêndice cronológico do PDF — invisível em tela, revelado só no print */
+.rel-apendice { display: none; }
 
 /* ====== CSS de impressão (PDF) ====== */
 @media print {
@@ -4417,6 +4476,8 @@ label {
   .rel-period-row,
   .rel-toggle-row,
   .rel-det-chips-row,
+  .rel-det-filtros,
+  .rel-pdf-opts,
   [data-print="hide"] {
     display: none !important;
   }
@@ -4492,6 +4553,30 @@ label {
   .rel-section [style*="color:var(--ink-mute)"],
   .rel-section [style*="color: var(--ink-mute)"] {
     color: #777 !important;
+  }
+
+  /* v0.25.0 (Fatia 5c.1.b): apêndice cronológico em página própria */
+  .rel-apendice.tem-conteudo {
+    display: block !important;
+    page-break-before: always;
+    break-before: page;
+  }
+  .rel-apendice .rel-apendice-head {
+    margin-bottom: 12pt; padding-bottom: 8pt;
+    border-bottom: 1px solid #bbb;
+  }
+  .rel-apendice .rel-apendice-titulo {
+    font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+    font-size: 15pt; font-weight: 600; color: #111;
+  }
+  .rel-apendice .rel-apendice-sub {
+    font-size: 8.5pt; color: #555; margin-top: 4pt;
+    font-variant-numeric: tabular-nums;
+  }
+  /* a lista herda os estilos .rel-det-*; só evitamos cortar linhas no meio */
+  .rel-apendice .rel-det-row { page-break-inside: avoid; break-inside: avoid; }
+  .rel-apendice .rel-det-day-sep {
+    page-break-after: avoid; break-after: avoid;
   }
 }
 
@@ -4800,7 +4885,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.24.0 · Fatia 5c — relatório detalhado por escopo
+  Finança · v0.25.0 · Fatia 5c.1 — filtros no Detalhe + lista no PDF
 </div>
 
   </section>
@@ -7833,6 +7918,13 @@ function relCalcTopIdentificacoes(yms, cats, limit) {
    #relInner — o host externo só hospeda as pills. */
 let relView = 'rel1'; /* 'rel1' (5.1: Gastos & Saídas) | 'rel2' (5.2: Fluxo de Caixa) */
 
+/* v0.25.0 (Fatia 5c.1.b): preferência "incluir lista detalhada no PDF",
+   persistida em localStorage. Aplica-se a Rel 1 e Rel 3. */
+let relPdfApendice = (function () {
+  try { return localStorage.getItem('financa.relPdfApendice') === '1'; }
+  catch (e) { return false; }
+})();
+
 const REL_TABS = [
   { id: 'rel1', label: 'Gastos & Saídas' },
   { id: 'rel2', label: 'Fluxo de Caixa' },
@@ -7852,6 +7944,20 @@ function renderRelatorios() {
      O .rel-print-meta é invisível em tela (CSS), populado dinamicamente
      antes do window.print() com título do relatório, mês, período, data e
      identificação do usuário. */
+  /* v0.25.0 (Fatia 5c.1.b): toggle "incluir lista detalhada no PDF".
+     Só faz sentido nos relatórios sobre gastos por categoria (Rel 1 e Rel 3).
+     Rel 2 (fluxo de caixa, com entradas) terá apêndice próprio numa fatia
+     futura (5c.2). Rel 4 já É a lista detalhada — dispensa. */
+  const mostraOptApendice = (relView === 'rel1' || relView === 'rel3');
+  const apendiceOptHtml = mostraOptApendice
+    ? '<div class="rel-pdf-opts">' +
+        '<label class="rel-pdf-opt">' +
+          '<input type="checkbox" id="relApendiceToggle"' + (relPdfApendice ? ' checked' : '') + '>' +
+          '<span>📎 incluir lista detalhada no PDF</span>' +
+        '</label>' +
+      '</div>'
+    : '';
+
   host.innerHTML =
     '<div class="rel-tabs-row">' +
       '<div class="rel-tabs">' + pillsHtml + '</div>' +
@@ -7859,8 +7965,10 @@ function renderRelatorios() {
         '<span class="rxb-icon">📄</span><span>PDF</span>' +
       '</button>' +
     '</div>' +
+    apendiceOptHtml +
     '<div class="rel-print-meta"></div>' +
-    '<div id="relInner"></div>';
+    '<div id="relInner"></div>' +
+    '<div id="relApendice" class="rel-apendice"></div>';
 
   host.querySelectorAll('[data-rel-view]').forEach(b => {
     b.onclick = () => { relView = b.dataset.relView; renderRelatorios(); };
@@ -7869,6 +7977,13 @@ function renderRelatorios() {
   /* v0.22.0: bind do botão de exportar PDF */
   const btnExport = host.querySelector('[data-rel-export]');
   if (btnExport) btnExport.onclick = exportarRelatorioPDF;
+
+  /* v0.25.0: bind do toggle de apêndice (persiste preferência) */
+  const toggleApendice = host.querySelector('#relApendiceToggle');
+  if (toggleApendice) toggleApendice.onchange = (ev) => {
+    relPdfApendice = !!ev.target.checked;
+    try { localStorage.setItem('financa.relPdfApendice', relPdfApendice ? '1' : '0'); } catch (e) {}
+  };
 
   if (relView === 'rel1') _renderRel1Inner();
   else if (relView === 'rel2') _renderRel2Inner();
@@ -7902,10 +8017,81 @@ function exportarRelatorioPDF() {
   /* Popula meta-info ANTES do print pra o PDF sair completo
      com título, mês, período, data e identificação do usuário. */
   _atualizarPrintMeta(relView);
+  /* v0.25.0: monta (ou limpa) o apêndice cronológico conforme preferência */
+  _montarApendicePDF(relView);
   /* Pequeno delay garante reflow antes da snapshot do print.
      Algumas engines printam o DOM "antes" se chamado imediatamente. */
   setTimeout(function () { window.print(); }, 80);
 }
+
+/* v0.25.0 (Fatia 5c.1.b): coleta os gastos que compõem o apêndice cronológico
+   de um relatório. Usa EXATAMENTE o mesmo conjunto de categorias e o mesmo
+   filtro (_relGastoSaida) que o hero do relatório-mãe — assim o total do
+   apêndice é reconciliável com o relatório (princípio "uma pergunta = uma
+   resposta consistente"). Respeita o período selecionado (mês/3m/6m/12m):
+   o detalhamento cobre o mesmo intervalo dos gráficos do PDF.
+   Retorna null pra views que não têm apêndice nesta fatia (rel2/rel4). */
+function _relApendiceGastos(viewId) {
+  let cats, st;
+  if (viewId === 'rel1') { st = relState; cats = relCategoriasIncluidas(); }
+  else if (viewId === 'rel3') { st = rel3State; cats = REL3_CATS_TIAGO; }
+  else return null;
+
+  const periodo = REL_PERIODOS.find(p => p.id === st.periodo) || REL_PERIODOS[0];
+  const yms = relYmsHistorico(st.ym || currentYM(), periodo.months);
+  const lista = (state.gastos || []).filter(g =>
+    yms.indexOf(g.ym) >= 0 &&
+    cats.indexOf(g.categoria) >= 0 &&
+    _relGastoSaida(g)
+  );
+  const total = lista.reduce((s, g) => s + (Number(g.valor) || 0), 0);
+  return { lista: lista, total: total, periodo: periodo, count: lista.length };
+}
+
+/* v0.25.0: injeta o HTML do apêndice no #relApendice (invisível em tela,
+   visível só no @media print). Se a preferência estiver desligada ou a view
+   não suportar, limpa o container. */
+function _montarApendicePDF(viewId) {
+  const host = document.getElementById('relApendice');
+  if (!host) return;
+  if (!relPdfApendice || (viewId !== 'rel1' && viewId !== 'rel3')) {
+    _limparApendicePDF();
+    return;
+  }
+  const dados = _relApendiceGastos(viewId);
+  if (!dados) { _limparApendicePDF(); return; }
+
+  /* Período em prosa pro cabeçalho do apêndice */
+  const ym = (viewId === 'rel1' ? relState.ym : rel3State.ym) || currentYM();
+  const [yyyy, mm] = ym.split('-').map(Number);
+  const mesLabel = MESES_PT[mm - 1] + ' de ' + yyyy;
+  const periodoLabel = (dados.periodo.months === 1)
+    ? 'mês de ' + mesLabel
+    : 'últimos ' + dados.periodo.months + ' meses (até ' + mesLabel + ')';
+
+  host.innerHTML =
+    '<div class="rel-apendice-head">' +
+      '<div class="rel-apendice-titulo">Detalhamento cronológico</div>' +
+      '<div class="rel-apendice-sub">' +
+        escapeHtml(periodoLabel) + ' · ' + dados.count +
+        ' lançamento' + (dados.count !== 1 ? 's' : '') +
+        ' · total ' + escapeHtml(_relFmtBR(dados.total)) +
+      '</div>' +
+    '</div>' +
+    _relListaCronologicaHtml(dados.lista);
+  host.classList.add('tem-conteudo');
+}
+
+function _limparApendicePDF() {
+  const host = document.getElementById('relApendice');
+  if (!host) return;
+  host.innerHTML = '';
+  host.classList.remove('tem-conteudo');
+}
+
+/* v0.25.0: limpa o apêndice depois de imprimir, pra não deixar lixo no DOM
+   nem custo de render entre exportações. */
+window.addEventListener('afterprint', function () { _limparApendicePDF(); });
 
 function _atualizarPrintMeta(viewId) {
   const meta = document.querySelector('.rel-print-meta');
@@ -7966,6 +8152,29 @@ function _atualizarPrintMeta(viewId) {
   if (viewId === 'rel4' && typeof rel4State !== 'undefined' && rel4State.escopo) {
     const esc = (typeof REL4_ESCOPOS !== 'undefined') ? REL4_ESCOPOS.find(e => e.id === rel4State.escopo) : null;
     if (esc) variante = ' · ' + esc.label;
+    /* v0.25.0: filtros ativos entram no título do PDF pra deixar o recorte explícito */
+    const fSubs = rel4State.filtroSubcats || [];
+    const fGrupos = rel4State.filtroGrupos || [];
+    const partes = [];
+    if (fSubs.length) partes.push(fSubs.join(', '));
+    if (fGrupos.length && state.grupos && state.grupos[rel4State.escopo]) {
+      const nomes = fGrupos.map(id => {
+        const gr = state.grupos[rel4State.escopo].find(x => x.id === id);
+        return gr ? gr.nome : null;
+      }).filter(Boolean);
+      if (nomes.length) partes.push(nomes.join(', '));
+    } else if (fGrupos.length) {
+      /* escopo família: grupos podem estar em qualquer categoria — resolve varrendo */
+      const nomes = fGrupos.map(id => {
+        for (const ck of Object.keys(state.grupos || {})) {
+          const gr = (state.grupos[ck] || []).find(x => x.id === id);
+          if (gr) return gr.nome;
+        }
+        return null;
+      }).filter(Boolean);
+      if (nomes.length) partes.push(nomes.join(', '));
+    }
+    if (partes.length) variante += ' · ' + partes.join(' · ');
   }
 
   meta.innerHTML =
@@ -10172,7 +10381,14 @@ function _rel3DrillIdf(idfKey) {
 let rel4State = {
   ym: null,
   periodo: 'mes',  /* reusado mas só 'mes' tem UI; outros períodos via PDF */
-  escopo: 'familia' /* familia | casa | marina | heitor | juliana | tiago */
+  escopo: 'familia', /* familia | casa | marina | heitor | juliana | tiago */
+  /* v0.25.0 (Fatia 5c.1.a): filtros opcionais DENTRO do escopo.
+     filtroSubcats: array de nomes de subcategoria selecionados (vazio = todos)
+     filtroGrupos: array de ids de grupo selecionados (vazio = todos)
+     Resetados ao trocar de escopo (subcats/grupos de um membro não fazem
+     sentido em outro). Mantidos ao navegar entre meses. */
+  filtroSubcats: [],
+  filtroGrupos: []
 };
 
 const REL4_ESCOPOS = [
@@ -10193,11 +10409,14 @@ function _renderRel4Inner() {
   const ym = rel4State.ym;
   const escopo = rel4State.escopo;
 
-  /* Header: nav de mês + chips de escopo */
-  const headerHtml = _rel4HeaderHtml(ym, escopo);
+  /* v0.25.0: base do escopo (sem filtros de subcat/grupo) alimenta o catálogo
+     de chips; a lista efetiva é a base + filtros opcionais. */
+  const gastosBase = _rel4GetGastos(ym, escopo);
+  const catalogo = _rel4Catalogo(gastosBase);
+  const gastos = _rel4AplicarFiltros(gastosBase);
 
-  /* Filtra gastos */
-  const gastos = _rel4GetGastos(ym, escopo);
+  /* Header: nav de mês + chips de escopo + chips de filtro */
+  const headerHtml = _rel4HeaderHtml(ym, escopo, catalogo);
 
   /* Total + breakdown */
   const total = gastos.reduce((acc, g) => acc + (Number(g.valor) || 0), 0);
@@ -10241,33 +10460,10 @@ function _renderRel4Inner() {
     `;
   }
 
-  /* Lista cronológica — ordem decrescente (mais recente primeiro) */
-  const gastosOrdenados = gastos.slice().sort((a, b) => {
-    if (a.data === b.data) return 0;
-    return a.data > b.data ? -1 : 1;
-  });
-
-  let listaHtml;
-  if (gastosOrdenados.length === 0) {
-    listaHtml = `
-      <div class="empty" style="padding:48px 24px; text-align:center;">
-        <div style="font-size:32px; margin-bottom:12px;">📋</div>
-        Nenhum gasto registrado neste período.
-      </div>
-    `;
-  } else {
-    /* Agrupa por dia pra inserir cabeçalho de dia entre rows */
-    let lastData = null;
-    const rows = [];
-    for (const g of gastosOrdenados) {
-      if (g.data !== lastData) {
-        rows.push(`<div class="rel-det-day-sep">${_fmtDataLongo(g.data)}</div>`);
-        lastData = g.data;
-      }
-      rows.push(_rel4RenderRow(g));
-    }
-    listaHtml = `<div class="rel-det-list">${rows.join('')}</div>`;
-  }
+  /* Lista cronológica decrescente (mais recente primeiro).
+     v0.25.0: extraída pra função reutilizável — também alimenta os
+     apêndices cronológicos dos PDFs do Rel 1 e Rel 3 (Fatia 5c.1.b). */
+  const listaHtml = _relListaCronologicaHtml(gastos);
 
   host.innerHTML = `
     ${headerHtml}
@@ -10286,7 +10482,37 @@ function _renderRel4Inner() {
   _rel4BindEvents();
 }
 
-function _rel4HeaderHtml(ym, escopo) {
+/* v0.25.0 (Fatia 5c.1): renderiza uma lista de gastos em ordem cronológica
+   decrescente, agrupada por dia. Reutilizada pelo Rel 4 (em tela) e pelos
+   apêndices dos PDFs do Rel 1/Rel 3. Recebe a lista JÁ FILTRADA pelo
+   relatório-mãe — não filtra nada por conta própria (garante que o total
+   da lista bata com o hero do relatório que a chamou). */
+function _relListaCronologicaHtml(gastos) {
+  const ordenados = (gastos || []).slice().sort((a, b) => {
+    if (a.data === b.data) return 0;
+    return a.data > b.data ? -1 : 1;
+  });
+  if (ordenados.length === 0) {
+    return `
+      <div class="empty" style="padding:48px 24px; text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px;">📋</div>
+        Nenhum gasto registrado neste período.
+      </div>
+    `;
+  }
+  let lastData = null;
+  const rows = [];
+  for (const g of ordenados) {
+    if (g.data !== lastData) {
+      rows.push(`<div class="rel-det-day-sep">${_fmtDataLongo(g.data)}</div>`);
+      lastData = g.data;
+    }
+    rows.push(_rel4RenderRow(g));
+  }
+  return `<div class="rel-det-list">${rows.join('')}</div>`;
+}
+
+function _rel4HeaderHtml(ym, escopo, catalogo) {
   const escopoChips = REL4_ESCOPOS.map(e => {
     const ativo = e.id === escopo ? 'active' : '';
     const corBase = e.id === 'familia' ? null : ((state.members && state.members[e.id]) || {}).cor;
@@ -10294,6 +10520,46 @@ function _rel4HeaderHtml(ym, escopo) {
     const style = corBase ? `style="--chip-color:${corBase};"` : '';
     return `<button class="chip rel-det-chip ${ativo}" data-rel-det-escopo="${e.id}" ${style}>${icone ? icone + ' ' : ''}${escapeHtml(e.label)}</button>`;
   }).join('');
+
+  /* v0.25.0 (5c.1.a): linha de filtros por subcategoria e (opcional) grupo.
+     Só aparece quando há pelo menos 2 subcategorias na base — com 0 ou 1,
+     filtrar é inútil. Grupos só aparecem se a base tiver algum grupo. */
+  let filtrosHtml = '';
+  const cat = catalogo || { subcats: [], grupos: [] };
+  const fSubs = rel4State.filtroSubcats || [];
+  const fGrupos = rel4State.filtroGrupos || [];
+  const temFiltroAtivo = fSubs.length > 0 || fGrupos.length > 0;
+
+  if (cat.subcats.length >= 2) {
+    const subChips = cat.subcats.map(s => {
+      const sel = fSubs.indexOf(s.nome) >= 0 ? 'selected' : '';
+      return `<button class="chip rel-det-filtro-chip ${sel}" data-rel-det-fsub="${escapeHtml(s.nome)}">${escapeHtml(s.nome)} <em>${s.count}</em></button>`;
+    }).join('');
+
+    let grupoBloco = '';
+    if (cat.grupos.length > 0) {
+      const grpChips = cat.grupos.map(gr => {
+        const sel = fGrupos.indexOf(gr.id) >= 0 ? 'selected' : '';
+        return `<button class="chip rel-det-filtro-chip rel-det-filtro-grupo ${sel}" data-rel-det-fgrupo="${escapeHtml(gr.id)}">🔗 ${escapeHtml(gr.nome)} <em>${gr.count}</em></button>`;
+      }).join('');
+      grupoBloco = `
+        <div class="rel-det-filtro-label">grupo</div>
+        <div class="rel-det-filtro-chips">${grpChips}</div>
+      `;
+    }
+
+    filtrosHtml = `
+      <div class="rel-det-filtros">
+        <div class="rel-det-filtro-head">
+          <span class="rel-det-filtro-titulo">filtrar</span>
+          ${temFiltroAtivo ? '<button class="rel-det-filtro-limpar" data-rel-det-flimpar>limpar filtros</button>' : ''}
+        </div>
+        <div class="rel-det-filtro-label">subcategoria</div>
+        <div class="rel-det-filtro-chips">${subChips}</div>
+        ${grupoBloco}
+      </div>
+    `;
+  }
 
   return `
     <div class="rel-monthnav">
@@ -10304,6 +10570,7 @@ function _rel4HeaderHtml(ym, escopo) {
     <div class="rel-det-chips-row">
       ${escopoChips}
     </div>
+    ${filtrosHtml}
   `;
 }
 
@@ -10335,6 +10602,47 @@ function _rel4GetGastos(ym, escopo) {
     if (g.isPagamentoFatura) return false;
     return true;
   });
+}
+
+/* v0.25.0 (Fatia 5c.1.a): aplica os filtros opcionais de subcategoria e grupo
+   sobre uma lista-base já filtrada por escopo+mês. Vazio = não filtra (passa tudo).
+   Mantido separado de _rel4GetGastos pra que o header possa computar quais
+   subcats/grupos existem na BASE (sem filtro), enquanto a lista usa o filtrado. */
+function _rel4AplicarFiltros(gastos) {
+  const fSubs = rel4State.filtroSubcats || [];
+  const fGrupos = rel4State.filtroGrupos || [];
+  if (fSubs.length === 0 && fGrupos.length === 0) return gastos;
+  return gastos.filter(g => {
+    if (fSubs.length > 0 && fSubs.indexOf(g.subcategoria || '(sem subcategoria)') < 0) return false;
+    if (fGrupos.length > 0 && fGrupos.indexOf(g.grupoId || '(sem grupo)') < 0) return false;
+    return true;
+  });
+}
+
+/* v0.25.0: catálogo de subcats e grupos presentes na base (pra montar chips).
+   Retorna { subcats: [{nome, total, count}], grupos: [{id, nome, total, count}] }
+   ordenados por total decrescente. Grupos resolvidos pelo nome via state.grupos. */
+function _rel4Catalogo(gastosBase) {
+  const subMap = new Map();
+  const grpMap = new Map();
+  for (const g of gastosBase) {
+    const v = Number(g.valor) || 0;
+    const sk = g.subcategoria || '(sem subcategoria)';
+    if (!subMap.has(sk)) subMap.set(sk, { nome: sk, total: 0, count: 0 });
+    const sb = subMap.get(sk); sb.total += v; sb.count++;
+    if (g.grupoId && state.grupos && state.grupos[g.categoria]) {
+      const grupo = state.grupos[g.categoria].find(gr => gr.id === g.grupoId);
+      if (grupo) {
+        if (!grpMap.has(g.grupoId)) grpMap.set(g.grupoId, { id: g.grupoId, nome: grupo.nome, total: 0, count: 0 });
+        const gb = grpMap.get(g.grupoId); gb.total += v; gb.count++;
+      }
+    }
+  }
+  const ord = (a, b) => b.total - a.total;
+  return {
+    subcats: Array.from(subMap.values()).sort(ord),
+    grupos: Array.from(grpMap.values()).sort(ord)
+  };
 }
 
 function _rel4RenderRow(g) {
@@ -10399,9 +10707,43 @@ function _rel4BindEvents() {
   document.querySelectorAll('[data-rel-det-escopo]').forEach(b => {
     b.onclick = () => {
       rel4State.escopo = b.dataset.relDetEscopo;
+      /* v0.25.0: trocar escopo reseta filtros — subcats/grupos de um membro
+         não fazem sentido em outro. */
+      rel4State.filtroSubcats = [];
+      rel4State.filtroGrupos = [];
       renderRelatorios();
     };
   });
+
+  /* v0.25.0 (5c.1.a): toggle de filtro por subcategoria */
+  document.querySelectorAll('[data-rel-det-fsub]').forEach(b => {
+    b.onclick = () => {
+      const sub = b.dataset.relDetFsub;
+      const arr = rel4State.filtroSubcats || (rel4State.filtroSubcats = []);
+      const i = arr.indexOf(sub);
+      if (i >= 0) arr.splice(i, 1); else arr.push(sub);
+      renderRelatorios();
+    };
+  });
+
+  /* v0.25.0 (5c.1.a): toggle de filtro por grupo */
+  document.querySelectorAll('[data-rel-det-fgrupo]').forEach(b => {
+    b.onclick = () => {
+      const gid = b.dataset.relDetFgrupo;
+      const arr = rel4State.filtroGrupos || (rel4State.filtroGrupos = []);
+      const i = arr.indexOf(gid);
+      if (i >= 0) arr.splice(i, 1); else arr.push(gid);
+      renderRelatorios();
+    };
+  });
+
+  /* v0.25.0 (5c.1.a): limpar todos os filtros */
+  const btnLimpar = document.querySelector('[data-rel-det-flimpar]');
+  if (btnLimpar) btnLimpar.onclick = () => {
+    rel4State.filtroSubcats = [];
+    rel4State.filtroGrupos = [];
+    renderRelatorios();
+  };
 
   /* Toque numa linha → abre o gasto pra edição (reusa o openGastoForm) */
   document.querySelectorAll('[data-rel-det-gid]').forEach(row => {
