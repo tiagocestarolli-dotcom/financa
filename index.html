@@ -3308,6 +3308,163 @@ label {
   flex: 0 0 auto;
 }
 
+/* Revisão de extrato — componentes v0.23.2 */
+.rex-row-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rex-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+.rex-match-banner {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--bg-sunken);
+  border-left: 3px solid var(--ink-mute);
+  border-radius: 6px;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.rex-match-title {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 2px;
+}
+.rex-match-body {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.rex-match-body em {
+  color: var(--ink);
+  font-style: normal;
+  font-weight: 500;
+}
+.rex-row-classif {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rex-classif-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--bg-sunken);
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-family: var(--font-display);
+  transition: background .15s, border-color .15s;
+}
+.rex-classif-btn:active,
+.rex-classif-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--ink-mute);
+}
+.rex-classif-cat {
+  color: var(--ink);
+  font-weight: 500;
+}
+.rex-classif-edit {
+  color: var(--ink-mute);
+  font-size: 11px;
+  font-style: italic;
+}
+.rex-tag-classif {
+  background: color-mix(in srgb, var(--flow-in) 14%, transparent);
+  color: var(--flow-in);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+/* Picker de classificação inline */
+.rex-picker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 18, 14, 0.55);
+  z-index: 250;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn .2s ease;
+}
+.rex-picker-modal {
+  background: var(--bg);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp .25s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.rex-picker-header {
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.rex-picker-titulo {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.rex-picker-sub {
+  font-size: 12.5px;
+  color: var(--ink-mute);
+  font-style: italic;
+  font-family: var(--font-display);
+  word-break: break-word;
+}
+.rex-picker {
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+.rex-picker-sec { margin-bottom: 16px; }
+.rex-picker-label {
+  font-size: 11px;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+.rex-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rex-pick-cat {
+  font-size: 12.5px;
+}
+.rex-pick-sub-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  font-size: 14px;
+  background: var(--bg-elevated);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+.rex-picker-footer {
+  padding: 14px 20px 20px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 /* ============================================================
    RELATÓRIOS — Fatia 5.1 (v0.16.0)
    ============================================================ */
@@ -4007,6 +4164,199 @@ label {
 }
 
 /* ============================================================
+   RELATÓRIO DETALHADO · Fatia 5c (v0.24.0)
+   Lista cronológica de gastos por escopo. Reusa rel-monthnav.
+   ============================================================ */
+.rel-det-chips-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: 0 0 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.rel-det-chip { font-size: 12.5px; }
+
+.rel-det-summary-card {
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
+.rel-det-sum-total {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.rel-det-sum-label {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+.rel-det-sum-value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+.rel-det-sum-count {
+  font-size: 12px;
+  color: var(--ink-mute);
+  font-style: italic;
+  font-family: var(--font-display);
+}
+
+.rel-det-breakdown {
+  font-size: 12.5px;
+}
+.rel-det-bd-label {
+  font-size: 10.5px;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+.rel-det-bd-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  color: var(--ink-soft);
+}
+.rel-det-bd-resto { color: var(--ink-mute); font-style: italic; }
+.rel-det-bd-name { font-weight: 500; }
+.rel-det-bd-val {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.rel-det-bd-val em {
+  font-style: normal;
+  color: var(--ink-mute);
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.rel-det-list {
+  display: flex;
+  flex-direction: column;
+}
+.rel-det-day-sep {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  padding: 14px 4px 6px;
+  margin-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.rel-det-day-sep:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.rel-det-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background .12s;
+}
+.rel-det-row:hover, .rel-det-row:active {
+  background: var(--bg-sunken);
+}
+.rel-det-row-data {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+.rel-det-row-body {
+  flex: 1;
+  min-width: 0;
+}
+.rel-det-row-nome {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+  line-height: 1.3;
+  margin-bottom: 3px;
+  word-break: break-word;
+}
+.rel-det-row-identif {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.rel-det-row-identif em {
+  font-style: italic;
+  color: var(--ink-mute);
+}
+.rel-det-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: 10.5px;
+}
+.rel-det-meta-item {
+  color: var(--ink-mute);
+  font-style: italic;
+}
+.rel-det-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+.rel-det-bdg-fixo {
+  background: color-mix(in srgb, var(--ink-mute) 15%, transparent);
+  color: var(--ink-soft);
+}
+.rel-det-bdg-invest {
+  background: color-mix(in srgb, var(--flow-invest) 15%, transparent);
+  color: var(--flow-invest);
+}
+.rel-det-bdg-parc {
+  background: color-mix(in srgb, var(--flow-in) 15%, transparent);
+  color: var(--flow-in);
+  font-family: var(--font-mono);
+}
+.rel-det-bdg-ext {
+  background: color-mix(in srgb, #4A90A4 15%, transparent);
+  color: #4A90A4;
+}
+.rel-det-bdg-fat {
+  background: color-mix(in srgb, #B07B3E 15%, transparent);
+  color: #B07B3E;
+}
+.rel-det-bdg-pend {
+  background: color-mix(in srgb, var(--flow-out) 15%, transparent);
+  color: var(--flow-out);
+}
+.rel-det-row-valor {
+  font-family: var(--font-mono);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--flow-out);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+/* ============================================================
    RELATÓRIOS · Fatia 5.5 (v0.22.0) — Exportação PDF
    Estratégia: window.print() + CSS @media print (em vez de
    jsPDF + html2canvas). PDF nativo do navegador → texto
@@ -4066,6 +4416,7 @@ label {
   .nav-month,
   .rel-period-row,
   .rel-toggle-row,
+  .rel-det-chips-row,
   [data-print="hide"] {
     display: none !important;
   }
@@ -4449,7 +4800,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.23.1 · undo de importação + pré-classificação por alias
+  Finança · v0.24.0 · Fatia 5c — relatório detalhado por escopo
 </div>
 
   </section>
@@ -7485,7 +7836,8 @@ let relView = 'rel1'; /* 'rel1' (5.1: Gastos & Saídas) | 'rel2' (5.2: Fluxo de 
 const REL_TABS = [
   { id: 'rel1', label: 'Gastos & Saídas' },
   { id: 'rel2', label: 'Fluxo de Caixa' },
-  { id: 'rel3', label: 'Meus Gastos' }
+  { id: 'rel3', label: 'Meus Gastos' },
+  { id: 'rel4', label: 'Detalhe' }
 ];
 
 function renderRelatorios() {
@@ -7521,6 +7873,7 @@ function renderRelatorios() {
   if (relView === 'rel1') _renderRel1Inner();
   else if (relView === 'rel2') _renderRel2Inner();
   else if (relView === 'rel3') _renderRel3Inner();
+  else if (relView === 'rel4') _renderRel4Inner();
 }
 
 /* ============================================================
@@ -7561,7 +7914,8 @@ function _atualizarPrintMeta(viewId) {
   const nomes = {
     rel1: 'Relatório de Gastos & Saídas',
     rel2: 'Relatório de Fluxo de Caixa',
-    rel3: 'Relatório · Meus Gastos (Tiago)'
+    rel3: 'Relatório · Meus Gastos (Tiago)',
+    rel4: 'Relatório Detalhado'
   };
 
   /* Resolve qual state-bag usar conforme view ativo */
@@ -7569,6 +7923,7 @@ function _atualizarPrintMeta(viewId) {
   if (viewId === 'rel1' && typeof relState  !== 'undefined') stateRel = relState;
   if (viewId === 'rel2' && typeof rel2State !== 'undefined') stateRel = rel2State;
   if (viewId === 'rel3' && typeof rel3State !== 'undefined') stateRel = rel3State;
+  if (viewId === 'rel4' && typeof rel4State !== 'undefined') stateRel = rel4State;
 
   const ym = (stateRel && stateRel.ym) ? stateRel.ym : currentYM();
   const periodoId = (stateRel && stateRel.periodo) ? stateRel.periodo : 'mes';
@@ -7608,6 +7963,10 @@ function _atualizarPrintMeta(viewId) {
   let variante = '';
   if (viewId === 'rel1' && incluiTiago) variante = ' · incluindo Tiago no fluxo da família';
   if (viewId === 'rel3' && incluiTiago) variante = ' · comparativo com a família';
+  if (viewId === 'rel4' && typeof rel4State !== 'undefined' && rel4State.escopo) {
+    const esc = (typeof REL4_ESCOPOS !== 'undefined') ? REL4_ESCOPOS.find(e => e.id === rel4State.escopo) : null;
+    if (esc) variante = ' · ' + esc.label;
+  }
 
   meta.innerHTML =
     '<div class="rpm-titulo">' + escapeHtml(nomes[viewId] || 'Relatório') + escapeHtml(variante) + '</div>' +
@@ -9790,6 +10149,267 @@ function _rel3DrillIdf(idfKey) {
   );
   const titulo = (gastos[0] && gastos[0].identificacao) || idfKey;
   sheet.open('Identificação · ' + titulo, _relDrillListaHtml(gastos));
+}
+
+
+/* =========================================================================
+   v0.24.0 — RELATÓRIO DETALHADO (Fatia 5c)
+   =========================================================================
+   Nova sub-view dentro de Relatórios. Lista cronológica de gastos por escopo
+   (Família ou cada categoria), com identificação completa, badges, método
+   de pagamento e total. Exporta PDF via mesma infra dos outros relatórios.
+
+   Decisões de design:
+   · Mostra a cara útil pra auditoria: data + descrição + cat/subcat/grupo +
+     método + badges + valor. Sem perder info, mas com hierarquia visual.
+   · Exclui isPagamentoFatura e isAjuste (são lançamentos técnicos, não gastos
+     materiais — entrariam como duplicata na auditoria).
+   · Inclui isInvest mas com badge específico.
+   · Para Família: soma casa + marina + heitor + juliana + tiago.
+   · Para escopo individual: só aquela categoria.
+   ========================================================================= */
+
+let rel4State = {
+  ym: null,
+  periodo: 'mes',  /* reusado mas só 'mes' tem UI; outros períodos via PDF */
+  escopo: 'familia' /* familia | casa | marina | heitor | juliana | tiago */
+};
+
+const REL4_ESCOPOS = [
+  { id: 'familia', label: 'Família', icone: '👨‍👩‍👧‍👦' },
+  { id: 'casa',    label: 'Casa' },
+  { id: 'marina',  label: 'Marina' },
+  { id: 'heitor',  label: 'Heitor' },
+  { id: 'juliana', label: 'Juliana' },
+  { id: 'tiago',   label: 'Tiago' }
+];
+
+function _renderRel4Inner() {
+  if (!rel4State.ym) rel4State.ym = currentYM();
+
+  const host = document.getElementById('relInner');
+  if (!host) return;
+
+  const ym = rel4State.ym;
+  const escopo = rel4State.escopo;
+
+  /* Header: nav de mês + chips de escopo */
+  const headerHtml = _rel4HeaderHtml(ym, escopo);
+
+  /* Filtra gastos */
+  const gastos = _rel4GetGastos(ym, escopo);
+
+  /* Total + breakdown */
+  const total = gastos.reduce((acc, g) => acc + (Number(g.valor) || 0), 0);
+  const count = gastos.length;
+
+  /* Top 5 subcategorias */
+  const porSubcat = {};
+  for (const g of gastos) {
+    const k = g.subcategoria || '(sem subcategoria)';
+    porSubcat[k] = (porSubcat[k] || 0) + (Number(g.valor) || 0);
+  }
+  const topSubcats = Object.entries(porSubcat)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const restoSubcats = Object.entries(porSubcat)
+    .sort((a, b) => b[1] - a[1])
+    .slice(5)
+    .reduce((acc, [, v]) => acc + v, 0);
+
+  let breakdownHtml = '';
+  if (topSubcats.length > 0 && total > 0) {
+    breakdownHtml = `
+      <div class="rel-det-breakdown">
+        <div class="rel-det-bd-label">principais subcategorias</div>
+        ${topSubcats.map(([sub, val]) => {
+          const pct = (val / total * 100).toFixed(0);
+          return `
+            <div class="rel-det-bd-row">
+              <span class="rel-det-bd-name">${escapeHtml(sub)}</span>
+              <span class="rel-det-bd-val">${_relFmtBR(val)} <em>(${pct}%)</em></span>
+            </div>
+          `;
+        }).join('')}
+        ${restoSubcats > 0 ? `
+          <div class="rel-det-bd-row rel-det-bd-resto">
+            <span class="rel-det-bd-name">outros (${Object.keys(porSubcat).length - 5})</span>
+            <span class="rel-det-bd-val">${_relFmtBR(restoSubcats)} <em>(${(restoSubcats / total * 100).toFixed(0)}%)</em></span>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  /* Lista cronológica — ordem decrescente (mais recente primeiro) */
+  const gastosOrdenados = gastos.slice().sort((a, b) => {
+    if (a.data === b.data) return 0;
+    return a.data > b.data ? -1 : 1;
+  });
+
+  let listaHtml;
+  if (gastosOrdenados.length === 0) {
+    listaHtml = `
+      <div class="empty" style="padding:48px 24px; text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px;">📋</div>
+        Nenhum gasto registrado neste período.
+      </div>
+    `;
+  } else {
+    /* Agrupa por dia pra inserir cabeçalho de dia entre rows */
+    let lastData = null;
+    const rows = [];
+    for (const g of gastosOrdenados) {
+      if (g.data !== lastData) {
+        rows.push(`<div class="rel-det-day-sep">${_fmtDataLongo(g.data)}</div>`);
+        lastData = g.data;
+      }
+      rows.push(_rel4RenderRow(g));
+    }
+    listaHtml = `<div class="rel-det-list">${rows.join('')}</div>`;
+  }
+
+  host.innerHTML = `
+    ${headerHtml}
+    <div class="rel-det-summary-card">
+      <div class="rel-det-sum-total">
+        <div class="rel-det-sum-label">total de gastos</div>
+        <div class="rel-det-sum-value">${_relFmtBR(total)}</div>
+        <div class="rel-det-sum-count">${count} lançamento${count !== 1 ? 's' : ''} · ${_rel4MesLabel(ym)}</div>
+      </div>
+      ${breakdownHtml}
+    </div>
+    ${listaHtml}
+  `;
+
+  /* Bind events */
+  _rel4BindEvents();
+}
+
+function _rel4HeaderHtml(ym, escopo) {
+  const escopoChips = REL4_ESCOPOS.map(e => {
+    const ativo = e.id === escopo ? 'active' : '';
+    const corBase = e.id === 'familia' ? null : ((state.members && state.members[e.id]) || {}).cor;
+    const icone = e.icone || ((state.members && state.members[e.id]) || {}).icone || '';
+    const style = corBase ? `style="--chip-color:${corBase};"` : '';
+    return `<button class="chip rel-det-chip ${ativo}" data-rel-det-escopo="${e.id}" ${style}>${icone ? icone + ' ' : ''}${escapeHtml(e.label)}</button>`;
+  }).join('');
+
+  return `
+    <div class="rel-monthnav">
+      <button class="rel-monthnav-btn" data-rel-det-prev>‹</button>
+      <div class="rel-monthlabel">${_rel4MesLabel(ym)}</div>
+      <button class="rel-monthnav-btn" data-rel-det-next>›</button>
+    </div>
+    <div class="rel-det-chips-row">
+      ${escopoChips}
+    </div>
+  `;
+}
+
+function _rel4MesLabel(ym) {
+  const [yyyy, mm] = (ym || '').split('-').map(Number);
+  if (!yyyy || !mm) return ym || '';
+  return MESES_PT[mm - 1] + ' de ' + yyyy;
+}
+
+function _fmtDataLongo(iso) {
+  if (!iso) return '';
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  const dia = parseInt(m[3], 10);
+  const mes = parseInt(m[2], 10);
+  return `${dia} de ${MESES_PT[mes - 1]}`;
+}
+
+function _rel4GetGastos(ym, escopo) {
+  const todos = state.gastos || [];
+  const cats = (escopo === 'familia')
+    ? ['casa', 'marina', 'heitor', 'juliana', 'tiago']
+    : [escopo];
+
+  return todos.filter(g => {
+    if (g.ym !== ym) return false;
+    if (!cats.includes(g.categoria)) return false;
+    if (g.isAjuste) return false;
+    if (g.isPagamentoFatura) return false;
+    return true;
+  });
+}
+
+function _rel4RenderRow(g) {
+  const dia = (g.data || '').slice(8, 10);
+  const valor = Number(g.valor) || 0;
+  const cor = (state.members && state.members[g.categoria] || {}).cor || 'var(--ink-mute)';
+
+  /* Método de pagamento */
+  let metodo = '';
+  if (g.pagamento === 'cartao' && g.cardId) {
+    const card = (state.cards || []).find(c => c.id === g.cardId);
+    metodo = card ? `💳 ${escapeHtml(card.nome)}` : '💳 cartão';
+  } else if (g.contaId) {
+    const conta = (state.contas || []).find(c => c.id === g.contaId);
+    metodo = conta ? `🏦 ${escapeHtml(conta.nome)}` : '🏦 conta';
+  } else if (g.pagamento) {
+    metodo = `📌 ${escapeHtml(g.pagamento)}`;
+  }
+
+  /* Identificação: categoria › subcategoria (› grupo) */
+  let identif = `<span style="color:${cor};font-weight:600;">${escapeHtml(_capitalizar(g.categoria || '?'))}</span> › ${escapeHtml(g.subcategoria || 'sem subcat')}`;
+  if (g.grupoId && state.grupos && state.grupos[g.categoria]) {
+    const grupo = state.grupos[g.categoria].find(gr => gr.id === g.grupoId);
+    if (grupo) identif += ` › <em>${escapeHtml(grupo.nome)}</em>`;
+  }
+
+  /* Badges */
+  const badges = [];
+  if (g.isFixo) badges.push('<span class="rel-det-badge rel-det-bdg-fixo">🔁 fixo</span>');
+  if (g.isInvest || _isInvestRuntime(g)) badges.push('<span class="rel-det-badge rel-det-bdg-invest">💎 invest</span>');
+  if (g.parcelaTotal && g.parcelaAtual) {
+    badges.push(`<span class="rel-det-badge rel-det-bdg-parc">${g.parcelaAtual}/${g.parcelaTotal}</span>`);
+  }
+  if (g.origem === 'extrato') badges.push('<span class="rel-det-badge rel-det-bdg-ext">📥 extrato</span>');
+  else if (g.origem === 'fatura' || g.cardId) badges.push('<span class="rel-det-badge rel-det-bdg-fat">📄 fatura</span>');
+  if (g.observacao && /a classificar/i.test(g.subcategoria || '')) {
+    badges.push('<span class="rel-det-badge rel-det-bdg-pend">❓ a classificar</span>');
+  }
+
+  return `
+    <div class="rel-det-row" data-rel-det-gid="${g.id}">
+      <div class="rel-det-row-data">${dia}</div>
+      <div class="rel-det-row-body">
+        <div class="rel-det-row-nome">${escapeHtml(g.nome || '(sem nome)')}</div>
+        <div class="rel-det-row-identif">${identif}</div>
+        <div class="rel-det-row-meta">
+          ${metodo ? `<span class="rel-det-meta-item">${metodo}</span>` : ''}
+          ${badges.join(' ')}
+        </div>
+      </div>
+      <div class="rel-det-row-valor">${_relFmtBR(valor)}</div>
+    </div>
+  `;
+}
+
+function _rel4BindEvents() {
+  const btnPrev = document.querySelector('[data-rel-det-prev]');
+  const btnNext = document.querySelector('[data-rel-det-next]');
+  if (btnPrev) btnPrev.onclick = () => { rel4State.ym = ymPrev(rel4State.ym); renderRelatorios(); };
+  if (btnNext) btnNext.onclick = () => { rel4State.ym = ymNext(rel4State.ym); renderRelatorios(); };
+
+  document.querySelectorAll('[data-rel-det-escopo]').forEach(b => {
+    b.onclick = () => {
+      rel4State.escopo = b.dataset.relDetEscopo;
+      renderRelatorios();
+    };
+  });
+
+  /* Toque numa linha → abre o gasto pra edição (reusa o openGastoForm) */
+  document.querySelectorAll('[data-rel-det-gid]').forEach(row => {
+    row.onclick = () => {
+      const gid = row.dataset.relDetGid;
+      if (typeof openGastoForm === 'function') openGastoForm(gid);
+    };
+  });
 }
 
 /* ===== Helpers ===== */
@@ -15188,48 +15808,117 @@ function _diasEntre(isoA, isoB) {
   return Math.round((b - a) / (1000 * 60 * 60 * 24));
 }
 
-/* --- Dedup contra registros já existentes ----------------------------- */
-/* Para cada lançamento do extrato, procura se já existe um gasto/entrada
-   no app com mesma contaId + valor ± R$ 0,01 + data ± 2 dias.
-   Se sim, marca como duplicata (l.duplicataDe = id do registro existente). */
+/* --- Detecção de potencial duplicata em 3 níveis ---------------------- */
+/* v0.23.2: substituiu dedup simples. Em vez de excluir silenciosamente,
+   anota o gasto suspeito em `l.potencialMatch` pra UI mostrar inline.
+   Tiago decide caso a caso. */
 function dedupExtrato(lancs, contaId) {
   for (const l of lancs) {
-    if (l.excluir || l.tipo === 'IGNORAR') continue;
+    if (l.tipo === 'IGNORAR') continue;
     if (l.tipo === 'PAGAMENTO_FATURA' && l.matchPagamentoFaturaId) continue; /* já tratado */
 
-    const eUsadasSaida = l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA';
-    const eUsadasEntrada = l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO';
+    const match = _detectarPotencialMatch(l, contaId);
+    if (!match) continue;
 
-    if (eUsadasSaida) {
-      const existente = (state.gastos || []).find(g => {
-        if (g.contaId !== contaId) return false;
-        if (g.pagamento === 'cartao') return false; /* gasto de cartão não conta */
-        if (g.isAjuste || g.isPagamentoFatura) return false;
-        if (Math.abs((Number(g.valor) || 0) - l.valor) > 0.01) return false;
-        return Math.abs(_diasEntre(g.data, l.dataISO)) <= 2;
-      });
-      if (existente) {
-        l.duplicataDe = existente.id;
-        l.duplicataKind = 'gasto';
-        l.excluir = true;
-      }
-      continue;
-    }
-
-    if (eUsadasEntrada) {
-      const existente = (state.entradas || []).find(e => {
-        if (e.contaId !== contaId) return false;
-        if (Math.abs((Number(e.valor) || 0) - l.valor) > 0.01) return false;
-        return Math.abs(_diasEntre(e.data, l.dataISO)) <= 2;
-      });
-      if (existente) {
-        l.duplicataDe = existente.id;
-        l.duplicataKind = 'entrada';
-        l.excluir = true;
-      }
+    l.potencialMatch = {
+      id: match.gasto.id || match.gasto._id,
+      nome: match.gasto.nome || match.gasto.observacao || '(sem nome)',
+      data: match.gasto.data,
+      valor: Number(match.gasto.valor) || 0,
+      categoria: match.gasto.categoria || null,
+      subcategoria: match.gasto.subcategoria || null,
+      confianca: match.confianca,
+      kind: match.kind /* 'gasto' ou 'entrada' */
+    };
+    /* Alta e média confiança: default ignorar.
+       Baixa confiança: default incluir, Tiago decide. */
+    if (match.confianca === 'alta' || match.confianca === 'media') {
+      l.excluir = true;
     }
   }
   return lancs;
+}
+
+/* Procura em state.gastos e state.entradas um registro que parece bater com
+   este lançamento do extrato. Retorna {gasto, confianca, kind} ou null.
+   3 níveis de confiança (alta > media > baixa) — cada nível com tolerâncias
+   diferentes pra capturar diferentes tipos de duplicata. */
+function _detectarPotencialMatch(l, contaId) {
+  const valorAlvo = l.valor;
+  const dataAlvo = l.dataISO;
+  const descUpper = (l.descricaoOriginal || '').toUpperCase();
+  const ehEntrada = (l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO');
+
+  /* Pool de candidatos: gastos OU entradas dependendo do tipo do lanc */
+  const poolGastos = (state.gastos || []).filter(g =>
+    !g.isAjuste && !g.isPagamentoFatura
+  );
+  const poolEntradas = (state.entradas || []);
+
+  /* Nível ALTA: mesma conta, valor ±R$ 0,01, ±2 dias */
+  let m = null;
+  if (ehEntrada) {
+    m = poolEntradas.find(e =>
+      e.contaId === contaId &&
+      Math.abs((Number(e.valor) || 0) - valorAlvo) <= 0.01 &&
+      Math.abs(_diasEntre(e.data, dataAlvo)) <= 2
+    );
+    if (m) return { gasto: m, confianca: 'alta', kind: 'entrada' };
+  } else {
+    m = poolGastos.find(g =>
+      g.contaId === contaId &&
+      g.pagamento !== 'cartao' &&
+      Math.abs((Number(g.valor) || 0) - valorAlvo) <= 0.01 &&
+      Math.abs(_diasEntre(g.data, dataAlvo)) <= 2
+    );
+    if (m) return { gasto: m, confianca: 'alta', kind: 'gasto' };
+  }
+
+  /* Nível MÉDIA: qualquer conta (ou sem conta), valor ±R$ 0,01, ±7 dias.
+     Pega casos onde Tiago registrou em outra conta ou sem contaId. */
+  if (ehEntrada) {
+    m = poolEntradas.find(e =>
+      Math.abs((Number(e.valor) || 0) - valorAlvo) <= 0.01 &&
+      Math.abs(_diasEntre(e.data, dataAlvo)) <= 7
+    );
+    if (m) return { gasto: m, confianca: 'media', kind: 'entrada' };
+  } else {
+    m = poolGastos.find(g =>
+      g.pagamento !== 'cartao' &&
+      Math.abs((Number(g.valor) || 0) - valorAlvo) <= 0.01 &&
+      Math.abs(_diasEntre(g.data, dataAlvo)) <= 7
+    );
+    if (m) return { gasto: m, confianca: 'media', kind: 'gasto' };
+  }
+
+  /* Nível BAIXA: valor ±1%, ±15 dias, palavra-chave compartilhada no nome.
+     Pega casos onde valor não bate exatamente mas é similar (juros, taxa
+     adicionada manualmente, etc). Palavras-chave ≥ 4 chars pra evitar
+     ruído ("ELEVA", "WISE", "COLEGIO", "BOLETO", etc). */
+  const palavrasChave = descUpper.split(/\s+/).filter(p => p.length >= 4);
+  if (palavrasChave.length > 0) {
+    const tol = Math.max(0.01, valorAlvo * 0.01);
+    if (ehEntrada) {
+      m = poolEntradas.find(e => {
+        if (Math.abs((Number(e.valor) || 0) - valorAlvo) > tol) return false;
+        if (Math.abs(_diasEntre(e.data, dataAlvo)) > 15) return false;
+        const obsUpper = (e.observacao || '').toUpperCase();
+        return palavrasChave.some(p => obsUpper.includes(p));
+      });
+      if (m) return { gasto: m, confianca: 'baixa', kind: 'entrada' };
+    } else {
+      m = poolGastos.find(g => {
+        if (g.pagamento === 'cartao') return false;
+        if (Math.abs((Number(g.valor) || 0) - valorAlvo) > tol) return false;
+        if (Math.abs(_diasEntre(g.data, dataAlvo)) > 15) return false;
+        const nomeUpper = (g.nome || '').toUpperCase();
+        return palavrasChave.some(p => nomeUpper.includes(p));
+      });
+      if (m) return { gasto: m, confianca: 'baixa', kind: 'gasto' };
+    }
+  }
+
+  return null;
 }
 
 
@@ -15241,8 +15930,42 @@ let revisaoExtratoState = {
   lancs: [],
   banco: null,
   metaPeriodo: null,
-  filtroTipo: 'todos'  /* 'todos' | 'entradas' | 'saidas' | 'tarifas' | 'pagfat' | 'ignorados' */
+  filtroTipo: 'todos'  /* 'todos' | 'entradas' | 'saidas' | 'tarifas' | 'pagfat' | 'aclassificar' | 'duplicatas' | 'ignorados' */
 };
+
+/* v0.23.2: chave do rascunho no localStorage. Permite fechar a sheet
+   sem perder progresso e retomar depois pra navegar no app entre revisão. */
+const REVISAO_EXTRATO_DRAFT_KEY = 'financa.revisaoExtratoDraft';
+
+function salvarRascunhoRevisao() {
+  if (!revisaoExtratoState.lancs || revisaoExtratoState.lancs.length === 0) return;
+  try {
+    localStorage.setItem(REVISAO_EXTRATO_DRAFT_KEY, JSON.stringify({
+      ...revisaoExtratoState,
+      salvoEm: new Date().toISOString()
+    }));
+  } catch (e) {
+    console.warn('Não foi possível salvar rascunho:', e);
+  }
+}
+
+function carregarRascunhoRevisao() {
+  try {
+    const raw = localStorage.getItem(REVISAO_EXTRATO_DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function limparRascunhoRevisao() {
+  try { localStorage.removeItem(REVISAO_EXTRATO_DRAFT_KEY); } catch (e) {}
+}
+
+function temRascunhoRevisao() {
+  return !!carregarRascunhoRevisao();
+}
 
 /* --- Pipeline completo de importação do extrato ----------------------- */
 async function importarExtratoBancario(file, contaId) {
@@ -15273,6 +15996,7 @@ async function importarExtratoBancario(file, contaId) {
     dedupExtrato(lancs, contaId);
 
     revisaoExtratoState = { contaId, lancs, banco, metaPeriodo, filtroTipo: 'todos' };
+    salvarRascunhoRevisao();
 
     setTimeout(() => openRevisaoExtratoSheet(), 250);
 
@@ -15280,6 +16004,23 @@ async function importarExtratoBancario(file, contaId) {
     console.error('[importarExtrato] erro:', err);
     toast(err.message || 'Erro ao importar extrato', 'error');
   }
+}
+
+/* v0.23.2: retomar revisão a partir do rascunho */
+function retomarRascunhoRevisao() {
+  const draft = carregarRascunhoRevisao();
+  if (!draft) {
+    toast('Nenhum rascunho encontrado', 'info');
+    return;
+  }
+  revisaoExtratoState = {
+    contaId: draft.contaId,
+    lancs: draft.lancs,
+    banco: draft.banco,
+    metaPeriodo: draft.metaPeriodo,
+    filtroTipo: draft.filtroTipo || 'todos'
+  };
+  openRevisaoExtratoSheet();
 }
 
 /* --- Tela de revisão do extrato --------------------------------------- */
@@ -15298,6 +16039,8 @@ function openRevisaoExtratoSheet() {
     tarifas: lancs.filter(l => l.tipo === 'SAIDA_TARIFA').length,
     pagfat: lancs.filter(l => l.tipo === 'PAGAMENTO_FATURA').length,
     ignorados: lancs.filter(l => l.excluir).length,
+    aclassificar: lancs.filter(l => !l.excluir && !l.classifManual && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA')).length,
+    duplicatas: lancs.filter(l => l.potencialMatch).length,
     rendimento: lancs.filter(l => l.tipo === 'ENTRADA_RENDIMENTO').length
   };
   const naoExcluidos = lancs.filter(l => !l.excluir).length;
@@ -15319,15 +16062,18 @@ function openRevisaoExtratoSheet() {
     </div>
 
     <div class="rex-microcopy">
-      <em>Pagamentos de fatura já registrados no app são detectados automaticamente e ignorados.
-      Duplicatas (lançamentos que você já registrou) também são marcadas pra você decidir.</em>
+      <em>Lançamentos com banner colorido provavelmente já existem no app. Toque na classificação
+      para escolher categoria/subcategoria antes de aplicar. Você pode fechar essa tela e voltar
+      depois — o rascunho fica salvo.</em>
     </div>
 
     <div class="rex-filtros">
       ${_rexFiltroChip('todos', `todos (${cont.todos})`)}
+      ${cont.duplicatas > 0 ? _rexFiltroChip('duplicatas', `⚠ possíveis duplicatas (${cont.duplicatas})`) : ''}
+      ${cont.aclassificar > 0 ? _rexFiltroChip('aclassificar', `❓ a classificar (${cont.aclassificar})`) : ''}
       ${_rexFiltroChip('saidas', `saídas (${cont.saidas})`, 'var(--flow-out)')}
       ${_rexFiltroChip('entradas', `entradas (${cont.entradas})`, 'var(--flow-in)')}
-      ${_rexFiltroChip('tarifas', `tarifas (${cont.tarifas})`)}
+      ${cont.tarifas > 0 ? _rexFiltroChip('tarifas', `tarifas (${cont.tarifas})`) : ''}
       ${cont.pagfat > 0 ? _rexFiltroChip('pagfat', `🔄 fatura (${cont.pagfat})`) : ''}
       ${_rexFiltroChip('ignorados', `ignorados (${cont.ignorados})`)}
     </div>
@@ -15336,7 +16082,7 @@ function openRevisaoExtratoSheet() {
   `;
 
   const footer = `
-    <button class="btn btn-secondary" id="rexCancel">cancelar</button>
+    <button class="btn btn-secondary" id="rexDraft">salvar e voltar depois</button>
     <button class="btn btn-primary" id="rexApply">aplicar ${naoExcluidos} lançamento${naoExcluidos !== 1 ? 's' : ''}</button>
   `;
 
@@ -15353,7 +16099,13 @@ function openRevisaoExtratoSheet() {
     };
   });
 
-  document.getElementById('rexCancel').onclick = () => sheet.close();
+  /* v0.23.2: botão "salvar rascunho" */
+  document.getElementById('rexDraft').onclick = () => {
+    salvarRascunhoRevisao();
+    toast('Rascunho salvo. Retome em qualquer conta tocando em "Importar extrato".', 'info');
+    sheet.close();
+  };
+
   document.getElementById('rexApply').onclick = async () => {
     const naoExcluidos = revisaoExtratoState.lancs.filter(l => !l.excluir);
     if (naoExcluidos.length === 0) {
@@ -15361,22 +16113,26 @@ function openRevisaoExtratoSheet() {
       return;
     }
 
-    /* v0.23.1: confirmação antes de aplicar */
+    /* Confirmação antes de aplicar */
     const nSaidas = naoExcluidos.filter(l => l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA' || l.tipo === 'PAGAMENTO_FATURA').length;
     const nEntradas = naoExcluidos.filter(l => l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO').length;
     const partes = [];
     if (nSaidas > 0) partes.push(`${nSaidas} saída${nSaidas !== 1 ? 's' : ''}`);
     if (nEntradas > 0) partes.push(`${nEntradas} entrada${nEntradas !== 1 ? 's' : ''}`);
 
+    const nAClassif = naoExcluidos.filter(l => !l.classifManual && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA')).length;
+    const aviso = nAClassif > 0 ? ` ${nAClassif} ficarão como "a classificar" — você pode editar depois.` : '';
+
     const confirmado = await askConfirm({
       title: 'Aplicar importação?',
-      message: `Vou criar ${partes.join(' + ')} no app. Você pode desfazer essa importação inteira depois em Config → Histórico de importações.`,
+      message: `Vou criar ${partes.join(' + ')} no app.${aviso} Você pode desfazer essa importação em Config → Histórico de importações.`,
       confirmLabel: 'Aplicar',
       cancelLabel: 'Voltar à revisão'
     });
     if (!confirmado) return;
 
     aplicarLancamentosExtratoImportados(naoExcluidos, revisaoExtratoState.contaId);
+    limparRascunhoRevisao();
     sheet.close();
   };
 }
@@ -15400,6 +16156,8 @@ function _rexRenderList() {
     if (f === 'entradas') return l.tipo === 'ENTRADA_RENDA';
     if (f === 'tarifas') return l.tipo === 'SAIDA_TARIFA';
     if (f === 'pagfat') return l.tipo === 'PAGAMENTO_FATURA';
+    if (f === 'duplicatas') return !!l.potencialMatch;
+    if (f === 'aclassificar') return !l.excluir && !l.classifManual && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA');
     if (f === 'ignorados') return l.excluir;
     return true;
   });
@@ -15409,24 +16167,84 @@ function _rexRenderList() {
     return;
   }
 
-  host.innerHTML = filtrados.map((l, idxFiltrado) => {
+  host.innerHTML = filtrados.map((l) => {
     const idxGlobal = todos.indexOf(l);
-    const tipoLabel = _rexTipoLabel(l);
-    const sinal = l.sinal === '-' ? '−' : '+';
-    const corValor = l.sinal === '-' ? 'var(--flow-out)' : 'var(--flow-in)';
-    const dataBR = _fmtDataBR(l.dataISO);
-    const dupLabel = l.duplicataDe ? '<span class="rex-tag rex-tag-dup">dup. no app</span>' : '';
-    const pgfatLabel = l.tipo === 'PAGAMENTO_FATURA' && l.matchPagamentoFaturaId ? '<span class="rex-tag rex-tag-pgfat">🔄 já registrado</span>' : '';
-    const ignoradoOpacity = l.excluir ? 'opacity:0.5;' : '';
+    return _rexRenderRow(l, idxGlobal);
+  }).join('');
 
-    return `
-      <div class="rex-row" data-rex-idx="${idxGlobal}" style="${ignoradoOpacity}">
+  /* Hooks das checkboxes */
+  host.querySelectorAll('[data-rex-incluir]').forEach(cb => {
+    cb.onchange = (ev) => {
+      const idx = Number(cb.dataset.rexIncluir);
+      revisaoExtratoState.lancs[idx].excluir = !cb.checked;
+      salvarRascunhoRevisao();
+      _rexAtualizarBotaoAplicar();
+      _rexAtualizarRow(idx);
+    };
+  });
+
+  /* Hooks dos botões de classificar */
+  host.querySelectorAll('[data-rex-classif]').forEach(btn => {
+    btn.onclick = () => {
+      const idx = Number(btn.dataset.rexClassif);
+      _rexAbrirPickerClassificacao(idx);
+    };
+  });
+}
+
+/* Renderiza uma linha da lista. Separado pra que _rexAtualizarRow possa
+   re-renderizar individualmente sem refazer a lista inteira. */
+function _rexRenderRow(l, idxGlobal) {
+  const sinal = l.sinal === '-' ? '−' : '+';
+  const corValor = l.sinal === '-' ? 'var(--flow-out)' : 'var(--flow-in)';
+  const dataBR = _fmtDataBR(l.dataISO);
+  const ignoradoOpacity = l.excluir ? 'opacity:0.5;' : '';
+
+  /* Banner de potencial duplicata */
+  let bannerDup = '';
+  if (l.potencialMatch) {
+    const m = l.potencialMatch;
+    const corMap = { alta: 'var(--flow-out)', media: '#C18C2D', baixa: 'var(--ink-mute)' };
+    const labelMap = { alta: 'duplicata provável', media: 'possível duplicata', baixa: 'talvez relacionado' };
+    const cor = corMap[m.confianca] || 'var(--ink-mute)';
+    const label = labelMap[m.confianca] || m.confianca;
+    const catLabel = m.categoria ? `${m.categoria}${m.subcategoria ? ' › ' + m.subcategoria : ''}` : '(sem categoria)';
+    bannerDup = `
+      <div class="rex-match-banner" style="border-left-color:${cor};">
+        <div class="rex-match-title" style="color:${cor};">⚠ ${label}</div>
+        <div class="rex-match-body">
+          ${escapeHtml(m.nome)} · ${_fmtDataBR(m.data)} · ${fmtBRL(m.valor)} · <em>${catLabel}</em>
+        </div>
+      </div>
+    `;
+  }
+
+  /* Linha de classificação inline (só para saídas que não são pagamento de fatura nem entradas) */
+  let classifLinha = '';
+  if (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA') {
+    const cat = l.classifManualCategoria || (l.tipo === 'SAIDA_TARIFA' ? 'tiago' : 'tiago');
+    const sub = l.classifManualSubcategoria || (l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar');
+    const classificado = !!l.classifManual;
+    const badge = classificado ? '<span class="rex-tag rex-tag-classif">✓ classificado</span>' : '';
+    classifLinha = `
+      <div class="rex-row-classif">
+        <button class="rex-classif-btn" data-rex-classif="${idxGlobal}">
+          <span class="rex-classif-cat">${escapeHtml(_capitalizar(cat))} › ${escapeHtml(sub)}</span>
+          <span class="rex-classif-edit">✎ editar</span>
+        </button>
+        ${badge}
+      </div>
+    `;
+  } else if (l.tipo === 'PAGAMENTO_FATURA' && l.matchPagamentoFaturaId) {
+    classifLinha = '<div class="rex-row-classif"><span class="rex-tag rex-tag-pgfat">🔄 já registrado no app</span></div>';
+  }
+
+  return `
+    <div class="rex-row" data-rex-idx="${idxGlobal}" style="${ignoradoOpacity}">
+      <div class="rex-row-head">
         <div class="rex-row-main">
-          <div class="rex-row-title">
-            ${escapeHtml(l.descricaoOriginal)}
-            ${dupLabel}${pgfatLabel}
-          </div>
-          <div class="rex-row-meta">${dataBR} · ${tipoLabel}</div>
+          <div class="rex-row-title">${escapeHtml(l.descricaoOriginal)}</div>
+          <div class="rex-row-meta">${dataBR} · ${_rexTipoLabel(l)}</div>
         </div>
         <div class="rex-row-right">
           <div class="rex-row-valor" style="color:${corValor};">${sinal} ${fmtBRL(l.valor)}</div>
@@ -15436,33 +16254,152 @@ function _rexRenderList() {
           </label>
         </div>
       </div>
-    `;
-  }).join('');
+      ${bannerDup}
+      ${classifLinha}
+    </div>
+  `;
+}
 
-  /* Hook nas checkboxes — toggle entre incluir/ignorar */
-  host.querySelectorAll('[data-rex-incluir]').forEach(cb => {
-    cb.onchange = (ev) => {
-      const idx = Number(cb.dataset.rexIncluir);
+function _rexAtualizarRow(idx) {
+  const row = document.querySelector(`[data-rex-idx="${idx}"]`);
+  if (!row) return;
+  const l = revisaoExtratoState.lancs[idx];
+  row.outerHTML = _rexRenderRow(l, idx);
+  /* Re-bindar hooks */
+  const novoRow = document.querySelector(`[data-rex-idx="${idx}"]`);
+  if (novoRow) {
+    const cb = novoRow.querySelector('[data-rex-incluir]');
+    if (cb) cb.onchange = (ev) => {
       revisaoExtratoState.lancs[idx].excluir = !cb.checked;
-      /* Atualiza apenas o texto/opacity, sem re-renderizar tudo */
-      const row = cb.closest('.rex-row');
-      if (row) {
-        row.style.opacity = cb.checked ? '1' : '0.5';
-        const t = row.querySelector('.rex-toggle-text');
-        if (t) t.textContent = cb.checked ? 'incluir' : 'ignorar';
-      }
-      /* Atualiza contador no botão de aplicar */
-      const naoExcluidos = revisaoExtratoState.lancs.filter(l => !l.excluir).length;
-      const btnApply = document.getElementById('rexApply');
-      if (btnApply) btnApply.textContent = `aplicar ${naoExcluidos} lançamento${naoExcluidos !== 1 ? 's' : ''}`;
+      salvarRascunhoRevisao();
+      _rexAtualizarBotaoAplicar();
+      _rexAtualizarRow(idx);
     };
-  });
+    const btnCls = novoRow.querySelector('[data-rex-classif]');
+    if (btnCls) btnCls.onclick = () => _rexAbrirPickerClassificacao(idx);
+  }
+}
+
+function _rexAtualizarBotaoAplicar() {
+  const naoExcluidos = revisaoExtratoState.lancs.filter(l => !l.excluir).length;
+  const btnApply = document.getElementById('rexApply');
+  if (btnApply) btnApply.textContent = `aplicar ${naoExcluidos} lançamento${naoExcluidos !== 1 ? 's' : ''}`;
+}
+
+/* v0.23.2: picker compacto pra escolher categoria + subcategoria + grupo */
+function _rexAbrirPickerClassificacao(idx) {
+  const l = revisaoExtratoState.lancs[idx];
+  const catAtual = l.classifManualCategoria || 'tiago';
+  const subAtual = l.classifManualSubcategoria || (l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar');
+  const grupoAtual = l.classifManualGrupoId || null;
+
+  /* Estado temporário do picker */
+  let pickerCat = catAtual;
+  let pickerSub = subAtual;
+  let pickerGrupo = grupoAtual;
+
+  const buildContent = () => {
+    const cats = ['casa', 'marina', 'heitor', 'juliana', 'tiago'];
+    const subcatsExcl = (state.subcatsExclusivas && state.subcatsExclusivas[pickerCat]) || [];
+    const subcatsUniv = state.subcatsUniversais || [];
+    const todasSubs = [...new Set([...subcatsExcl, ...subcatsUniv])].sort();
+    const grupos = (state.grupos && state.grupos[pickerCat]) ? state.grupos[pickerCat].filter(g => !g.arquivado) : [];
+
+    return `
+      <div class="rex-picker">
+        <div class="rex-picker-sec">
+          <div class="rex-picker-label">de quem é esse gasto?</div>
+          <div class="rex-picker-chips">
+            ${cats.map(c => {
+              const m = state.members[c];
+              const sel = c === pickerCat ? 'selected' : '';
+              return `<button class="chip rex-pick-cat ${sel}" data-pick-cat="${c}" style="--chip-color:${m ? m.cor : 'var(--ink-mute)'};">${m ? m.icone : ''} ${escapeHtml(c.charAt(0).toUpperCase() + c.slice(1))}</button>`;
+            }).join('')}
+          </div>
+        </div>
+        <div class="rex-picker-sec">
+          <div class="rex-picker-label">subcategoria</div>
+          <select class="rex-pick-sub-select" id="rexPickSub">
+            ${todasSubs.map(s => `<option value="${escapeHtml(s)}" ${s === pickerSub ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
+            ${todasSubs.includes(pickerSub) ? '' : `<option value="${escapeHtml(pickerSub)}" selected>${escapeHtml(pickerSub)} (não cadastrada)</option>`}
+          </select>
+        </div>
+        ${grupos.length > 0 ? `
+        <div class="rex-picker-sec">
+          <div class="rex-picker-label">grupo (opcional)</div>
+          <select class="rex-pick-sub-select" id="rexPickGrupo">
+            <option value="">— sem grupo —</option>
+            ${grupos.map(g => `<option value="${g.id}" ${g.id === pickerGrupo ? 'selected' : ''}>${escapeHtml(g.nome)}</option>`).join('')}
+          </select>
+        </div>` : ''}
+      </div>
+    `;
+  };
+
+  const sheet2 = document.createElement('div');
+  sheet2.className = 'rex-picker-overlay';
+  sheet2.innerHTML = `
+    <div class="rex-picker-modal">
+      <div class="rex-picker-header">
+        <div>
+          <div class="rex-picker-titulo">Classificar</div>
+          <div class="rex-picker-sub">${escapeHtml(l.descricaoOriginal)}</div>
+        </div>
+      </div>
+      <div id="rexPickerContent">${buildContent()}</div>
+      <div class="rex-picker-footer">
+        <button class="btn btn-secondary" id="rexPickCancel">cancelar</button>
+        <button class="btn btn-primary" id="rexPickSave">salvar classificação</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(sheet2);
+
+  const rerender = () => {
+    sheet2.querySelector('#rexPickerContent').innerHTML = buildContent();
+    bindChips();
+  };
+
+  const bindChips = () => {
+    sheet2.querySelectorAll('[data-pick-cat]').forEach(c => {
+      c.onclick = () => {
+        pickerCat = c.dataset.pickCat;
+        /* Reseta subcategoria se a atual não existir na nova categoria */
+        const subcatsExcl = (state.subcatsExclusivas && state.subcatsExclusivas[pickerCat]) || [];
+        const subcatsUniv = state.subcatsUniversais || [];
+        const todasSubs = [...new Set([...subcatsExcl, ...subcatsUniv])];
+        if (!todasSubs.includes(pickerSub) && todasSubs.length > 0) pickerSub = todasSubs[0];
+        pickerGrupo = null;
+        rerender();
+      };
+    });
+    const sel = sheet2.querySelector('#rexPickSub');
+    if (sel) sel.onchange = (ev) => { pickerSub = ev.target.value; };
+    const grupoSel = sheet2.querySelector('#rexPickGrupo');
+    if (grupoSel) grupoSel.onchange = (ev) => { pickerGrupo = ev.target.value || null; };
+  };
+  bindChips();
+
+  sheet2.querySelector('#rexPickCancel').onclick = () => sheet2.remove();
+  sheet2.querySelector('#rexPickSave').onclick = () => {
+    revisaoExtratoState.lancs[idx].classifManual = true;
+    revisaoExtratoState.lancs[idx].classifManualCategoria = pickerCat;
+    revisaoExtratoState.lancs[idx].classifManualSubcategoria = pickerSub;
+    revisaoExtratoState.lancs[idx].classifManualGrupoId = pickerGrupo;
+    salvarRascunhoRevisao();
+    sheet2.remove();
+    _rexAtualizarRow(idx);
+  };
+}
+
+function _capitalizar(s) {
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function _rexTipoLabel(l) {
-  if (l.duplicataDe) return 'duplicata — já no app';
   if (l.tipo === 'PAGAMENTO_FATURA') {
-    return l.matchPagamentoFaturaId ? 'pagamento de fatura (já registrado)' : 'pagamento de fatura (sem match)';
+    return l.matchPagamentoFaturaId ? 'pagamento de fatura' : 'pagamento de fatura (sem match)';
   }
   if (l.tipo === 'ENTRADA_RENDA') return 'entrada de renda';
   if (l.tipo === 'ENTRADA_RENDIMENTO') return 'rendimento de aplicação';
@@ -15569,14 +16506,25 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
     }
 
     if (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA') {
-      /* v0.23.1: pré-classificação por aliasItems */
+      /* v0.23.2: priorizar classificação manual feita na tela de revisão.
+         Fallback pra aliasItems se não houver classificação manual.
+         Último fallback: 'tiago > a classificar' (ou 'tarifa bancária'). */
       let categoria = 'tiago';
       let subcategoria = (l.tipo === 'SAIDA_TARIFA') ? 'tarifa bancária' : 'a classificar';
       let grupoId = null;
       let isFixo = false;
       let usouAlias = false;
 
-      if (typeof buscarAliasParaDescricao === 'function') {
+      if (l.classifManual) {
+        /* Tiago classificou manualmente na revisão */
+        categoria = l.classifManualCategoria || categoria;
+        subcategoria = l.classifManualSubcategoria || subcategoria;
+        grupoId = l.classifManualGrupoId || null;
+        /* Ensina o alias pra próxima vez */
+        if (typeof aprenderAlias === 'function') {
+          try { aprenderAlias(l.descricaoOriginal, categoria, subcategoria, grupoId, null, null, false); } catch (e) {}
+        }
+      } else if (typeof buscarAliasParaDescricao === 'function') {
         const alias = buscarAliasParaDescricao(l.descricaoOriginal, null);
         if (alias && alias.categoria) {
           categoria = alias.categoria;
@@ -15585,7 +16533,6 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
           isFixo = !!alias.isFixo;
           usouAlias = true;
           nClassifPorAlias++;
-          /* Reforça contagem de uso do alias */
           alias.contagemUso = (alias.contagemUso || 0) + 1;
           alias.ultimoUsoEm = todayISO();
         }
@@ -15609,7 +16556,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
         isInvest: false,
         isAjuste: false,
         isPagamentoFatura: false,
-        observacao: 'importado do extrato' + (usouAlias ? ' · classificado por alias' : ''),
+        observacao: 'importado do extrato' + (l.classifManual ? ' · classificação manual' : (usouAlias ? ' · classificado por alias' : '')),
         pago: true,
         dataPagamento: l.dataISO,
         origem: 'extrato',
@@ -15667,7 +16614,26 @@ function _identificarCartaoPorDescricao(desc) {
 }
 
 /* --- Trigger UI: chamado pelo botão "Importar extrato" --------------- */
-function abrirSeletorExtrato(contaId) {
+async function abrirSeletorExtrato(contaId) {
+  /* v0.23.2: se houver rascunho pendente, pergunta se quer retomar antes de abrir o seletor */
+  if (temRascunhoRevisao()) {
+    const draft = carregarRascunhoRevisao();
+    const contaDraft = (state.contas || []).find(c => c.id === draft.contaId);
+    const dataDraft = _fmtDataHora(draft.salvoEm);
+    const escolha = await askChoice({
+      title: 'Tem uma revisão em rascunho',
+      message: `Você tem uma importação não finalizada do ${contaDraft ? contaDraft.nome : 'banco'}, salva em ${dataDraft}. O que você quer fazer?`,
+      options: [
+        { value: 'retomar', label: 'Retomar revisão', desc: 'Continua de onde parou', primary: true },
+        { value: 'descartar', label: 'Descartar e importar novo', desc: 'Apaga o rascunho e abre o seletor', danger: true },
+        { value: 'cancelar', label: 'Cancelar', desc: 'Não faz nada agora' }
+      ]
+    });
+    if (escolha === 'retomar') { retomarRascunhoRevisao(); return; }
+    if (escolha === 'descartar') { limparRascunhoRevisao(); }
+    else { return; }
+  }
+
   /* Cria input file invisível e dispara */
   const input = document.createElement('input');
   input.type = 'file';
