@@ -4979,7 +4979,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.32.0 · Fatia 5c.4 — caixa de opções do Rel 1 + toggle de gastos por categoria
+  Finança · v0.33.0 · Fatia 5c.5 — lista cronológica no Relatório Elegante (Rel 1 e Rel 3)
 </div>
 
   </section>
@@ -8495,9 +8495,20 @@ window.relatorioElegante = {
       return { key: ck, nome: m.nome || ck, cor: m.cor || '#888888', total, subcats };
     }).filter(Boolean).filter(m => m.total > 0).sort((a, b) => b.total - a.total);
 
+    /* Fatia 5c.5 — lista cronológica de saídas (pra levar a "lista detalhada"
+       ao elegante, não só ao PDF rápido). Total = totalSaidas, então reconcilia. */
+    const listaCronologica = gastosPeriodo.slice()
+      .sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0))
+      .map(g => ({
+        dataISO: g.data,
+        nome: g.nome || g.subcategoria || '—',
+        valor: Number(g.valor) || 0,
+        invest: _isInvestRuntime(g)
+      }));
+
     return {
       totalSaidas, consumo, investimento, historico, porMembro,
-      subTop, subRestoVal, subRestoN, comp, topGastos, alertas, detalhePorCategoria
+      subTop, subRestoVal, subRestoN, comp, topGastos, alertas, detalhePorCategoria, listaCronologica
     };
   },
 
@@ -8648,9 +8659,10 @@ window.relatorioElegante = {
 
     const secTop = this._secaoTopGastos(d.topGastos);
     const secDetalhe = relPdfDetalheCategoria ? this._secaoDetalhePorCategoria(d.detalhePorCategoria) : '';
+    const secCrono = relPdfApendice ? this._secaoCronologicoRel1(d.listaCronologica, d.totalSaidas) : '';
     const secAlertas = this._secaoAlertas(d.alertas);
 
-    const body = capa + secResumo + secHist + secMembro + secSubcat + secComp + secTop + secDetalhe + secAlertas;
+    const body = capa + secResumo + secHist + secMembro + secSubcat + secComp + secTop + secDetalhe + secCrono + secAlertas;
     return this._documento(ctx, body);
   },
 
@@ -8841,6 +8853,34 @@ window.relatorioElegante = {
     }).join('');
     return this._secao('🧷', 'Gastos detalhados por categoria',
       '<div class="pdf-card">' + blocos + '</div>');
+  },
+
+  /* Fatia 5c.5 — lista cronológica de saídas (consumo + investimentos), pra
+     conferência/localização. Reusa o estilo da tabela de fluxo (5c.2). */
+  _secaoCronologicoRel1(lista, total) {
+    if (!lista || !lista.length) return '';
+    const rows = lista.map(it => {
+      const cor = it.invest ? 'var(--pdf-invest)' : 'var(--pdf-out)';
+      const tag = it.invest ? 'invest.' : 'saída';
+      return `
+        <tr>
+          <td class="tg-mute" style="white-space:nowrap;">${this._esc(this._dataCurta(it.dataISO))}</td>
+          <td>${this._esc(it.nome)}<span class="fx-tag">${tag}</span></td>
+          <td class="tg-val" style="color:${cor};white-space:nowrap;">${this._fmt(it.valor)}</td>
+        </tr>`;
+    }).join('');
+    return this._secao('🧾', 'Lançamentos detalhados · ordem cronológica',
+      `<div class="pdf-card">
+        <table class="tg-table fx-table">
+          <thead><tr>
+            <th style="width:48px;">DATA</th><th>LANÇAMENTO</th><th class="tg-th-val">VALOR</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr class="fx-saldo"><td></td><td class="fx-foot-lbl">Total de saídas</td><td class="tg-val" style="color:var(--pdf-out);white-space:nowrap;">${this._fmt(total)}</td></tr>
+          </tfoot>
+        </table>
+      </div>`);
   },
 
   _secaoAlertas(alertas) {
