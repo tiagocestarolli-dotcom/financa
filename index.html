@@ -4974,7 +4974,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.29.0 · Fatia 5b.3 — importar extrato de conta Sicoob
+  Finança · v0.30.0 · Fatia 5c.2 — fluxo de caixa detalhado no Relatório Elegante
 </div>
 
   </section>
@@ -8528,9 +8528,33 @@ window.relatorioElegante = {
     if (porFonte.length) alertas.push({ tipo: 'info', texto: 'Principal fonte de entrada: ' + porFonte[0].nome + ' (' + this._fmt(porFonte[0].valor) + ').' });
     if (invest > 0) alertas.push({ tipo: 'info', texto: 'Investido no período: ' + this._fmt(invest) + '.' });
 
+    /* Fatia 5c.2 — lista cronológica item-a-item do fluxo de caixa.
+       Reconcilia com a capa por construção: as entradas somam d.entradas,
+       e gastosCaixa (mesma base de porMembro/subTop) soma d.saidas + d.invest. */
+    const listaFluxo = [];
+    (state.entradas || []).forEach(e => {
+      if (ctx.yms.indexOf(e.ym) < 0) return;
+      const fonte = (state.fontesRenda || []).find(f => f.id === e.fonteId);
+      listaFluxo.push({
+        dataISO: e.data || (e.ym + '-01'),
+        tipo: 'entrada',
+        nome: e.observacao || (fonte && fonte.nome) || 'Entrada',
+        valor: Number(e.valor) || 0
+      });
+    });
+    gastosCaixa.forEach(g => {
+      listaFluxo.push({
+        dataISO: g.data || (g.ym + '-01'),
+        tipo: _isInvestRuntime(g) ? 'invest' : 'saida',
+        nome: g.nome || g.subcategoria || '—',
+        valor: Number(g.valor) || 0
+      });
+    });
+    listaFluxo.sort((a, b) => (a.dataISO < b.dataISO ? -1 : a.dataISO > b.dataISO ? 1 : 0));
+
     return {
       entradas, saidas, invest, saldo, historico, porFonte,
-      porMembro, subTop, subRestoVal, subRestoN, topGastos, alertas
+      porMembro, subTop, subRestoVal, subRestoN, topGastos, alertas, listaFluxo
     };
   },
 
@@ -8625,9 +8649,10 @@ window.relatorioElegante = {
       : '';
 
     const secTop = this._secaoTopGastos(d.topGastos);
+    const secLista = this._secaoFluxoDetalhado(d.listaFluxo, d.entradas, d.saidas + d.invest, d.saldo);
     const secAlertas = this._secaoAlertas(d.alertas);
 
-    const body = capa + secResumo + secEntradas + secHist + secMembro + secSubcat + secTop + secAlertas;
+    const body = capa + secResumo + secEntradas + secHist + secMembro + secSubcat + secTop + secLista + secAlertas;
     return this._documento(ctx, body);
   },
 
@@ -8697,6 +8722,46 @@ window.relatorioElegante = {
           <tbody>${rows}</tbody>
         </table>
       </div>`);
+  },
+
+  /* Fatia 5c.2 — lista cronológica do fluxo de caixa (entradas, saídas e
+     investimentos), com rodapé que reconcilia com a capa do relatório. */
+  _secaoFluxoDetalhado(lista, totEntradas, totSaidasInvest, saldo) {
+    if (!lista || !lista.length) return '';
+    const rows = lista.map(it => {
+      const ent = it.tipo === 'entrada';
+      const inv = it.tipo === 'invest';
+      const cor = ent ? 'var(--pdf-in)' : (inv ? 'var(--pdf-invest)' : 'var(--pdf-out)');
+      const sinal = ent ? '+' : '−';
+      const tag = ent ? 'entrada' : (inv ? 'invest.' : 'saída');
+      return `
+        <tr>
+          <td class="tg-mute" style="white-space:nowrap;">${this._esc(this._dataCurta(it.dataISO))}</td>
+          <td>${this._esc(it.nome)}<span class="fx-tag">${tag}</span></td>
+          <td class="tg-val" style="color:${cor};white-space:nowrap;">${sinal} ${this._fmt(it.valor)}</td>
+        </tr>`;
+    }).join('');
+    return this._secao('🧾', 'Fluxo detalhado · lançamento a lançamento',
+      `<div class="pdf-card">
+        <table class="tg-table fx-table">
+          <thead><tr>
+            <th style="width:48px;">DATA</th><th>LANÇAMENTO</th><th class="tg-th-val">VALOR</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr><td></td><td class="fx-foot-lbl">Entradas</td><td class="tg-val" style="color:var(--pdf-in);white-space:nowrap;">+ ${this._fmt(totEntradas)}</td></tr>
+            <tr><td></td><td class="fx-foot-lbl">Saídas + investimentos</td><td class="tg-val" style="color:var(--pdf-out);white-space:nowrap;">− ${this._fmt(totSaidasInvest)}</td></tr>
+            <tr class="fx-saldo"><td></td><td class="fx-foot-lbl">Saldo do período</td><td class="tg-val" style="color:${saldo >= 0 ? 'var(--pdf-in)' : 'var(--pdf-out)'};white-space:nowrap;">${this._fmt(saldo)}</td></tr>
+          </tfoot>
+        </table>
+      </div>`);
+  },
+
+  /* "YYYY-MM-DD" -> "DD/MM" (rótulo curto pra tabela) */
+  _dataCurta(iso) {
+    if (!iso) return '—';
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}` : String(iso);
   },
 
   _secaoAlertas(alertas) {
@@ -9033,6 +9098,12 @@ text{font-family:'Montserrat',sans-serif;}
 .tg-num{color:var(--pdf-ink-mute);font-weight:600;}
 .tg-mute{font-size:10px;color:var(--pdf-ink-mute);}
 .tg-val{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--pdf-out);}
+
+/* Fatia 5c.2 — lista de fluxo detalhado no Rel 2 */
+.fx-tag{font-size:8px;color:var(--pdf-ink-mute);text-transform:uppercase;letter-spacing:.04em;margin-left:5px;}
+.fx-table tfoot td{border-top:1.5px solid var(--pdf-border);border-bottom:none;padding-top:7px;font-weight:600;}
+.fx-foot-lbl{text-align:right;color:var(--pdf-ink-soft);}
+.fx-table tfoot tr.fx-saldo td{font-size:12.5px;font-weight:700;padding-top:4px;}
 
 .al-row{display:flex;gap:8px;margin-bottom:6px;font-size:11px;}
 .al-row:last-child{margin-bottom:0;}
