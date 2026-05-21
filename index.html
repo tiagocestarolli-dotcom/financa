@@ -3514,6 +3514,19 @@ label {
   color: var(--ink);
   font-family: var(--font-body);
 }
+.rex-pick-fixo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg-elevated);
+}
+.rex-pick-fixo-txt { flex: 1; }
+.rex-pick-fixo-titulo {
+  font-size: 13.5px; font-weight: 500; color: var(--ink);
+}
 .rex-picker-footer {
   padding: 14px 20px 20px;
   border-top: 1px solid var(--line);
@@ -4961,7 +4974,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.27.0 · Fatia 5e — extrato cronológico + classificar com nome/subcategoria
+  Finança · v0.28.0 · Fatia 5e.1 — classificar extrato com grupo novo + marcar como fixo
 </div>
 
   </section>
@@ -17602,8 +17615,12 @@ function _rexAbrirPickerClassificacao(idx) {
   let pickerGrupo = grupoAtual;
   /* v0.27.0 (Fatia 5e): nome editável (default = descrição crua do extrato) */
   let pickerNome = l.classifManualNome || l.descricaoOriginal || '';
+  /* v0.28.0 (Fatia 5e.1): marcar como fixo (paridade com o picker da fatura) */
+  let pickerFixo = l.classifManualFixo === true;
   /* modo "criar subcategoria nova" inline (evita modal empilhado sobre o picker) */
   let criandoSub = false;
+  /* v0.28.0 (Fatia 5e.1): modo "criar grupo novo" inline (mesmo motivo) */
+  let criandoGrupo = false;
 
   const buildContent = () => {
     const cats = ['casa', 'marina', 'heitor', 'juliana', 'tiago'];
@@ -17653,14 +17670,37 @@ function _rexAbrirPickerClassificacao(idx) {
             </select>
           `}
         </div>
-        ${grupos.length > 0 ? `
         <div class="rex-picker-sec">
-          <div class="rex-picker-label">grupo (opcional)</div>
-          <select class="rex-pick-sub-select" id="rexPickGrupo">
-            <option value="">— sem grupo —</option>
-            ${grupos.map(g => `<option value="${g.id}" ${g.id === pickerGrupo ? 'selected' : ''}>${escapeHtml(g.nome)}</option>`).join('')}
-          </select>
-        </div>` : ''}
+          <div class="rex-picker-label-row">
+            <span class="rex-picker-label">grupo (opcional)</span>
+            ${criandoGrupo ? '' : '<button type="button" class="rex-pick-nova" data-pick-nova-grupo>+ novo</button>'}
+          </div>
+          ${criandoGrupo ? `
+            <input type="text" class="rex-pick-nome" id="rexPickGrupoNovo"
+                   placeholder="nome do novo grupo"
+                   autocomplete="off" autocorrect="off" autocapitalize="words">
+            <div class="rex-pick-hint">grupos juntam gastos de várias subcategorias (ex: "Viagem Cancún", "Honda Civic")</div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button type="button" class="btn btn-secondary" data-pick-grupo-cancel style="flex:1;">cancelar</button>
+              <button type="button" class="btn btn-primary" data-pick-grupo-ok style="flex:1;">✓ criar e usar</button>
+            </div>
+          ` : `
+            <select class="rex-pick-sub-select" id="rexPickGrupo">
+              <option value="">— sem grupo —</option>
+              ${grupos.map(g => `<option value="${g.id}" ${g.id === pickerGrupo ? 'selected' : ''}>${escapeHtml(g.nome)}</option>`).join('')}
+            </select>
+          `}
+        </div>
+        <div class="rex-picker-sec rex-pick-fixo-row">
+          <div class="rex-pick-fixo-txt">
+            <div class="rex-pick-fixo-titulo">🔁 marcar como fixo</div>
+            <div class="rex-pick-hint">assinatura ou gasto recorrente — entra no filtro "fixos" do mês</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="rexPickFixo" ${pickerFixo ? 'checked' : ''}>
+            <span class="sl"></span>
+          </label>
+        </div>
       </div>
     `;
   };
@@ -17700,6 +17740,7 @@ function _rexAbrirPickerClassificacao(idx) {
         if (!todasSubs.includes(pickerSub) && todasSubs.length > 0) pickerSub = todasSubs[0];
         pickerGrupo = null;
         criandoSub = false;
+        criandoGrupo = false;
         rerender();
       };
     });
@@ -17737,6 +17778,39 @@ function _rexAbrirPickerClassificacao(idx) {
       criandoSub = false;
       rerender();
     };
+
+    /* v0.28.0 (Fatia 5e.1): toggle marcar como fixo */
+    const fixoInp = sheet2.querySelector('#rexPickFixo');
+    if (fixoInp) fixoInp.onchange = (ev) => { pickerFixo = ev.target.checked; };
+
+    /* v0.28.0 (Fatia 5e.1): criar grupo novo inline (mesmo padrão da subcategoria) */
+    const btnNovoGrupo = sheet2.querySelector('[data-pick-nova-grupo]');
+    if (btnNovoGrupo) btnNovoGrupo.onclick = () => { criandoGrupo = true; rerender(); const i = sheet2.querySelector('#rexPickGrupoNovo'); if (i) setTimeout(() => i.focus(), 60); };
+
+    const btnGrupoCancel = sheet2.querySelector('[data-pick-grupo-cancel]');
+    if (btnGrupoCancel) btnGrupoCancel.onclick = () => { criandoGrupo = false; rerender(); };
+
+    const btnGrupoOk = sheet2.querySelector('[data-pick-grupo-ok]');
+    if (btnGrupoOk) btnGrupoOk.onclick = () => {
+      const inp = sheet2.querySelector('#rexPickGrupoNovo');
+      const novo = (inp ? inp.value : '').trim();
+      if (!novo) { if (inp) inp.style.borderColor = 'var(--flow-out)'; return; }
+      if (!state.grupos) state.grupos = {};
+      const existentes = state.grupos[pickerCat] || [];
+      const jaExiste = existentes.find(g => !g.arquivado && (g.nome || '').toLowerCase() === novo.toLowerCase());
+      let grupoId;
+      if (jaExiste) {
+        grupoId = jaExiste.id;
+      } else {
+        grupoId = uid();
+        state.grupos[pickerCat] = [...existentes, { id: grupoId, nome: novo, arquivado: false }];
+        saveState(state);
+        toast('Grupo criado', 'success');
+      }
+      pickerGrupo = grupoId;
+      criandoGrupo = false;
+      rerender();
+    };
   };
   bindChips();
 
@@ -17746,6 +17820,8 @@ function _rexAbrirPickerClassificacao(idx) {
     revisaoExtratoState.lancs[idx].classifManualCategoria = pickerCat;
     revisaoExtratoState.lancs[idx].classifManualSubcategoria = pickerSub;
     revisaoExtratoState.lancs[idx].classifManualGrupoId = pickerGrupo;
+    /* v0.28.0 (Fatia 5e.1): flag de gasto fixo definida no picker */
+    revisaoExtratoState.lancs[idx].classifManualFixo = pickerFixo;
     /* v0.27.0 (Fatia 5e): nome amigável definido pelo Tiago (cai pra descrição
        crua se ele apagou tudo). Vira o `nome` do gasto e alimenta o alias. */
     revisaoExtratoState.lancs[idx].classifManualNome = (pickerNome || '').trim() || l.descricaoOriginal;
@@ -17887,12 +17963,13 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
         categoria = l.classifManualCategoria || categoria;
         subcategoria = l.classifManualSubcategoria || subcategoria;
         grupoId = l.classifManualGrupoId || null;
+        isFixo = l.classifManualFixo === true;
         if (l.classifManualNome && l.classifManualNome.trim()) nome = l.classifManualNome.trim();
-        /* Ensina o alias pra próxima vez — incluindo o nome amigável (identificacao) */
+        /* Ensina o alias pra próxima vez — incluindo o nome amigável (identificacao) e a flag de fixo */
         if (typeof aprenderAlias === 'function') {
           const ident = (l.classifManualNome && l.classifManualNome.trim() && l.classifManualNome.trim() !== l.descricaoOriginal)
             ? l.classifManualNome.trim() : null;
-          try { aprenderAlias(l.descricaoOriginal, categoria, subcategoria, grupoId, null, ident, false); } catch (e) {}
+          try { aprenderAlias(l.descricaoOriginal, categoria, subcategoria, grupoId, null, ident, isFixo); } catch (e) {}
         }
       } else if (typeof buscarAliasParaDescricao === 'function') {
         const alias = buscarAliasParaDescricao(l.descricaoOriginal, null);
