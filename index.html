@@ -3588,6 +3588,11 @@ label {
 .rel-toggle-tiago.on .rt-sw::after { left: 19px; }
 .rel-toggle-tiago .rt-label { flex: 1; color: var(--ink); font-weight: 500; }
 
+/* Fatia 5c.4 — caixa única que agrupa os toggles do relatório, empilhados */
+.rel-opts { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; overflow: hidden; background: var(--bg-elevated); }
+.rel-opts .rel-toggle-tiago { border: none; border-radius: 0; margin-bottom: 0; background: transparent; }
+.rel-opts .rel-toggle-tiago + .rel-toggle-tiago { border-top: 1px solid var(--line); }
+
 .rel-hero {
   background: var(--bg-elevated); border: 1px solid var(--line); border-radius: 14px;
   padding: 16px 16px 14px; margin-bottom: 14px;
@@ -4974,7 +4979,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.31.0 · Fatia 5c.3 — gastos detalhados por categoria no Rel 1 (elegante)
+  Finança · v0.32.0 · Fatia 5c.4 — caixa de opções do Rel 1 + toggle de gastos por categoria
 </div>
 
   </section>
@@ -8019,6 +8024,17 @@ let relPdfApendice = (function () {
   catch (e) { return false; }
 })();
 
+/* v0.32.0 (Fatia 5c.4): preferência "incluir gastos detalhados por categoria"
+   no relatório elegante. Controla a seção 5c.3 no Rel 1/3. Default LIGADO —
+   o Tiago desliga ao rodar períodos longos (trimestral/semestral) pra não
+   encher de itens. */
+let relPdfDetalheCategoria = (function () {
+  try {
+    const v = localStorage.getItem('financa.relPdfDetalheCategoria');
+    return v === null ? true : v === '1';
+  } catch (e) { return true; }
+})();
+
 const REL_TABS = [
   { id: 'rel1', label: 'Gastos & Saídas' },
   { id: 'rel2', label: 'Fluxo de Caixa' },
@@ -8042,7 +8058,9 @@ function renderRelatorios() {
      Só faz sentido nos relatórios sobre gastos por categoria (Rel 1 e Rel 3).
      Rel 2 (fluxo de caixa, com entradas) terá apêndice próprio numa fatia
      futura (5c.2). Rel 4 já É a lista detalhada — dispensa. */
-  const mostraOptApendice = (relView === 'rel1' || relView === 'rel3');
+  /* Rel 1 agrupa os controles numa caixa própria (Fatia 5c.4), então o apêndice
+     na barra fica só pro Rel 3. Rel 4 já É a lista detalhada — dispensa. */
+  const mostraOptApendice = (relView === 'rel3');
   const apendiceOptHtml = mostraOptApendice
     ? '<div class="rel-pdf-opts">' +
         '<label class="rel-pdf-opt">' +
@@ -8629,7 +8647,7 @@ window.relatorioElegante = {
       : '';
 
     const secTop = this._secaoTopGastos(d.topGastos);
-    const secDetalhe = this._secaoDetalhePorCategoria(d.detalhePorCategoria);
+    const secDetalhe = relPdfDetalheCategoria ? this._secaoDetalhePorCategoria(d.detalhePorCategoria) : '';
     const secAlertas = this._secaoAlertas(d.alertas);
 
     const body = capa + secResumo + secHist + secMembro + secSubcat + secComp + secTop + secDetalhe + secAlertas;
@@ -9260,9 +9278,19 @@ function _relHeaderHtml(ym, periodo, hero) {
       <button id="relNext" aria-label="Próximo mês">›</button>
     </div>
     <div class="rel-periodo">${periodoHtml}</div>
-    <div class="rel-toggle-tiago ${relState.incluiTiago ? 'on' : ''}" id="relToggleTiago">
-      <div class="rt-sw"></div>
-      <div class="rt-label">Incluir gastos de Tiago como mais uma categoria</div>
+    <div class="rel-opts">
+      <div class="rel-toggle-tiago ${relState.incluiTiago ? 'on' : ''}" id="relToggleTiago">
+        <div class="rt-sw"></div>
+        <div class="rt-label">Incluir gastos de Tiago como mais uma categoria</div>
+      </div>
+      <div class="rel-toggle-tiago ${relPdfDetalheCategoria ? 'on' : ''}" id="relToggleDetCat">
+        <div class="rt-sw"></div>
+        <div class="rt-label">Incluir gastos detalhados por categoria</div>
+      </div>
+      <div class="rel-toggle-tiago ${relPdfApendice ? 'on' : ''}" id="relToggleApendiceBox">
+        <div class="rt-sw"></div>
+        <div class="rt-label">Incluir lista detalhada (cronológica) no PDF</div>
+      </div>
     </div>
     ${heroBlock}
   `;
@@ -9722,6 +9750,20 @@ function _relBindEvents() {
 
   const togTiago = document.getElementById('relToggleTiago');
   if (togTiago) togTiago.onclick = () => { relState.incluiTiago = !relState.incluiTiago; renderRelatorios(); };
+
+  const togDetCat = document.getElementById('relToggleDetCat');
+  if (togDetCat) togDetCat.onclick = () => {
+    relPdfDetalheCategoria = !relPdfDetalheCategoria;
+    try { localStorage.setItem('financa.relPdfDetalheCategoria', relPdfDetalheCategoria ? '1' : '0'); } catch (e) {}
+    renderRelatorios();
+  };
+
+  const togApBox = document.getElementById('relToggleApendiceBox');
+  if (togApBox) togApBox.onclick = () => {
+    relPdfApendice = !relPdfApendice;
+    try { localStorage.setItem('financa.relPdfApendice', relPdfApendice ? '1' : '0'); } catch (e) {}
+    renderRelatorios();
+  };
 
   el.querySelectorAll('[data-rel-subcat]').forEach(seg => {
     seg.onclick = (e) => {
