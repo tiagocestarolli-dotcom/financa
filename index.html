@@ -4974,7 +4974,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.30.0 · Fatia 5c.2 — fluxo de caixa detalhado no Relatório Elegante
+  Finança · v0.31.0 · Fatia 5c.3 — gastos detalhados por categoria no Rel 1 (elegante)
 </div>
 
   </section>
@@ -8450,9 +8450,36 @@ window.relatorioElegante = {
     if (comp.total > 0) alertas.push({ tipo: 'info', texto: 'Compromissos do mês: ' + this._fmt(comp.total) + ' (fixos + parcelas).' });
     if (!alertas.length) alertas.push({ tipo: 'ok', texto: 'Nenhuma pendência identificada.' });
 
+    /* Fatia 5c.3 — detalhamento por categoria: para cada membro, agrupa por
+       subcategoria (com subtotal) e lista os itens. Mesma base (gastosPeriodo)
+       de porMembro/subTop, então reconcilia. */
+    const detMap = new Map();
+    gastosPeriodo.forEach(g => {
+      const ck = g.categoria;
+      if (!detMap.has(ck)) detMap.set(ck, new Map());
+      const subM = detMap.get(ck);
+      const sc = g.subcategoria || 'Sem subcategoria';
+      if (!subM.has(sc)) subM.set(sc, []);
+      subM.get(sc).push(g);
+    });
+    const detalhePorCategoria = cats.map(ck => {
+      const subM = detMap.get(ck);
+      if (!subM) return null;
+      const m = (state.members && state.members[ck]) || {};
+      const subcats = Array.from(subM.entries()).map(([nome, itens]) => ({
+        nome,
+        total: itens.reduce((s, g) => s + (Number(g.valor) || 0), 0),
+        itens: itens.slice()
+          .sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0))
+          .map(g => ({ nome: g.nome || g.subcategoria || '—', valor: Number(g.valor) || 0, dataISO: g.data }))
+      })).sort((a, b) => b.total - a.total);
+      const total = subcats.reduce((s, sc) => s + sc.total, 0);
+      return { key: ck, nome: m.nome || ck, cor: m.cor || '#888888', total, subcats };
+    }).filter(Boolean).filter(m => m.total > 0).sort((a, b) => b.total - a.total);
+
     return {
       totalSaidas, consumo, investimento, historico, porMembro,
-      subTop, subRestoVal, subRestoN, comp, topGastos, alertas
+      subTop, subRestoVal, subRestoN, comp, topGastos, alertas, detalhePorCategoria
     };
   },
 
@@ -8602,9 +8629,10 @@ window.relatorioElegante = {
       : '';
 
     const secTop = this._secaoTopGastos(d.topGastos);
+    const secDetalhe = this._secaoDetalhePorCategoria(d.detalhePorCategoria);
     const secAlertas = this._secaoAlertas(d.alertas);
 
-    const body = capa + secResumo + secHist + secMembro + secSubcat + secComp + secTop + secAlertas;
+    const body = capa + secResumo + secHist + secMembro + secSubcat + secComp + secTop + secDetalhe + secAlertas;
     return this._documento(ctx, body);
   },
 
@@ -8762,6 +8790,39 @@ window.relatorioElegante = {
     if (!iso) return '—';
     const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
     return m ? `${m[3]}/${m[2]}` : String(iso);
+  },
+
+  /* Fatia 5c.3 — gastos detalhados por categoria: membro (com total) →
+     subcategoria (com subtotal) → itens. Compacto, fonte menor. */
+  _secaoDetalhePorCategoria(detalhe) {
+    if (!detalhe || !detalhe.length) return '';
+    const blocos = detalhe.map(m => {
+      const subs = m.subcats.map(sc => {
+        const itens = sc.itens.map(it => `
+          <div class="dpc-item">
+            <span class="dpc-item-nome">${this._esc(it.nome)}<span class="dpc-item-data">${this._esc(this._dataCurta(it.dataISO))}</span></span>
+            <span class="dpc-item-val">${this._fmt(it.valor)}</span>
+          </div>`).join('');
+        return `
+          <div class="dpc-sub no-break">
+            <div class="dpc-sub-head">
+              <span class="dpc-sub-nome">${this._esc(sc.nome)}</span>
+              <span class="dpc-sub-total">${this._fmt(sc.total)}</span>
+            </div>
+            ${itens}
+          </div>`;
+      }).join('');
+      return `
+        <div class="dpc-membro">
+          <div class="dpc-membro-head" style="border-left:3px solid ${m.cor};">
+            <span class="dpc-membro-nome">${this._esc(m.nome)}</span>
+            <span class="dpc-membro-total">${this._fmt(m.total)}</span>
+          </div>
+          ${subs}
+        </div>`;
+    }).join('');
+    return this._secao('🧷', 'Gastos detalhados por categoria',
+      '<div class="pdf-card">' + blocos + '</div>');
   },
 
   _secaoAlertas(alertas) {
@@ -9104,6 +9165,19 @@ text{font-family:'Montserrat',sans-serif;}
 .fx-table tfoot td{border-top:1.5px solid var(--pdf-border);border-bottom:none;padding-top:7px;font-weight:600;}
 .fx-foot-lbl{text-align:right;color:var(--pdf-ink-soft);}
 .fx-table tfoot tr.fx-saldo td{font-size:12.5px;font-weight:700;padding-top:4px;}
+
+/* Fatia 5c.3 — gastos detalhados por categoria (compacto) */
+.dpc-membro{margin-bottom:13px;}
+.dpc-membro-head{display:flex;justify-content:space-between;align-items:baseline;padding:5px 8px;background:#F3F1EA;border-radius:4px;margin-bottom:5px;}
+.dpc-membro-nome{font-weight:700;font-size:12px;color:var(--pdf-ink);}
+.dpc-membro-total{font-weight:700;font-size:12px;font-variant-numeric:tabular-nums;color:var(--pdf-out);}
+.dpc-sub{margin:0 0 5px 8px;}
+.dpc-sub-head{display:flex;justify-content:space-between;border-bottom:1px solid var(--pdf-border);padding-bottom:2px;margin-bottom:2px;}
+.dpc-sub-nome{font-weight:600;font-size:10px;color:var(--pdf-ink-soft);text-transform:uppercase;letter-spacing:.03em;}
+.dpc-sub-total{font-weight:600;font-size:10px;font-variant-numeric:tabular-nums;color:var(--pdf-ink-soft);}
+.dpc-item{display:flex;justify-content:space-between;font-size:9.5px;padding:1.5px 0 1.5px 10px;color:var(--pdf-ink);}
+.dpc-item-data{font-size:8px;color:var(--pdf-ink-mute);margin-left:6px;}
+.dpc-item-val{font-variant-numeric:tabular-nums;white-space:nowrap;padding-left:8px;}
 
 .al-row{display:flex;gap:8px;margin-bottom:6px;font-size:11px;}
 .al-row:last-child{margin-bottom:0;}
