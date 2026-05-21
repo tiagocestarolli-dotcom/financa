@@ -2666,6 +2666,41 @@ label {
 }
 .compromissos-btn:active { background: var(--line, #E6E4DC); transform: scale(0.98); }
 
+/* v0.27.0 (Fatia 5e) — Botão "Ver extrato do mês" (irmão do compromissos-btn,
+   tonalidade navy de "ferramenta de conferência"). Margem inferior generosa
+   pra não colar na bottom-nav nem ficar embaixo do FAB. */
+.extrato-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 6px 0 calc(var(--nav-h) + 24px);
+  padding: 12px 16px;
+  background: var(--flow-invest-soft);
+  border: 1px solid var(--flow-invest-soft);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--flow-invest);
+  cursor: pointer;
+  transition: background .14s, transform .12s, filter .12s;
+}
+.extrato-btn:active { filter: brightness(0.96); transform: scale(0.98); }
+
+/* Cabeçalho da sheet de extrato: total grande + contagem */
+.extrato-sheet-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin: 6px 0 12px;
+}
+.extrato-sheet-total {
+  font-family: var(--font-display); font-size: 22px; font-weight: 500;
+  letter-spacing: -0.015em; font-variant-numeric: tabular-nums;
+  color: var(--flow-out);
+}
+.extrato-sheet-count { font-size: 12px; color: var(--ink-mute); white-space: nowrap; }
+.extrato-search { margin: 0 0 14px; }
+
 /* Sheet "Compromissos do mês" */
 .cm-tabs {
   display: flex;
@@ -3438,6 +3473,28 @@ label {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 8px;
+}
+/* v0.27.0 (Fatia 5e): nome editável + criar subcategoria no picker */
+.rex-picker-label-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.rex-picker-label-row .rex-picker-label { margin-bottom: 0; }
+.rex-pick-nova {
+  font-size: 12px; font-weight: 600; color: var(--flow-invest);
+  background: none; border: none; padding: 2px 4px; width: auto;
+  cursor: pointer; font-family: var(--font-body);
+}
+.rex-pick-nova:active { opacity: 0.6; }
+.rex-pick-nome {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: var(--r);
+  font-size: 16px; background: var(--bg-elevated); color: var(--ink);
+  font-family: var(--font-body);
+}
+.rex-pick-hint {
+  font-size: 11px; font-style: italic; color: var(--ink-mute);
+  margin-top: 6px; line-height: 1.4;
 }
 .rex-picker-chips {
   display: flex;
@@ -4673,6 +4730,7 @@ label {
     <button class="compromissos-btn" data-compromissos="familia">📋 Compromissos do mês</button>
     <div class="subtabs" id="familiaSubtabs"></div>
     <div id="familiaContent"></div>
+    <button class="extrato-btn" data-extrato="familia">🧾 Ver extrato do mês (todos os lançamentos)</button>
     <button class="fab" id="famFab" aria-label="Novo gasto">＋</button>
   </section>
 
@@ -4681,6 +4739,7 @@ label {
   <section class="view" data-view="tiago">
     <button class="compromissos-btn" data-compromissos="tiago">📋 Compromissos do mês</button>
     <div id="tiagoContent"></div>
+    <button class="extrato-btn" data-extrato="tiago">🧾 Ver extrato do mês (todos os lançamentos)</button>
     <button class="fab" id="tiagoFab" aria-label="Novo gasto">＋</button>
   </section>
 
@@ -4902,7 +4961,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.26.0 · Fatia 5d — relatório elegante (PDF compartilhável)
+  Finança · v0.27.0 · Fatia 5e — extrato cronológico + classificar com nome/subcategoria
 </div>
 
   </section>
@@ -5539,6 +5598,11 @@ document.querySelectorAll('.nav-item').forEach(btn => {
 /* v0.14.0 — Bind dos botões "Compromissos do mês" em Família e Tiago */
 document.querySelectorAll('[data-compromissos]').forEach(btn => {
   btn.addEventListener('click', () => openCompromissosSheet(btn.dataset.compromissos));
+});
+
+/* v0.27.0 (Fatia 5e) — Bind dos botões "Ver extrato do mês" em Família e Tiago */
+document.querySelectorAll('[data-extrato]').forEach(btn => {
+  btn.addEventListener('click', () => openExtratoSheet(btn.dataset.extrato));
 });
 
 /* ====== Família — sub-tabs (Casa/Marina/Heitor/Juliana) ====== */
@@ -11536,6 +11600,121 @@ function _rel4BindEvents() {
   });
 }
 
+/* ============================================================
+   v0.27.0 — Fatia 5e · Extrato cronológico (conferência)
+   ------------------------------------------------------------
+   Lista achatada de TODOS os lançamentos de um escopo (Família
+   ou Tiago) num mês, em ordem cronológica, com busca por nome /
+   categoria / valor. Nasceu da dor de conferir o extrato do
+   banco contra o app: antes era preciso caçar cada lançamento
+   pulando entre as 4 abas de membro. Aqui tudo aparece junto.
+
+   Reaproveita _relListaCronologicaHtml + _rel4RenderRow (já
+   mostram data, nome, categoria › subcat, forma de pagamento,
+   badges "❓ a classificar" / "📥 extrato" / "📄 fatura" e valor).
+   Tocar numa linha abre o gasto pra edição (openGastoForm).
+   ============================================================ */
+let extratoSheetState = null;
+
+function _extratoCats(escopo) {
+  return (escopo === 'tiago') ? ['tiago'] : ['casa', 'marina', 'heitor', 'juliana'];
+}
+
+function openExtratoSheet(escopo) {
+  const ym = (escopo === 'tiago') ? tiagoCurrentYM : famCurrentYM;
+  extratoSheetState = { escopo, ym, busca: '' };
+  const titulo = (escopo === 'tiago') ? 'Extrato · Tiago' : 'Extrato · Família';
+  sheet.open(titulo, _extratoBodyHtml());
+  _extratoBind();
+}
+
+/* Todos os gastos do escopo+mês corrente do extrato (exclui só ajustes
+   técnicos — mantém pagamentos de fatura, que aparecem no extrato bancário). */
+function _extratoGastosDoMes() {
+  const { escopo, ym } = extratoSheetState;
+  const cats = _extratoCats(escopo);
+  return (state.gastos || []).filter(g =>
+    g.ym === ym && cats.indexOf(g.categoria) >= 0 && !g.isAjuste
+  );
+}
+
+/* Busca livre: casa contra nome, subcategoria, dono e valor (vírgula ou ponto).
+   Ex.: "47,90", "padaria", "mercado", "casa". */
+function _extratoFiltrar(gastos) {
+  const q = (extratoSheetState.busca || '').trim().toLowerCase().replace(/\./g, ',');
+  if (!q) return gastos;
+  return gastos.filter(g => {
+    const valorVirg = _relFmtBR(g.valor).toLowerCase();              /* "r$ 47,90" */
+    const valorPonto = (Number(g.valor) || 0).toFixed(2).replace('.', ','); /* "47,90" */
+    const hay = [
+      g.nome || '', g.subcategoria || '', g.categoria || '', valorVirg, valorPonto
+    ].join(' ').toLowerCase();
+    return hay.indexOf(q) >= 0;
+  });
+}
+
+function _extratoMesLabel() {
+  const [yyyy, mm] = extratoSheetState.ym.split('-');
+  return MESES_PT[Number(mm) - 1] + ' de ' + yyyy;
+}
+
+function _extratoBodyHtml() {
+  const todos = _extratoGastosDoMes();
+  const filtrados = _extratoFiltrar(todos);
+  const total = filtrados.reduce((s, g) => s + (Number(g.valor) || 0), 0);
+  const plural = todos.length !== 1 ? 's' : '';
+  return `
+    <div class="month-nav" style="margin-top:0;">
+      <button data-extrato-prev aria-label="Mês anterior">‹</button>
+      <div class="month-label">${escapeHtml(_extratoMesLabel())}</div>
+      <button data-extrato-next aria-label="Próximo mês">›</button>
+    </div>
+    <div class="extrato-sheet-head">
+      <div class="extrato-sheet-total" id="extratoTotal">${_relFmtBR(total)}</div>
+      <div class="extrato-sheet-count" id="extratoCount">${filtrados.length} de ${todos.length} lançamento${plural}</div>
+    </div>
+    <input type="text" class="extrato-search" id="extratoBusca"
+           placeholder="🔎 buscar por nome, categoria ou valor (ex: 47,90)"
+           value="${escapeHtml(extratoSheetState.busca)}"
+           autocomplete="off" autocorrect="off" autocapitalize="none">
+    <div id="extratoLista">${_relListaCronologicaHtml(filtrados)}</div>
+  `;
+}
+
+/* Atualiza só a lista + total + contagem (preserva foco do campo de busca). */
+function _extratoAtualizarLista() {
+  const todos = _extratoGastosDoMes();
+  const filtrados = _extratoFiltrar(todos);
+  const total = filtrados.reduce((s, g) => s + (Number(g.valor) || 0), 0);
+  const plural = todos.length !== 1 ? 's' : '';
+  const lista = document.getElementById('extratoLista');
+  if (lista) lista.innerHTML = _relListaCronologicaHtml(filtrados);
+  const tEl = document.getElementById('extratoTotal');
+  if (tEl) tEl.textContent = _relFmtBR(total);
+  const cEl = document.getElementById('extratoCount');
+  if (cEl) cEl.textContent = `${filtrados.length} de ${todos.length} lançamento${plural}`;
+  _extratoBindLinhas();
+}
+
+function _extratoBindLinhas() {
+  document.querySelectorAll('#extratoLista [data-rel-det-gid]').forEach(row => {
+    row.onclick = () => {
+      const gid = row.dataset.relDetGid;
+      if (typeof openGastoForm === 'function') openGastoForm(gid);
+    };
+  });
+}
+
+function _extratoBind() {
+  const prev = document.querySelector('[data-extrato-prev]');
+  const next = document.querySelector('[data-extrato-next]');
+  if (prev) prev.onclick = () => { extratoSheetState.ym = ymPrev(extratoSheetState.ym); sheet.body.innerHTML = _extratoBodyHtml(); _extratoBind(); };
+  if (next) next.onclick = () => { extratoSheetState.ym = ymNext(extratoSheetState.ym); sheet.body.innerHTML = _extratoBodyHtml(); _extratoBind(); };
+  const busca = document.getElementById('extratoBusca');
+  if (busca) busca.oninput = () => { extratoSheetState.busca = busca.value; _extratoAtualizarLista(); };
+  _extratoBindLinhas();
+}
+
 /* ===== Helpers ===== */
 
 function isInvest(catKey, subc) {
@@ -17421,6 +17600,10 @@ function _rexAbrirPickerClassificacao(idx) {
   let pickerCat = catAtual;
   let pickerSub = subAtual;
   let pickerGrupo = grupoAtual;
+  /* v0.27.0 (Fatia 5e): nome editável (default = descrição crua do extrato) */
+  let pickerNome = l.classifManualNome || l.descricaoOriginal || '';
+  /* modo "criar subcategoria nova" inline (evita modal empilhado sobre o picker) */
+  let criandoSub = false;
 
   const buildContent = () => {
     const cats = ['casa', 'marina', 'heitor', 'juliana', 'tiago'];
@@ -17432,6 +17615,14 @@ function _rexAbrirPickerClassificacao(idx) {
     return `
       <div class="rex-picker">
         <div class="rex-picker-sec">
+          <div class="rex-picker-label">nome / identificação</div>
+          <input type="text" class="rex-pick-nome" id="rexPickNome"
+                 value="${escapeHtml(pickerNome)}"
+                 placeholder="ex: Mercado, Posto Shell, Farmácia…"
+                 autocomplete="off" autocorrect="off" autocapitalize="sentences">
+          <div class="rex-pick-hint">veio do extrato como “${escapeHtml(l.descricaoOriginal)}” — troque por um nome que você reconheça</div>
+        </div>
+        <div class="rex-picker-sec">
           <div class="rex-picker-label">de quem é esse gasto?</div>
           <div class="rex-picker-chips">
             ${cats.map(c => {
@@ -17442,11 +17633,25 @@ function _rexAbrirPickerClassificacao(idx) {
           </div>
         </div>
         <div class="rex-picker-sec">
-          <div class="rex-picker-label">subcategoria</div>
-          <select class="rex-pick-sub-select" id="rexPickSub">
-            ${todasSubs.map(s => `<option value="${escapeHtml(s)}" ${s === pickerSub ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
-            ${todasSubs.includes(pickerSub) ? '' : `<option value="${escapeHtml(pickerSub)}" selected>${escapeHtml(pickerSub)} (não cadastrada)</option>`}
-          </select>
+          <div class="rex-picker-label-row">
+            <span class="rex-picker-label">subcategoria</span>
+            ${criandoSub ? '' : '<button type="button" class="rex-pick-nova" data-pick-nova-sub>+ nova</button>'}
+          </div>
+          ${criandoSub ? `
+            <input type="text" class="rex-pick-nome" id="rexPickSubNova"
+                   placeholder="nome da nova subcategoria"
+                   autocomplete="off" autocorrect="off" autocapitalize="words">
+            <div class="rex-pick-hint">será criada como exclusiva de ${escapeHtml((state.members[pickerCat] || {}).nome || _capitalizar(pickerCat))}</div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button type="button" class="btn btn-secondary" data-pick-nova-cancel style="flex:1;">cancelar</button>
+              <button type="button" class="btn btn-primary" data-pick-nova-ok style="flex:1;">✓ criar e usar</button>
+            </div>
+          ` : `
+            <select class="rex-pick-sub-select" id="rexPickSub">
+              ${todasSubs.map(s => `<option value="${escapeHtml(s)}" ${s === pickerSub ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
+              ${todasSubs.includes(pickerSub) ? '' : `<option value="${escapeHtml(pickerSub)}" selected>${escapeHtml(pickerSub)} (não cadastrada)</option>`}
+            </select>
+          `}
         </div>
         ${grupos.length > 0 ? `
         <div class="rex-picker-sec">
@@ -17494,6 +17699,7 @@ function _rexAbrirPickerClassificacao(idx) {
         const todasSubs = [...new Set([...subcatsExcl, ...subcatsUniv])];
         if (!todasSubs.includes(pickerSub) && todasSubs.length > 0) pickerSub = todasSubs[0];
         pickerGrupo = null;
+        criandoSub = false;
         rerender();
       };
     });
@@ -17501,6 +17707,36 @@ function _rexAbrirPickerClassificacao(idx) {
     if (sel) sel.onchange = (ev) => { pickerSub = ev.target.value; };
     const grupoSel = sheet2.querySelector('#rexPickGrupo');
     if (grupoSel) grupoSel.onchange = (ev) => { pickerGrupo = ev.target.value || null; };
+
+    /* v0.27.0 (Fatia 5e): nome editável */
+    const nomeInp = sheet2.querySelector('#rexPickNome');
+    if (nomeInp) nomeInp.oninput = (ev) => { pickerNome = ev.target.value; };
+
+    /* v0.27.0 (Fatia 5e): criar subcategoria nova inline */
+    const btnNova = sheet2.querySelector('[data-pick-nova-sub]');
+    if (btnNova) btnNova.onclick = () => { criandoSub = true; rerender(); const i = sheet2.querySelector('#rexPickSubNova'); if (i) setTimeout(() => i.focus(), 60); };
+
+    const btnNovaCancel = sheet2.querySelector('[data-pick-nova-cancel]');
+    if (btnNovaCancel) btnNovaCancel.onclick = () => { criandoSub = false; rerender(); };
+
+    const btnNovaOk = sheet2.querySelector('[data-pick-nova-ok]');
+    if (btnNovaOk) btnNovaOk.onclick = () => {
+      const inp = sheet2.querySelector('#rexPickSubNova');
+      const nova = (inp ? inp.value : '').trim();
+      if (!nova) { if (inp) inp.style.borderColor = 'var(--flow-out)'; return; }
+      const excl = (state.subcatsExclusivas && state.subcatsExclusivas[pickerCat]) || [];
+      const univ = state.subcatsUniversais || [];
+      const jaExiste = [...excl, ...univ].some(s => s.toLowerCase() === nova.toLowerCase());
+      if (!jaExiste) {
+        if (!state.subcatsExclusivas) state.subcatsExclusivas = {};
+        state.subcatsExclusivas[pickerCat] = [...excl, nova];
+        saveState(state);
+        toast('Subcategoria criada', 'success');
+      }
+      pickerSub = nova;
+      criandoSub = false;
+      rerender();
+    };
   };
   bindChips();
 
@@ -17510,6 +17746,9 @@ function _rexAbrirPickerClassificacao(idx) {
     revisaoExtratoState.lancs[idx].classifManualCategoria = pickerCat;
     revisaoExtratoState.lancs[idx].classifManualSubcategoria = pickerSub;
     revisaoExtratoState.lancs[idx].classifManualGrupoId = pickerGrupo;
+    /* v0.27.0 (Fatia 5e): nome amigável definido pelo Tiago (cai pra descrição
+       crua se ele apagou tudo). Vira o `nome` do gasto e alimenta o alias. */
+    revisaoExtratoState.lancs[idx].classifManualNome = (pickerNome || '').trim() || l.descricaoOriginal;
     salvarRascunhoRevisao();
     sheet2.remove();
     _rexAtualizarRow(idx);
@@ -17638,15 +17877,22 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
       let grupoId = null;
       let isFixo = false;
       let usouAlias = false;
+      /* v0.27.0 (Fatia 5e): nome do gasto. Default = descrição crua do extrato.
+         Sobrescrito pelo nome amigável que o Tiago digitou na classificação,
+         ou pela identificação memorizada num alias. */
+      let nome = l.descricaoOriginal;
 
       if (l.classifManual) {
         /* Tiago classificou manualmente na revisão */
         categoria = l.classifManualCategoria || categoria;
         subcategoria = l.classifManualSubcategoria || subcategoria;
         grupoId = l.classifManualGrupoId || null;
-        /* Ensina o alias pra próxima vez */
+        if (l.classifManualNome && l.classifManualNome.trim()) nome = l.classifManualNome.trim();
+        /* Ensina o alias pra próxima vez — incluindo o nome amigável (identificacao) */
         if (typeof aprenderAlias === 'function') {
-          try { aprenderAlias(l.descricaoOriginal, categoria, subcategoria, grupoId, null, null, false); } catch (e) {}
+          const ident = (l.classifManualNome && l.classifManualNome.trim() && l.classifManualNome.trim() !== l.descricaoOriginal)
+            ? l.classifManualNome.trim() : null;
+          try { aprenderAlias(l.descricaoOriginal, categoria, subcategoria, grupoId, null, ident, false); } catch (e) {}
         }
       } else if (typeof buscarAliasParaDescricao === 'function') {
         const alias = buscarAliasParaDescricao(l.descricaoOriginal, null);
@@ -17655,6 +17901,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
           subcategoria = alias.subcategoria || subcategoria;
           grupoId = alias.grupoId || null;
           isFixo = !!alias.isFixo;
+          if (alias.identificacao && alias.identificacao.trim()) nome = alias.identificacao.trim();
           usouAlias = true;
           nClassifPorAlias++;
           alias.contagemUso = (alias.contagemUso || 0) + 1;
@@ -17669,7 +17916,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
         categoria,
         subcategoria,
         grupoId,
-        nome: l.descricaoOriginal,
+        nome: nome,
         valor: l.valor,
         data: l.dataISO,
         ym,
