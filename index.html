@@ -4974,7 +4974,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.28.0 · Fatia 5e.1 — classificar extrato com grupo novo + marcar como fixo
+  Finança · v0.29.0 · Fatia 5b.3 — importar extrato de conta Sicoob
 </div>
 
   </section>
@@ -16898,7 +16898,7 @@ function detectarBancoExtrato(textoBruto) {
   /* Itaú genérico — telefone 4004 4828 ou domínio itau.com.br no rodapé */
   if (/4004\s*4828|itau\.com\.br/i.test(textoBruto)) return 'itau';
 
-  /* Sicoob — placeholder pra Fatia 5b.3 */
+  /* Sicoob — extrato de conta corrente (Fatia 5b.3) */
   if (/sicoob|bancoob/i.test(textoBruto)) return 'sicoob';
 
   /* BTG — placeholder pra Fatia 5b.4 */
@@ -16913,6 +16913,7 @@ function parseExtrato(textoBruto, hintBanco = null) {
   let lancs = [];
   let metaPeriodo = { dataInicio: null, dataFim: null };
 
+  let auditSaldo = null;
   switch (banco) {
     case 'itau': {
       const result = parserExtratoItau(textoBruto);
@@ -16920,9 +16921,15 @@ function parseExtrato(textoBruto, hintBanco = null) {
       metaPeriodo = result.metaPeriodo || metaPeriodo;
       break;
     }
-    case 'sicoob':
+    case 'sicoob': {
+      const result = parserExtratoSicoob(textoBruto);
+      lancs = result.lancs;
+      metaPeriodo = result.metaPeriodo || metaPeriodo;
+      auditSaldo = result.audit || null;
+      break;
+    }
     case 'btg':
-      throw new Error(`Parser de extrato do ${banco.toUpperCase()} ainda não implementado (Fatias 5b.3 e 5b.4)`);
+      throw new Error(`Parser de extrato do BTG ainda não implementado (Fatia 5b.4)`);
     default:
       throw new Error('Banco não identificado no extrato. Confira se é mesmo um extrato bancário.');
   }
@@ -16932,6 +16939,7 @@ function parseExtrato(textoBruto, hintBanco = null) {
     textoLength: (textoBruto || '').length,
     lancamentosBrutos: lancs.length,
     metaPeriodo,
+    auditSaldo,
     lancs
   };
 
@@ -17021,6 +17029,136 @@ function _itauDataPdfParaISO(dataPdf) {
   return `${m[3]}-${m[2]}-${m[1]}`;
 }
 
+/* --- Parser Sicoob extrato (Fatia 5b.3) ------------------------------- */
+/* Layout do extrato de conta corrente Sicoob:
+   - Header: "EXTRATO CONTA CORRENTE", "CONTA: ... / TIAGO", "PERÍODO: DD/MM/YYYY - DD/MM/YYYY"
+   - Tabela "DATA HISTÓRICO VALOR"
+   - Cada movimento numa linha: "DD/MM  HISTÓRICO  VALOR{D|C|*}"
+       · data SEM ano (o ano vem do PERÍODO no header)
+       · valor BR (1.783,56) com sufixo colado: D=débito(saída), C=crédito(entrada), *=saldo bloqueado
+   - Linhas seguintes SEM data = detalhe do lançamento acima (estabelecimento, CPF, "DOC.: xxx")
+   - Página final "RESUMO" + "LANÇAMENTOS FUTUROS" — NÃO são movimentação do período, são cortados.
+   Validado contra extrato de maio/2026: 32 lançamentos, conciliação de saldo fecha em R$ 0,00. */
+function parserExtratoSicoob(textoBruto) {
+  const linhas = (textoBruto || '').split(/\r?\n/);
+  const lancs = [];
+  const metaPeriodo = { dataInicio: null, dataFim: null };
+
+  /* Período do header → ano de referência (datas dos lançamentos vêm sem ano) */
+  const mPer = textoBruto.match(/PER[ÍI]ODO:\s*(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4})/i);
+  let anoRef = new Date().getFullYear();
+  let mesFimPeriodo = null;
+  if (mPer) {
+    metaPeriodo.dataInicio = _sicoobDataPdfParaISO(mPer[1]);
+    metaPeriodo.dataFim = _sicoobDataPdfParaISO(mPer[2]);
+    const mAno = mPer[1].match(/\/(\d{4})$/);
+    if (mAno) anoRef = parseInt(mAno[1], 10);
+    const mMes = mPer[2].match(/^\d{2}\/(\d{2})\//);
+    if (mMes) mesFimPeriodo = parseInt(mMes[1], 10);
+  }
+
+  const reLinha = /^(\d{2})\/(\d{2})\s+(.+?)\s+([\d.]+,\d{2})([DC*])\s*$/;
+  let atual = null;
+  const finalizar = () => { if (atual) { lancs.push(atual); atual = null; } };
+
+  for (const linhaRaw of linhas) {
+    const linha = linhaRaw.trim();
+    if (!linha) continue;
+    /* Corta na seção RESUMO — depois vem saldo consolidado + lançamentos futuros */
+    if (/^RESUMO\b/i.test(linha)) { finalizar(); break; }
+
+    const m = linha.match(reLinha);
+    if (m) {
+      finalizar();
+      const dia = m[1], mes = m[2];
+      const historico = m[3].trim();
+      const valorRaw = m[4];
+      const sufixo = m[5];
+
+      /* Saldos (anterior, do dia, bloqueado) não são movimento */
+      if (/^SALDO\b/i.test(historico) || sufixo === '*') { atual = null; continue; }
+
+      /* Ano: do período; vira ano-1 só se o mês do lançamento for posterior ao
+         fim do período (extrato que cruza a virada de ano). Caso comum: anoRef. */
+      let ano = anoRef;
+      if (mesFimPeriodo !== null && parseInt(mes, 10) > mesFimPeriodo) ano = anoRef - 1;
+      const dataPdf = `${dia}/${mes}/${ano}`;
+      const dataISO = _sicoobDataPdfParaISO(dataPdf);
+      if (!dataISO) { atual = null; continue; }
+
+      const valorNum = parseValor(valorRaw);
+      if (!isFinite(valorNum) || valorNum === 0) { atual = null; continue; }
+
+      atual = {
+        dataISO, dataPdf,
+        descricaoOriginal: historico, /* refinado abaixo com o detalhe */
+        historico,                    /* tipo cru Sicoob — usado na classificação */
+        docTag: null,
+        detalhe: [],
+        valor: valorNum,
+        sinal: sufixo === 'C' ? '+' : '-',
+        tipo: null, subcategoria: null, categoria: null,
+        excluir: false, matchPagamentoFaturaId: null
+      };
+    } else if (atual) {
+      /* Linha de detalhe do lançamento atual */
+      atual.detalhe.push(linha);
+      const mDoc = linha.match(/^DOC\.?:?\s*(.+)$/i);
+      if (mDoc) {
+        const v = mDoc[1].trim();
+        if (/[A-Za-zÀ-ú]/.test(v) && !/^Pix$/i.test(v)) atual.docTag = v;
+      }
+    }
+  }
+  finalizar();
+
+  /* Refina a descrição: pra compras no débito (COMP MASTER/VISA), o nome útil
+     é o estabelecimento (1ª linha de detalhe que não seja DOC/CPF/cabeçalho Pix). */
+  for (const l of lancs) {
+    const estab = (l.detalhe || []).find(d =>
+      !/^DOC\.?:/i.test(d) &&
+      !/^\*{3}\.\d{3}\.\d{3}-\*{2}$/.test(d) &&
+      !/^Pagamento\s+Pix$/i.test(d) &&
+      !/^CODIGO\s+TED/i.test(d) &&
+      !/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(d)
+    );
+    if (/COMP\s+(MASTER|VISA)/i.test(l.historico) && estab) l.descricaoOriginal = estab;
+    else if (l.docTag) l.descricaoOriginal = `${l.historico} · ${l.docTag}`;
+  }
+
+  /* Audit do parser: conciliação de saldo (anterior + créditos - débitos = final).
+     Se fecha em ~R$ 0, o parser pegou todos os valores certos. */
+  const mSaldoAnt = textoBruto.match(/SALDO\s+ANTERIOR\s+([\d.]+,\d{2})C/i);
+  const mSaldoFim = textoBruto.match(/SALDO\s+EM\s+CONTA:\s*([\d.]+,\d{2})C/i);
+  const saldoAnterior = mSaldoAnt ? parseValor(mSaldoAnt[1]) : null;
+  const saldoFinal = mSaldoFim ? parseValor(mSaldoFim[1]) : null;
+  const totalCreditos = lancs.filter(l => l.sinal === '+').reduce((s, l) => s + l.valor, 0);
+  const totalDebitos = lancs.filter(l => l.sinal === '-').reduce((s, l) => s + l.valor, 0);
+  const conciliacao = (saldoAnterior != null) ? (saldoAnterior + totalCreditos - totalDebitos) : null;
+  const diff = (conciliacao != null && saldoFinal != null) ? (conciliacao - saldoFinal) : null;
+  const audit = {
+    saldoAnterior, saldoFinal,
+    totalCreditos: +totalCreditos.toFixed(2),
+    totalDebitos: +totalDebitos.toFixed(2),
+    conciliacao: conciliacao != null ? +conciliacao.toFixed(2) : null,
+    diff: diff != null ? +diff.toFixed(2) : null,
+    fecha: diff != null ? Math.abs(diff) <= 0.01 : null
+  };
+  if (audit.fecha === false) {
+    console.warn('[Sicoob] conciliação de saldo NÃO fechou — diff R$', audit.diff);
+  }
+
+  return { lancs, metaPeriodo, audit };
+}
+
+/* Converte "DD/MM/YYYY" -> "YYYY-MM-DD" (Sicoob) */
+function _sicoobDataPdfParaISO(dataPdf) {
+  if (!dataPdf) return null;
+  const m = dataPdf.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
 
 /* --- Classificação de lançamentos do extrato -------------------------- */
 /* Atribui um TIPO a cada lançamento parseado.
@@ -17040,6 +17178,34 @@ function classificarLancamentosExtrato(lancs, contaId) {
   for (const l of lancs) {
     const desc = (l.descricaoOriginal || '').toUpperCase();
     const sinal = l.sinal;
+
+    /* --- Sicoob (Fatia 5b.3): classifica pelo histórico cru do extrato.
+       Só dispara pra lançamentos do parser Sicoob (têm l.historico). Itaú e
+       demais não têm esse campo e seguem pra lógica abaixo, inalterada. --- */
+    if (l.historico) {
+      const h = (l.historico || '').toUpperCase();
+      const doc = (l.docTag || '').toUpperCase();
+
+      if (/^SALDO\b/.test(h)) { l.tipo = 'IGNORAR'; l.excluir = true; continue; }
+
+      /* Pagamento de fatura do cartão: "DÉB.CONV.DEM.EMPRES" com DOC MASTERCARD/VISA.
+         Crítico anti-duplicidade: casa com o isPagamentoFatura já existente no app
+         pra NÃO contar duas vezes (a fatura já entrou pelas compras). */
+      if (sinal === '-' && /CONV\.?\s*DEM/i.test(h) && /(MASTERCARD|VISA|CART[ÃA]O)/i.test(doc)) {
+        const match = _matchPagamentoFatura(l, contaId);
+        l.tipo = 'PAGAMENTO_FATURA';
+        l.matchPagamentoFaturaId = match ? match.id : null;
+        l.excluir = !!match; /* casou → ignora; não casou → Tiago decide na revisão */
+        continue;
+      }
+      /* Entradas (crédito): salário, PIX/TED recebido, estornos. Tiago revisa estornos. */
+      if (sinal === '+') { l.tipo = 'ENTRADA_RENDA'; l.excluir = false; continue; }
+      /* Tarifas: pacote de serviços, seguros, cesta */
+      if (/PACOTE\s+SERVI|CONV\.?\s*SEGUROS|TARIFA|CESTA/i.test(h)) { l.tipo = 'SAIDA_TARIFA'; l.excluir = false; continue; }
+      /* Default: saída de consumo (Tiago classifica categoria/subcategoria na revisão) */
+      l.tipo = 'SAIDA_CONSUMO'; l.excluir = false;
+      continue;
+    }
 
     /* SALDO DO DIA — não deveria nem chegar aqui, mas safety */
     if (/^SALDO\s+DO\s+DIA/i.test(desc)) {
