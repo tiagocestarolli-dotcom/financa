@@ -4490,33 +4490,20 @@ label {
 
 /* ============================================================
    RELATÓRIOS · Fatia 5.5 (v0.22.0) — Exportação PDF
-   Estratégia: window.print() + CSS @media print (em vez de
-   jsPDF + html2canvas). PDF nativo do navegador → texto
-   selecionável, vetorial, leve, sem libs externas.
+   [v0.34.1: PDF rápido (window.print) aposentado — botão "Relatório"
+   cobre todos os relatórios com o layout Elegante. CSS de @media print
+   mantido como fallback caso algum componente use Ctrl+P / Print JS.]
    ============================================================ */
 
-/* Linha do header dos relatórios: pills à esquerda, botão PDF à direita */
+/* Linha do header dos relatórios: pills à esquerda, botão Relatório à direita */
 .rel-tabs-row {
   display: flex; align-items: center; gap: 10px;
   margin: 4px 0 14px;
 }
 .rel-tabs-row .rel-tabs { margin: 0; flex: 1; min-width: 0; }
-.rel-export-btn {
-  flex-shrink: 0; padding: 9px 14px; font-size: 13px;
-  border: 1px solid var(--line); border-radius: 20px;
-  color: var(--ink-soft); background: var(--bg-elevated);
-  font-weight: 500; cursor: pointer; font-family: var(--font-body);
-  white-space: nowrap; transition: all 0.12s ease;
-  display: inline-flex; align-items: center; gap: 6px;
-}
-.rel-export-btn:hover, .rel-export-btn:active {
-  background: var(--ink); color: var(--bg); border-color: var(--ink);
-}
-.rel-export-btn .rxb-icon { font-size: 14px; line-height: 1; }
 
 /* v0.26.0 (Fatia 5d): botão do RELATÓRIO ELEGANTE (PDF compartilhável).
-   Visualmente distinto do "PDF rápido" (botão claro): fundo navy de
-   investimento pra sinalizar "documento caprichado pra compartilhar". */
+   Fundo navy de investimento para sinalizar "documento caprichado". */
 .btn-pdf-elegante {
   flex-shrink: 0; padding: 9px 14px; font-size: 13px;
   border: 1px solid var(--flow-invest); border-radius: 20px;
@@ -4560,7 +4547,6 @@ label {
   .sheet, .sheet-backdrop, .sheet-handle,
   .toast-host,
   .rel-tabs-row,
-  .rel-export-btn,
   .btn-pdf-elegante,
   .rel-tabs,
   .rel-header,
@@ -4979,7 +4965,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.33.0 · Fatia 5c.5 — lista cronológica no Relatório Elegante (Rel 1 e Rel 3)
+  Finança · v0.34.1 · Fatia 5c.7 — PDF rápido aposentado; botão Relatório cobre todos os 4 relatórios
 </div>
 
   </section>
@@ -8070,12 +8056,10 @@ function renderRelatorios() {
       '</div>'
     : '';
 
-  /* v0.26.0 (Fatia 5d): botão do RELATÓRIO ELEGANTE (documento HTML autônomo,
-     Montserrat + gráficos SVG, pensado pra compartilhar com a Juliana).
-     Disponível em Rel 1, Rel 2 e Rel 3 (mesmos motores de cálculo das telas,
-     então os números reconciliam). Rel 4 segue só com o PDF da tela — já tem
-     apêndice cronológico próprio e filtros que tornariam o documento ambíguo. */
-  const mostraElegante = (relView === 'rel1' || relView === 'rel2' || relView === 'rel3');
+  /* v0.26.0 (Fatia 5d) / v0.34.0 (Fatia 5c.6): botão do RELATÓRIO ELEGANTE.
+     Disponível em todos os 4 relatórios. Rel 4 exporta a lista cronológica
+     com top subcategorias, respeitando o escopo e os filtros ativos. */
+  const mostraElegante = (relView === 'rel1' || relView === 'rel2' || relView === 'rel3' || relView === 'rel4');
   const eleganteBtnHtml = mostraElegante
     ? '<button class="btn-pdf-elegante" data-rel-elegante="1" title="Relatório elegante para compartilhar (documento próprio, gráficos)">' +
         '<span class="rxb-icon">✦</span><span>Relatório</span>' +
@@ -8086,9 +8070,6 @@ function renderRelatorios() {
     '<div class="rel-tabs-row">' +
       '<div class="rel-tabs">' + pillsHtml + '</div>' +
       eleganteBtnHtml +
-      '<button class="rel-export-btn" data-rel-export="1" title="PDF rápido — imprime a tela atual">' +
-        '<span class="rxb-icon">📄</span><span>PDF</span>' +
-      '</button>' +
     '</div>' +
     apendiceOptHtml +
     '<div class="rel-print-meta"></div>' +
@@ -8098,10 +8079,6 @@ function renderRelatorios() {
   host.querySelectorAll('[data-rel-view]').forEach(b => {
     b.onclick = () => { relView = b.dataset.relView; renderRelatorios(); };
   });
-
-  /* v0.22.0: bind do botão de exportar PDF */
-  const btnExport = host.querySelector('[data-rel-export]');
-  if (btnExport) btnExport.onclick = exportarRelatorioPDF;
 
   /* v0.26.0 (Fatia 5d): bind do botão do relatório elegante */
   const btnElegante = host.querySelector('[data-rel-elegante]');
@@ -8355,10 +8332,14 @@ window.relatorioElegante = {
     try {
       const ctx = this._resolverContexto();
       if (!ctx) return;
-      const dados = (ctx.tipo === 'rel2') ? this._dadosRel2(ctx) : this._dadosRel1(ctx);
-      const html  = (ctx.tipo === 'rel2')
-        ? this._gerarRel2(dados, ctx)
-        : this._gerarRel1(dados, ctx);
+      let dados, html;
+      if (ctx.tipo === 'rel2') {
+        dados = this._dadosRel2(ctx); html = this._gerarRel2(dados, ctx);
+      } else if (ctx.tipo === 'rel4') {
+        dados = this._dadosRel4(ctx); html = this._gerarRel4(dados, ctx);
+      } else {
+        dados = this._dadosRel1(ctx); html = this._gerarRel1(dados, ctx);
+      }
       this._abrirJanela(html, ctx.arquivo);
     } catch (e) {
       console.error('[relatorioElegante] falha ao gerar', e);
@@ -8384,6 +8365,17 @@ window.relatorioElegante = {
       tipo = 'rel1'; st = rel3State; cats = REL3_CATS_TIAGO.slice();
       titulo = 'Meus Gastos · Tiago';
       sub = 'Gastos pessoais de Tiago';
+    } else if (view === 'rel4') {
+      /* Fatia 5c.6: Relatório Elegante para o Relatório Detalhado.
+         Usa rel4State (escopo + filtros) + as mesmas funções _rel4GetGastos /
+         _rel4AplicarFiltros da tela — reconcilia por construção. */
+      tipo = 'rel4';
+      const escObj = (typeof REL4_ESCOPOS !== 'undefined')
+        ? (REL4_ESCOPOS.find(e => e.id === ((typeof rel4State !== 'undefined' && rel4State.escopo) || 'familia')) || REL4_ESCOPOS[0])
+        : { id: 'familia', label: 'Família' };
+      titulo = 'Relatório Detalhado';
+      sub = escObj.label;
+      st = (typeof rel4State !== 'undefined') ? rel4State : {};
     } else {
       tipo = 'rel1'; st = relState; cats = relCategoriasIncluidas();
       titulo = 'Gastos & Saídas';
@@ -8393,9 +8385,15 @@ window.relatorioElegante = {
     const ym      = (st && st.ym) || ymNow;
     const periodo = REL_PERIODOS.find(p => p.id === ((st && st.periodo) || 'mes')) || REL_PERIODOS[0];
     const yms     = relYmsHistorico(ym, periodo.months);
-    const arquivo = 'relatorio-cestarolli-' + ym + '.html';
+    const escopo4 = (tipo === 'rel4' && st) ? (st.escopo || 'familia') : 'familia';
+    const arquivo = (tipo === 'rel4')
+      ? 'relatorio-detalhe-' + escopo4 + '-' + ym + '.html'
+      : 'relatorio-cestarolli-' + ym + '.html';
+    const filtroSubcats4 = (tipo === 'rel4' && st) ? (st.filtroSubcats || []) : [];
+    const filtroGrupos4  = (tipo === 'rel4' && st) ? (st.filtroGrupos  || []) : [];
 
-    return { view, tipo, cats, st, titulo, sub, ym, periodo, yms, arquivo };
+    return { view, tipo, cats, st, titulo, sub, ym, periodo, yms, arquivo,
+             escopo: escopo4, filtroSubcats: filtroSubcats4, filtroGrupos: filtroGrupos4 };
   },
 
   /* ---------- extração REL 1 (Gastos & Saídas / Meus Gastos) ---------- */
@@ -8612,6 +8610,157 @@ window.relatorioElegante = {
       entradas, saidas, invest, saldo, historico, porFonte,
       porMembro, subTop, subRestoVal, subRestoN, topGastos, alertas, listaFluxo
     };
+  },
+
+  /* ---------- extração REL 4 (Detalhado) ----------
+     Fatia 5c.6: Reusa _rel4GetGastos + _rel4AplicarFiltros da tela —
+     reconcilia por construção (mesmos gastos → mesmo total). */
+  _dadosRel4(ctx) {
+    const ym     = ctx.ym;
+    const escopo = ctx.escopo;
+
+    const gastosBase = (typeof _rel4GetGastos === 'function')
+      ? _rel4GetGastos(ym, escopo) : [];
+    const gastos = (typeof _rel4AplicarFiltros === 'function')
+      ? _rel4AplicarFiltros(gastosBase) : gastosBase;
+
+    const total = gastos.reduce((s, g) => s + (Number(g.valor) || 0), 0);
+    const count = gastos.length;
+
+    /* Top subcategorias (até 10, com % do total) */
+    const subMap = {};
+    gastos.forEach(g => {
+      const k = g.subcategoria || '(sem subcategoria)';
+      subMap[k] = (subMap[k] || 0) + (Number(g.valor) || 0);
+    });
+    const topSubcats = Object.entries(subMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([nome, valor]) => ({ nome, valor, pct: total > 0 ? (valor / total * 100) : 0 }));
+
+    /* Lista cronológica crescente (mesma base — reconcilia) */
+    const lista = gastos.slice()
+      .sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0))
+      .map(g => ({
+        dataISO: g.data,
+        nome: g.nome || g.subcategoria || '—',
+        subcat: g.subcategoria || '',
+        valor: Number(g.valor) || 0,
+        invest: (typeof _isInvestRuntime === 'function') ? _isInvestRuntime(g) : false,
+        isFixo: !!g.isFixo,
+        parcelaAtual: g.parcelaAtual,
+        parcelasTotal: g.parcelasTotal
+      }));
+
+    /* Filtros ativos legíveis (pra capa e título) */
+    const fSubs   = ctx.filtroSubcats || [];
+    const fGrupos = ctx.filtroGrupos  || [];
+    const filtrosLabel = [];
+    fSubs.forEach(s => filtrosLabel.push(s));
+    fGrupos.forEach(id => {
+      const gr = (state.grupos && state.grupos[escopo] || []).find(x => x.id === id);
+      filtrosLabel.push(gr ? gr.nome : id);
+    });
+
+    return { total, count, topSubcats, lista, filtrosLabel };
+  },
+
+  /* ================= HTML REL 4 ================= */
+
+  _gerarRel4(d, ctx) {
+    const periodoLabel = this._periodoLabel(ctx);
+    const filtroSufixo = d.filtrosLabel.length > 0
+      ? ' · ' + d.filtrosLabel.join(', ')
+      : '';
+    const hoje = new Date().toLocaleDateString('pt-BR');
+
+    const capa = `
+    <div class="pdf-capa no-break">
+      <div class="capa-eyebrow">RELATÓRIO DETALHADO</div>
+      <div class="capa-titulo">${this._esc(ctx.sub)}</div>
+      <div class="capa-sub">${this._esc(periodoLabel)}${this._esc(filtroSufixo)}</div>
+      <div class="capa-grid" style="grid-template-columns:1fr 1fr;">
+        <div>
+          <div class="capa-col-label">TOTAL DE GASTOS</div>
+          <div class="capa-col-val">${this._fmt(d.total)}</div>
+        </div>
+        <div>
+          <div class="capa-col-label">LANÇAMENTOS</div>
+          <div class="capa-col-val" style="font-variant-numeric:tabular-nums;">${d.count}</div>
+        </div>
+      </div>
+      <div class="capa-rodape">Gerado em ${this._esc(hoje)} · Família Cestarolli</div>
+    </div>`;
+
+    const secSubcats = d.topSubcats.length > 1
+      ? this._secaoTopSubcatsDet(d.topSubcats)
+      : '';
+    const secLista = this._secaoListaDetalhada(d.lista, d.total);
+
+    const body = capa + secSubcats + secLista;
+    return this._documento(ctx, body);
+  },
+
+  /* Fatia 5c.6 — barras horizontais de subcategoria pro Rel 4 */
+  _secaoTopSubcatsDet(topSubcats) {
+    if (!topSubcats || !topSubcats.length) return '';
+    const rows = topSubcats.map(sc => {
+      const pct = sc.pct.toFixed(0);
+      const pctW = Math.max(2, Math.min(100, sc.pct));
+      return `
+        <div class="bar-row">
+          <div class="bar-head">
+            <span class="bar-name">${this._esc(sc.nome)}</span>
+            <span class="bar-val">${this._fmt(sc.valor)}<span class="bar-pct">&nbsp;${pct}%</span></span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${pctW.toFixed(1)}%;background:#A8462C;"></div>
+          </div>
+        </div>`;
+    }).join('');
+    return this._secao('🏷️', 'Gastos por subcategoria',
+      `<div class="pdf-card no-break">${rows}</div>`);
+  },
+
+  /* Fatia 5c.6 — lista cronológica do Rel 4, com badges de tipo/fixo/parcela */
+  _secaoListaDetalhada(lista, total) {
+    if (!lista || !lista.length) {
+      return this._secao('📋', 'Lançamentos',
+        `<div class="pdf-card"><div class="tg-mute" style="text-align:center;padding:20px 0;">
+          Nenhum lançamento no período.
+        </div></div>`);
+    }
+    const rows = lista.map(it => {
+      const cor = it.invest ? 'var(--pdf-invest)' : 'var(--pdf-out)';
+      let badges = `<span class="fx-tag">${it.invest ? 'invest.' : 'saída'}</span>`;
+      if (it.isFixo) badges += `<span class="fx-tag">fixo</span>`;
+      if (it.parcelaAtual && it.parcelasTotal)
+        badges += `<span class="fx-tag">${it.parcelaAtual}/${it.parcelasTotal}</span>`;
+      const subcatInfo = it.subcat
+        ? `<span class="det4-subcat">${this._esc(it.subcat)}</span>` : '';
+      return `
+        <tr>
+          <td class="tg-mute" style="white-space:nowrap;">${this._esc(this._dataCurta(it.dataISO))}</td>
+          <td>${this._esc(it.nome)}${badges}${subcatInfo}</td>
+          <td class="tg-val" style="color:${cor};white-space:nowrap;">${this._fmt(it.valor)}</td>
+        </tr>`;
+    }).join('');
+    return this._secao('📋', 'Lançamentos detalhados · ordem cronológica',
+      `<div class="pdf-card">
+        <table class="tg-table fx-table">
+          <thead><tr>
+            <th style="width:48px;">DATA</th><th>DESCRIÇÃO</th><th class="tg-th-val">VALOR</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr class="fx-saldo">
+              <td></td>
+              <td class="fx-foot-lbl">Total · ${lista.length} lançamento${lista.length !== 1 ? 's' : ''}</td>
+              <td class="tg-val" style="color:var(--pdf-out);white-space:nowrap;">${this._fmt(total)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>`);
   },
 
   /* ================= HTML dos relatórios ================= */
@@ -9239,6 +9388,9 @@ text{font-family:'Montserrat',sans-serif;}
 
 .al-row{display:flex;gap:8px;margin-bottom:6px;font-size:11px;}
 .al-row:last-child{margin-bottom:0;}
+
+/* Fatia 5c.6 — subcategoria discreta nas linhas do Rel 4 */
+.det4-subcat{display:block;font-size:8.5px;color:var(--pdf-ink-mute);margin-top:1px;}
 
 .pdf-footer{margin-top:26px;padding-top:10px;border-top:1px solid var(--pdf-border);
   font-size:9px;color:var(--pdf-ink-mute);text-align:center;}
