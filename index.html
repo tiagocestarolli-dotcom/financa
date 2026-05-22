@@ -4965,7 +4965,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.34.1 · Fatia 5c.7 — PDF rápido aposentado; botão Relatório cobre todos os 4 relatórios
+  Finança · v0.35.0 · Fatia 5c.8 — caixa de toggles própria no Rel 3 (independente do Rel 1)
 </div>
 
   </section>
@@ -8021,6 +8021,21 @@ let relPdfDetalheCategoria = (function () {
   } catch (e) { return true; }
 })();
 
+/* v0.35.0 (Fatia 5c.8): estados PRÓPRIOS do Rel 3 — independentes do Rel 1.
+   Mesmo comportamento e defaults que as globais acima, mas persistidos em
+   chaves separadas para que ativar/desativar num relatório não afete o outro. */
+let rel3PdfDetalheCategoria = (function () {
+  try {
+    const v = localStorage.getItem('financa.rel3PdfDetalheCategoria');
+    return v === null ? true : v === '1';
+  } catch (e) { return true; }
+})();
+
+let rel3PdfApendice = (function () {
+  try { return localStorage.getItem('financa.rel3PdfApendice') === '1'; }
+  catch (e) { return false; }
+})();
+
 const REL_TABS = [
   { id: 'rel1', label: 'Gastos & Saídas' },
   { id: 'rel2', label: 'Fluxo de Caixa' },
@@ -8036,25 +8051,10 @@ function renderRelatorios() {
     '<button class="rel-tab ' + (t.id === relView ? 'active' : '') + '" data-rel-view="' + t.id + '">' + escapeHtml(t.label) + '</button>'
   ).join('');
 
-  /* v0.22.0 (Fatia 5.5): linha do header agora tem pills + botão "Exportar PDF".
-     O .rel-print-meta é invisível em tela (CSS), populado dinamicamente
-     antes do window.print() com título do relatório, mês, período, data e
-     identificação do usuário. */
-  /* v0.25.0 (Fatia 5c.1.b): toggle "incluir lista detalhada no PDF".
-     Só faz sentido nos relatórios sobre gastos por categoria (Rel 1 e Rel 3).
-     Rel 2 (fluxo de caixa, com entradas) terá apêndice próprio numa fatia
-     futura (5c.2). Rel 4 já É a lista detalhada — dispensa. */
-  /* Rel 1 agrupa os controles numa caixa própria (Fatia 5c.4), então o apêndice
-     na barra fica só pro Rel 3. Rel 4 já É a lista detalhada — dispensa. */
-  const mostraOptApendice = (relView === 'rel3');
-  const apendiceOptHtml = mostraOptApendice
-    ? '<div class="rel-pdf-opts">' +
-        '<label class="rel-pdf-opt">' +
-          '<input type="checkbox" id="relApendiceToggle"' + (relPdfApendice ? ' checked' : '') + '>' +
-          '<span>📎 incluir lista detalhada no PDF</span>' +
-        '</label>' +
-      '</div>'
-    : '';
+  /* v0.25.0 (Fatia 5c.1.b): toggle de apêndice cronológico.
+     v0.35.0 (Fatia 5c.8): Rel 1 e Rel 3 têm caixas de toggles próprias dentro
+     do relInner — nada mais precisa ficar na barra global. */
+  const apendiceOptHtml = '';
 
   /* v0.26.0 (Fatia 5d) / v0.34.0 (Fatia 5c.6): botão do RELATÓRIO ELEGANTE.
      Disponível em todos os 4 relatórios. Rel 4 exporta a lista cronológica
@@ -8092,12 +8092,9 @@ function renderRelatorios() {
     }
   };
 
-  /* v0.25.0: bind do toggle de apêndice (persiste preferência) */
-  const toggleApendice = host.querySelector('#relApendiceToggle');
-  if (toggleApendice) toggleApendice.onchange = (ev) => {
-    relPdfApendice = !!ev.target.checked;
-    try { localStorage.setItem('financa.relPdfApendice', relPdfApendice ? '1' : '0'); } catch (e) {}
-  };
+  /* v0.25.0: bind do toggle de apêndice — removido na v0.35.0 (toggle migrou
+     para dentro dos relInner do Rel 1 e Rel 3). Bloco mantido como comentário
+     para referência histórica de quem estiver lendo o código. */
 
   if (relView === 'rel1') _renderRel1Inner();
   else if (relView === 'rel2') _renderRel2Inner();
@@ -8807,8 +8804,11 @@ window.relatorioElegante = {
       : '';
 
     const secTop = this._secaoTopGastos(d.topGastos);
-    const secDetalhe = relPdfDetalheCategoria ? this._secaoDetalhePorCategoria(d.detalhePorCategoria) : '';
-    const secCrono = relPdfApendice ? this._secaoCronologicoRel1(d.listaCronologica, d.totalSaidas) : '';
+    /* v0.35.0 (Fatia 5c.8): Rel 3 tem estados próprios; Rel 1 usa os globais */
+    const detalheOn = (ctx.view === 'rel3') ? rel3PdfDetalheCategoria : relPdfDetalheCategoria;
+    const cronoOn   = (ctx.view === 'rel3') ? rel3PdfApendice : relPdfApendice;
+    const secDetalhe = detalheOn ? this._secaoDetalhePorCategoria(d.detalhePorCategoria) : '';
+    const secCrono = cronoOn ? this._secaoCronologicoRel1(d.listaCronologica, d.totalSaidas) : '';
     const secAlertas = this._secaoAlertas(d.alertas);
 
     const body = capa + secResumo + secHist + secMembro + secSubcat + secComp + secTop + secDetalhe + secCrono + secAlertas;
@@ -11149,6 +11149,10 @@ function _rel3HeaderHtml(ym, periodo) {
   const periodoHtml = REL_PERIODOS.map(p =>
     '<button class="rp ' + (p.id === rel3State.periodo ? 'active' : '') + '" data-rel3-periodo="' + p.id + '">' + escapeHtml(p.label) + '</button>'
   ).join('');
+  /* v0.35.0 (Fatia 5c.8): caixa de toggles própria do Rel 3 — igual à estrutura
+     do Rel 1 (.rel-opts), mas com estados independentes (rel3PdfDetalheCategoria /
+     rel3PdfApendice). Antes o toggle de lista ficava solto na barra global e
+     compartilhava estado com o Rel 1. */
   return `
     <div class="rel-monthnav">
       <button id="rel3Prev" aria-label="Mês anterior">‹</button>
@@ -11156,9 +11160,19 @@ function _rel3HeaderHtml(ym, periodo) {
       <button id="rel3Next" aria-label="Próximo mês">›</button>
     </div>
     <div class="rel-periodo">${periodoHtml}</div>
-    <div class="rel-toggle-tiago ${rel3State.compararFamilia ? 'on' : ''}" id="rel3ToggleComp">
-      <div class="rt-sw"></div>
-      <div class="rt-label">Comparar com a família</div>
+    <div class="rel-opts">
+      <div class="rel-toggle-tiago ${rel3State.compararFamilia ? 'on' : ''}" id="rel3ToggleComp">
+        <div class="rt-sw"></div>
+        <div class="rt-label">Comparar com a família</div>
+      </div>
+      <div class="rel-toggle-tiago ${rel3PdfDetalheCategoria ? 'on' : ''}" id="rel3ToggleDetCat">
+        <div class="rt-sw"></div>
+        <div class="rt-label">Incluir gastos detalhados por categoria</div>
+      </div>
+      <div class="rel-toggle-tiago ${rel3PdfApendice ? 'on' : ''}" id="rel3ToggleApendice">
+        <div class="rt-sw"></div>
+        <div class="rt-label">Incluir lista detalhada (cronológica) no Relatório</div>
+      </div>
     </div>
   `;
 }
@@ -11494,6 +11508,21 @@ function _rel3BindEvents() {
 
   const togComp = document.getElementById('rel3ToggleComp');
   if (togComp) togComp.onclick = () => { rel3State.compararFamilia = !rel3State.compararFamilia; renderRelatorios(); };
+
+  /* v0.35.0 (Fatia 5c.8): toggles próprios do Rel 3 */
+  const togDetCat = document.getElementById('rel3ToggleDetCat');
+  if (togDetCat) togDetCat.onclick = () => {
+    rel3PdfDetalheCategoria = !rel3PdfDetalheCategoria;
+    try { localStorage.setItem('financa.rel3PdfDetalheCategoria', rel3PdfDetalheCategoria ? '1' : '0'); } catch (e) {}
+    renderRelatorios();
+  };
+
+  const togApendice = document.getElementById('rel3ToggleApendice');
+  if (togApendice) togApendice.onclick = () => {
+    rel3PdfApendice = !rel3PdfApendice;
+    try { localStorage.setItem('financa.rel3PdfApendice', rel3PdfApendice ? '1' : '0'); } catch (e) {}
+    renderRelatorios();
+  };
 
   /* Drill-down: subcategoria do Tiago */
   el.querySelectorAll('[data-rel3-subcat]').forEach(seg => {
