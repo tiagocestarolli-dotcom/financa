@@ -4965,7 +4965,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.35.0 · Fatia 5c.8 — caixa de toggles própria no Rel 3 (independente do Rel 1)
+  Finança · v0.36.0 · Fatia 5b.4 — parser extrato BTG (.xls)
 </div>
 
   </section>
@@ -17337,7 +17337,10 @@ function parseExtrato(textoBruto, hintBanco = null) {
       break;
     }
     case 'btg':
-      throw new Error(`Parser de extrato do BTG ainda não implementado (Fatia 5b.4)`);
+      /* Extrato BTG é entregue em .xls — o pipeline XLS (Fatia 5b.4)
+         já roteia antes de chegar aqui. Se caiu aqui, o arquivo é PDF
+         mas com texto BTG — situação inesperada. */
+      throw new Error('Extrato BTG: use o arquivo .xls baixado do app BTG (não PDF).');
     default:
       throw new Error('Banco não identificado no extrato. Confira se é mesmo um extrato bancário.');
   }
@@ -17353,6 +17356,71 @@ function parseExtrato(textoBruto, hintBanco = null) {
 
   return { banco, lancs, metaPeriodo };
 }
+
+
+/* --- Lazy loader SheetJS (Fatia 5b.4) --------------------------------- */
+async function _carregarSheetJS() {
+  if (window.XLSX) return;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Nao foi possivel carregar o leitor de planilhas. Verifique a conexao e tente novamente.'));
+    document.head.appendChild(s);
+  });
+}
+
+async function parserExtratoXlsBtg(file) {
+  await _carregarSheetJS();
+  const buffer = await file.arrayBuffer();
+  const wb = window.XLSX.read(buffer, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = window.XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+  const lancs = [];
+  const metaPeriodo = { dataInicio: null, dataFim: null };
+  const periodoStr = rows[6] ? String(rows[6][2] || '') : '';
+  const mPer = periodoStr.match(/(\d{2}\/\d{2}\/\d{4})\s+a\s+(\d{2}\/\d{2}\/\d{4})/);
+  if (mPer) {
+    metaPeriodo.dataInicio = _btgXlsDataParaISO(mPer[1]);
+    metaPeriodo.dataFim    = _btgXlsDataParaISO(mPer[2]);
+  }
+  for (let i = 11; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row) continue;
+    const dataHoraRaw  = row[1];
+    const categoriaBtg = row[2];
+    const tipoTrans    = row[3];
+    const descricao    = row[6];
+    const valorRaw     = row[10];
+    if (String(descricao || '').trim() === 'Saldo Diario') continue;
+    if (!dataHoraRaw) continue;
+    if (valorRaw === null || valorRaw === undefined || !isFinite(Number(valorRaw))) continue;
+    const valor = Number(valorRaw);
+    if (valor === 0) continue;
+    const dataISO = _btgXlsDataParaISO(String(dataHoraRaw));
+    if (!dataISO) continue;
+    lancs.push({
+      dataISO,
+      descricaoOriginal: String(descricao || tipoTrans || '\u2014').trim(),
+      categoriaBtg: categoriaBtg ? String(categoriaBtg).trim() : null,
+      tipoTransacao: tipoTrans   ? String(tipoTrans).trim()   : null,
+      valor: Math.abs(valor),
+      sinal: valor < 0 ? '-' : '+',
+      tipo: null, subcategoria: null, categoria: null,
+      excluir: false, matchPagamentoFaturaId: null
+    });
+  }
+  window.__extratoDebug = { banco: 'btg', formato: 'xls', lancamentosBrutos: lancs.length, metaPeriodo, lancs };
+  return { banco: 'btg', lancs, metaPeriodo };
+}
+
+function _btgXlsDataParaISO(str) {
+  if (!str) return null;
+  const m = String(str).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return null;
+  return m[3] + '-' + m[2] + '-' + m[1];
+}
+
 
 /* --- Parser Itaú extrato --------------------------------------------- */
 /* Layout do extrato Itaú (5 páginas típico):
@@ -17586,6 +17654,34 @@ function classificarLancamentosExtrato(lancs, contaId) {
   for (const l of lancs) {
     const desc = (l.descricaoOriginal || '').toUpperCase();
     const sinal = l.sinal;
+
+    /* --- BTG XLS (Fatia 5b.4): detectado por l.tipoTransacao estar definido.
+       Usa campos estruturados do XLS — sem regex frágil em texto livre. --- */
+    if (l.tipoTransacao !== undefined) {
+      const tipo = (l.tipoTransacao || '').toLowerCase();
+
+      /* Pagamento de fatura do cartão — BTG escreve literalmente */
+      if (/fatura\s+do\s+cart[aã]o|pagamento\s+de\s+fatura/i.test(tipo)) {
+        const match = _matchPagamentoFatura(l, contaId);
+        l.tipo = 'PAGAMENTO_FATURA';
+        l.matchPagamentoFaturaId = match ? match.id : null;
+        l.excluir = !!match; /* casou com gasto existente → ignora; sem match → Tiago decide */
+        continue;
+      }
+
+      /* Entradas (crédito: PIX recebido, TED, rendimento) */
+      if (sinal === '+') { l.tipo = 'ENTRADA_RENDA'; l.excluir = false; continue; }
+
+      /* Tarifas (quando o próprio tipo ou a descrição indicam tarifa/seguro) */
+      if (/tarifa|cesta\s+serv|pacote\s+serv|iof|seguro/i.test(tipo) ||
+          /tarifa|iof|seguro/i.test((l.descricaoOriginal || '').toLowerCase())) {
+        l.tipo = 'SAIDA_TARIFA'; l.excluir = false; continue;
+      }
+
+      /* Default: saída de consumo — Tiago classifica categoria na tela de revisão */
+      l.tipo = 'SAIDA_CONSUMO'; l.excluir = false;
+      continue;
+    }
 
     /* --- Sicoob (Fatia 5b.3): classifica pelo histórico cru do extrato.
        Só dispara pra lançamentos do parser Sicoob (têm l.historico). Itaú e
@@ -17869,16 +17965,26 @@ async function importarExtratoBancario(file, contaId) {
   toast(`Lendo extrato do ${conta.nome}…`, 'info');
 
   try {
-    const { textoBruto } = await extrairTextoDoPDF(file);
-    const { banco, lancs, metaPeriodo } = parseExtrato(textoBruto);
+    let banco, lancs, metaPeriodo;
+
+    /* Fatia 5b.4: BTG entrega extrato em .xls — pipeline separado do PDF */
+    const ext = (file.name || '').split('.').pop().toLowerCase();
+    if (ext === 'xls' || ext === 'xlsx') {
+      const result = await parserExtratoXlsBtg(file);
+      banco = result.banco; lancs = result.lancs; metaPeriodo = result.metaPeriodo;
+    } else {
+      const { textoBruto } = await extrairTextoDoPDF(file);
+      const result = parseExtrato(textoBruto);
+      banco = result.banco; lancs = result.lancs; metaPeriodo = result.metaPeriodo;
+    }
 
     if (!banco) {
-      toast('Banco não identificado no PDF. Confira se é mesmo um extrato.', 'error');
+      toast('Banco não identificado no arquivo. Confira se é mesmo um extrato.', 'error');
       return;
     }
 
-    if (lancs.length === 0) {
-      toast('Nenhum lançamento encontrado no PDF.', 'error');
+    if (!lancs || lancs.length === 0) {
+      toast('Nenhum lançamento encontrado no arquivo.', 'error');
       return;
     }
 
@@ -18659,7 +18765,7 @@ async function abrirSeletorExtrato(contaId) {
   /* Cria input file invisível e dispara */
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = 'application/pdf,.pdf';
+  input.accept = 'application/pdf,.pdf,.xls,.xlsx';
   input.style.display = 'none';
   input.onchange = (ev) => {
     const file = ev.target.files && ev.target.files[0];
