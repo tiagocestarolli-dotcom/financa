@@ -4965,7 +4965,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.36.0 · Fatia 5b.4 — parser extrato BTG (.xls)
+  Finança · v0.36.1 · patch — Saldo Diário filtrado + pagamento de fatura ignorado por padrão (3 bancos)
 </div>
 
   </section>
@@ -17392,7 +17392,8 @@ async function parserExtratoXlsBtg(file) {
     const tipoTrans    = row[3];
     const descricao    = row[6];
     const valorRaw     = row[10];
-    if (String(descricao || '').trim() === 'Saldo Diario') continue;
+    /* Pula 'Saldo Diário' (saldo corrente diario, nao lancamento) */
+    if (/^saldo\s+di[aá]rio$/i.test(String(descricao || '').trim())) continue;
     if (!dataHoraRaw) continue;
     if (valorRaw === null || valorRaw === undefined || !isFinite(Number(valorRaw))) continue;
     const valor = Number(valorRaw);
@@ -17665,7 +17666,7 @@ function classificarLancamentosExtrato(lancs, contaId) {
         const match = _matchPagamentoFatura(l, contaId);
         l.tipo = 'PAGAMENTO_FATURA';
         l.matchPagamentoFaturaId = match ? match.id : null;
-        l.excluir = !!match; /* casou com gasto existente → ignora; sem match → Tiago decide */
+        l.excluir = true; /* sempre ignorado por padrão — fatura já entra pelos gastos individuais */
         continue;
       }
 
@@ -17699,7 +17700,7 @@ function classificarLancamentosExtrato(lancs, contaId) {
         const match = _matchPagamentoFatura(l, contaId);
         l.tipo = 'PAGAMENTO_FATURA';
         l.matchPagamentoFaturaId = match ? match.id : null;
-        l.excluir = !!match; /* casou → ignora; não casou → Tiago decide na revisão */
+        l.excluir = true; /* sempre ignorado por padrão — fatura já entra pelos gastos individuais */
         continue;
       }
       /* Entradas (crédito): salário, PIX/TED recebido, estornos. Tiago revisa estornos. */
@@ -17728,13 +17729,12 @@ function classificarLancamentosExtrato(lancs, contaId) {
       if (match) {
         l.tipo = 'PAGAMENTO_FATURA';
         l.matchPagamentoFaturaId = match.id;
-        l.excluir = true; /* já existe, vai ser ignorado */
+        l.excluir = true; /* já existe, ignorado */
       } else {
-        /* Não achou no app — talvez fatura ainda não foi paga automaticamente.
-           Marca como pagamento de fatura mas sem match, Tiago decide. */
+        /* Não achou match — mas é pagamento de fatura, então também ignorar por padrão */
         l.tipo = 'PAGAMENTO_FATURA';
         l.matchPagamentoFaturaId = null;
-        l.excluir = false; /* mostra na tela de revisão */
+        l.excluir = true; /* fatura já entra pelos gastos individuais; Tiago pode reativar */
       }
       continue;
     }
@@ -18231,8 +18231,11 @@ function _rexRenderRow(l, idxGlobal) {
         ${badge}
       </div>
     `;
-  } else if (l.tipo === 'PAGAMENTO_FATURA' && l.matchPagamentoFaturaId) {
-    classifLinha = '<div class="rex-row-classif"><span class="rex-tag rex-tag-pgfat">🔄 já registrado no app</span></div>';
+  } else if (l.tipo === 'PAGAMENTO_FATURA') {
+    const msg = l.matchPagamentoFaturaId
+      ? '🔄 já registrado no app — ignorado'
+      : '⚠️ pagamento de fatura — já entra pelos lançamentos da fatura';
+    classifLinha = `<div class="rex-row-classif"><span class="rex-tag rex-tag-pgfat">${msg}</span></div>`;
   }
 
   return `
