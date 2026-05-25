@@ -4663,6 +4663,55 @@ label {
 </head>
 <body>
 
+<!-- ====================== SPLASH (abertura animada — v0.37.0) ====================== -->
+<div id="splash" aria-hidden="true">
+  <style>
+    #splash{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(120% 90% at 50% 38%, #FFFFFF 0%, var(--bg) 62%);
+      font-family:var(--font-body);opacity:1;transition:opacity .6s ease}
+    #splash.sp-hide{opacity:0;pointer-events:none}
+    #splash .sp-stage{display:flex;flex-direction:column;align-items:center;gap:26px}
+    #splash .sp-bars{display:flex;align-items:flex-end;gap:14px;height:92px}
+    #splash .sp-bar{width:22px;border-radius:7px;transform:scaleY(0);transform-origin:bottom;
+      animation:sp-grow .7s cubic-bezier(.34,1.56,.64,1) both}
+    #splash .sp-bar-in{height:60px;background:var(--flow-in);animation-delay:0s}
+    #splash .sp-bar-out{height:92px;background:var(--flow-out);animation-delay:.12s}
+    #splash .sp-bar-inv{height:74px;background:var(--flow-invest);animation-delay:.24s}
+    #splash .sp-name{font-family:var(--font-display);font-size:clamp(42px,13vw,88px);font-weight:500;
+      color:var(--ink);letter-spacing:-.02em;line-height:1;opacity:0;
+      animation:sp-rise .6s cubic-bezier(.16,1,.3,1) .65s both}
+    #splash .sp-rule{width:170px;height:2px;background:var(--line);transform:scaleX(0);
+      animation:sp-draw .5s cubic-bezier(.16,1,.3,1) 1.25s both}
+    #splash .sp-tag{font-size:clamp(13px,3.4vw,17px);font-weight:600;letter-spacing:.16em;
+      text-transform:uppercase;color:var(--ink-mute);opacity:0;
+      animation:sp-rise .6s cubic-bezier(.16,1,.3,1) 1.55s both}
+    @keyframes sp-grow{to{transform:scaleY(1)}}
+    @keyframes sp-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes sp-draw{to{transform:scaleX(1)}}
+    @media (prefers-reduced-motion:reduce){
+      #splash .sp-bar,#splash .sp-name,#splash .sp-rule,#splash .sp-tag{animation-duration:.01s;animation-delay:0s}
+    }
+  </style>
+  <div class="sp-stage">
+    <div class="sp-bars">
+      <span class="sp-bar sp-bar-in"></span>
+      <span class="sp-bar sp-bar-out"></span>
+      <span class="sp-bar sp-bar-inv"></span>
+    </div>
+    <div class="sp-name">Finança</div>
+    <div class="sp-rule"></div>
+    <div class="sp-tag">Clareza nas suas finanças</div>
+  </div>
+</div>
+<script>
+  (function(){
+    var sp = document.getElementById('splash');
+    if (!sp) return;
+    setTimeout(function(){ sp.classList.add('sp-hide'); }, 2200);
+    setTimeout(function(){ if (sp && sp.parentNode) sp.parentNode.removeChild(sp); }, 2900);
+  })();
+</script>
+
 <!-- ====================== TELA DE LOGIN ====================== -->
 
 <div class="auth-screen" id="authScreen">
@@ -4965,7 +5014,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.36.1 · patch — Saldo Diário filtrado + pagamento de fatura ignorado por padrão (3 bancos)
+  Finança · v0.37.0 · splash de abertura animada (CSS — colunas de fluxo + Fraunces)
 </div>
 
   </section>
