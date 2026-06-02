@@ -5014,7 +5014,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.37.0 · splash de abertura animada (CSS — colunas de fluxo + Fraunces)
+  Finança · v0.38.0 · Relatório de Fluxo de Caixa em tema escuro + entradas por fonte em foco (4a/4b/4c)
 </div>
 
   </section>
@@ -8371,7 +8371,79 @@ function _atualizarPrintMeta(viewId) {
    (Detalhe) continua só com o PDF da tela (já tem apêndice
    cronológico da Fatia 5c.1).
    ============================================================ */
+/* ============================================================
+   Viz das fontes de entrada (Rel 2 elegante) — cor, grupo e
+   se a fonte é distribuição de lucros (base do imposto de dividendos).
+   Resolve por NOME da fonte (funciona com os dados atuais sem ajuste).
+   Para fixar com precisão, mapeie o ID da fonte em FONTE_VIZ_MAP.
+   ============================================================ */
+const FONTE_VIZ_MAP = {
+  /* 'idDaFonteNoApp': 'saitg' | 'saitg_aab' | 'oftalmo' | 'oftalmo_part' | 'clinas' | 'ses' */
+};
+const FONTE_VIZ_PRESET = {
+  saitg:        { cor:'#34D17E', grupo:'saitg',   grupoNome:'SAITG',       ehLucro:true,  ordem:1 },
+  saitg_aab:    { cor:'#1C9D6E', grupo:'saitg',   grupoNome:'SAITG',       ehLucro:true,  ordem:2 },
+  oftalmo:      { cor:'#3D9BE9', grupo:'oftalmo', grupoNome:'OFTALMONEST', ehLucro:true,  ordem:1 },
+  oftalmo_part: { cor:'#86C9F5', grupo:'oftalmo', grupoNome:'OFTALMONEST', ehLucro:false, ordem:2 },
+  clinas:       { cor:'#F5953F', grupo:'clinas',  grupoNome:'CLINAS',      ehLucro:true,  ordem:1 },
+  ses:          { cor:'#F2F2EA', grupo:'ses',     grupoNome:'SES',         ehLucro:false, ordem:1 },
+  _neutro:      { cor:'#7FA8B0', grupo:'_outras', grupoNome:'Outras',      ehLucro:false, ordem:9 },
+};
+/* paleta do tema escuro dos gráficos de entrada */
+const REL_DK = { ink:'#EAF3F2', soft:'#B9CBCE', mute:'#7E9AA1', base:'rgba(255,255,255,0.18)' };
+
 window.relatorioElegante = {
+
+  /* ---------- viz de fonte ---------- */
+  _vizKeyDeFonte(fonte) {
+    if (fonte && FONTE_VIZ_MAP[fonte.id]) return FONTE_VIZ_MAP[fonte.id];
+    const n = ((fonte && fonte.nome) || '').toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (n.includes('AAB')) return 'saitg_aab';
+    if (n.includes('SAITG')) return 'saitg';
+    if (n.includes('PARTICULAR') && n.includes('OFTALMO')) return 'oftalmo_part';
+    if (n.includes('OFTALMO')) return 'oftalmo';
+    if (n.includes('CLINAS')) return 'clinas';
+    if (n.includes('SES') || n.includes('ESTATUT') || n.includes('SAUDE')) return 'ses';
+    return '_neutro';
+  },
+  _vizDeFonte(fonte) {
+    const k = this._vizKeyDeFonte(fonte);
+    return Object.assign({ key: k }, FONTE_VIZ_PRESET[k] || FONTE_VIZ_PRESET._neutro);
+  },
+  /* agrega entradas do período em grupos (SAITG=saitg+aab, OFTALMONEST=oft+part…) */
+  _coletaEntradasViz(ymsB) {
+    const fMap = new Map();
+    (state.entradas || []).forEach(e => {
+      if (ymsB.indexOf(e.ym) < 0) return;
+      const fonte = (state.fontesRenda || []).find(f => f.id === e.fonteId);
+      const viz = this._vizDeFonte(fonte || {});
+      if (!fMap.has(e.fonteId))
+        fMap.set(e.fonteId, { id: e.fonteId, nome: (fonte && fonte.nome) || '(fonte)', viz, porYm: {}, total: 0 });
+      const o = fMap.get(e.fonteId);
+      o.porYm[e.ym] = (o.porYm[e.ym] || 0) + (Number(e.valor) || 0);
+      o.total += (Number(e.valor) || 0);
+    });
+    const gMap = new Map();
+    Array.from(fMap.values()).forEach(f => {
+      const g = f.viz.grupo;
+      if (!gMap.has(g))
+        gMap.set(g, { grupo: g, nome: f.viz.grupoNome, partes: [], total: 0,
+                      serie: ymsB.map(() => 0), serieLucro: ymsB.map(() => 0), totalLucro: 0 });
+      const o = gMap.get(g);
+      o.partes.push({ key: f.viz.key, nome: f.nome, cor: f.viz.cor, ordem: f.viz.ordem,
+                      ehLucro: f.viz.ehLucro, porYm: f.porYm, total: f.total });
+      o.total += f.total;
+      ymsB.forEach((ym, i) => {
+        const v = f.porYm[ym] || 0; o.serie[i] += v;
+        if (f.viz.ehLucro) { o.serieLucro[i] += v; o.totalLucro += v; }
+      });
+    });
+    const grupos = Array.from(gMap.values());
+    grupos.forEach(g => { g.partes.sort((a, b) => a.ordem - b.ordem || b.total - a.total);
+                          g.cor = (g.partes[0] || {}).cor || '#7FA8B0'; });
+    return grupos;
+  },
 
   /* ---------- entry point ---------- */
   exportar() {
@@ -8439,6 +8511,7 @@ window.relatorioElegante = {
     const filtroGrupos4  = (tipo === 'rel4' && st) ? (st.filtroGrupos  || []) : [];
 
     return { view, tipo, cats, st, titulo, sub, ym, periodo, yms, arquivo,
+             tema: (tipo === 'rel2') ? 'dark' : 'light',
              escopo: escopo4, filtroSubcats: filtroSubcats4, filtroGrupos: filtroGrupos4 };
   },
 
@@ -8654,6 +8727,7 @@ window.relatorioElegante = {
 
     return {
       entradas, saidas, invest, saldo, historico, porFonte,
+      entGrupos: this._coletaEntradasViz(ctx.yms),
       porMembro, subTop, subRestoVal, subRestoN, topGastos, alertas, listaFluxo
     };
   },
@@ -8883,13 +8957,10 @@ window.relatorioElegante = {
       { label: 'INVESTIMENTOS', valor: this._fmt(d.invest), cls: 'color-invest' }
     ]) + this._cardSaldo(d.saldo);
 
-    const secEntradas = (d.porFonte.length)
-      ? this._secao('💰', 'Entradas por fonte',
-          '<div class="pdf-card no-break">' + this._chBarrasFonte(d.porFonte) + '</div>')
-      : '';
+    const secEntFoco = this._secaoEntradasFoco(d.entGrupos, ctx);
 
     const secHist = (d.historico.length)
-      ? this._secao('📈', 'Fluxo · histórico mensal',
+      ? this._secao('📊', 'Fluxo · entradas vs saídas (histórico)',
           '<div class="pdf-card no-break">' + this._chFluxoMultiMes(d.historico, ctx.ym) + '</div>')
       : '';
 
@@ -8908,7 +8979,7 @@ window.relatorioElegante = {
     const secLista = this._secaoFluxoDetalhado(d.listaFluxo, d.entradas, d.saidas + d.invest, d.saldo);
     const secAlertas = this._secaoAlertas(d.alertas);
 
-    const body = capa + secResumo + secEntradas + secHist + secMembro + secSubcat + secTop + secLista + secAlertas;
+    const body = capa + secEntFoco + secResumo + secHist + secMembro + secSubcat + secTop + secLista + secAlertas;
     return this._documento(ctx, body);
   },
 
@@ -9246,6 +9317,173 @@ window.relatorioElegante = {
     }).join('');
   },
 
+  /* ================= ENTRADAS EM FOCO (Rel 2 · tema dark) ================= */
+
+  _pathSuave(xs, ys) {
+    if (xs.length < 2) return '';
+    let d = 'M' + xs[0].toFixed(1) + ',' + ys[0].toFixed(1);
+    for (let i = 0; i < xs.length - 1; i++) {
+      const cx = ((xs[i] + xs[i + 1]) / 2).toFixed(1);
+      d += ' C' + cx + ',' + ys[i].toFixed(1) + ' ' + cx + ',' + ys[i + 1].toFixed(1) + ' ' + xs[i + 1].toFixed(1) + ',' + ys[i + 1].toFixed(1);
+    }
+    return d;
+  },
+  _linReg(xs, ys) {
+    const n = xs.length, sx = xs.reduce((a, b) => a + b, 0), sy = ys.reduce((a, b) => a + b, 0);
+    const sxy = xs.reduce((a, x, i) => a + x * ys[i], 0), sxx = xs.reduce((a, x) => a + x * x, 0);
+    const den = (n * sxx - sx * sx) || 1, m = (n * sxy - sx * sy) / den, b = (sy - m * sx) / n;
+    return x => m * x + b;
+  },
+
+  /* 4a — entradas do mês, colunas decrescentes, grupos empilhados */
+  _chEntradasMes(grupos, ym) {
+    const itens = grupos.map(g => {
+      const partes = g.partes.map(p => ({ cor: p.cor, valor: (p.porYm[ym] || 0), nome: p.nome }))
+                             .filter(p => p.valor > 0);
+      return { nome: g.nome, cor: g.cor, total: partes.reduce((s, p) => s + p.valor, 0), partes };
+    }).filter(g => g.total > 0).sort((a, b) => b.total - a.total);
+    if (!itens.length) return '<div class="pdf-empty-dk">Sem entradas no mês.</div>';
+
+    const W = 540, hMax = 150, yBase = hMax + 22, padL = 18, padR = 14;
+    const maxVal = Math.max(1, ...itens.map(g => g.total)) * 1.16;
+    const esc = hMax / maxVal, step = (W - padL - padR) / itens.length, bw = Math.min(96, step * 0.5);
+    const bars = itens.map((g, i) => {
+      const cx = padL + step * i + step / 2; let yTop = yBase;
+      const segs = g.partes.map(p => { const h = p.valor * esc; yTop -= h;
+        return `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="${p.cor}"/>`;
+      }).join('');
+      return segs +
+        `<text x="${cx.toFixed(1)}" y="${(yBase - g.total * esc - 7).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="${REL_DK.ink}">${this._fmt(g.total)}</text>` +
+        `<text x="${cx.toFixed(1)}" y="${(yBase + 15).toFixed(1)}" text-anchor="middle" font-size="10" fill="${REL_DK.soft}">${this._esc(g.nome)}</text>`;
+    }).join('');
+    const svgH = yBase + 24;
+    return `<svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">
+      <line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_DK.base}" stroke-width="0.8"/>${bars}</svg>`;
+  },
+
+  /* 4b — evolução: meses de cada grupo lado a lado, ordem de importância,
+     média suavizada (linha sólida) + tendência (linha tracejada) */
+  _chEntradasEvolucao(grupos, ymsB) {
+    const gs = grupos.filter(g => g.total > 0).sort((a, b) => b.total - a.total);
+    if (!gs.length) return '<div class="pdf-empty-dk">Sem entradas no período.</div>';
+    const W = 540, hMax = 150, yBase = hMax + 30, padL = 16, padR = 12;
+    const maxVal = Math.max(1, ...gs.flatMap(g => g.serie)) * 1.16, esc = hMax / maxVal;
+    const gap = 18, innerW = (W - padL - padR) - gap * (gs.length - 1);
+    const nBars = gs.length * ymsB.length, slot = innerW / nBars, bw = slot * 0.68;
+    let x = padL, out = '';
+    gs.forEach(g => {
+      const xs = [], ys = [];
+      g.serie.forEach((v, mi) => {
+        const cx = x + slot * mi + slot / 2, h = v * esc, y = yBase - h;
+        out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2.5" fill="${g.cor}" opacity="0.9"/>`;
+        out += `<text x="${cx.toFixed(1)}" y="${(yBase + 12).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${REL_DK.mute}">${this._mesAbbr(ymsB[mi]).slice(0, 3)}</text>`;
+        xs.push(cx); ys.push(y);
+      });
+      out += `<path d="${this._pathSuave(xs, ys)}" fill="none" stroke="${g.cor}" stroke-width="1.5" opacity="0.9"/>`;
+      const tl = this._linReg(xs, ys);
+      out += `<line x1="${xs[0].toFixed(1)}" y1="${tl(xs[0]).toFixed(1)}" x2="${xs[xs.length - 1].toFixed(1)}" y2="${tl(xs[xs.length - 1]).toFixed(1)}" stroke="${g.cor}" stroke-width="1" stroke-dasharray="2,3" opacity="0.55"/>`;
+      out += `<text x="${(x + slot * ymsB.length / 2).toFixed(1)}" y="${(yBase + 25).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${g.cor}">${this._esc(g.nome)}</text>`;
+      x += slot * ymsB.length + gap;
+    });
+    const svgH = yBase + 32;
+    return `<svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">
+      <line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_DK.base}" stroke-width="0.8"/>${out}</svg>`;
+  },
+
+  /* 4c — distribuição de lucros (só ehLucro), decrescente; single ou multi-mês */
+  _chDividendos(grupos, ymsB) {
+    const multi = ymsB.length > 1;
+    const gs = grupos.map(g => ({ nome: g.nome, cor: g.cor, serie: g.serieLucro, total: g.totalLucro }))
+        .filter(g => g.total > 0).sort((a, b) => b.total - a.total);
+    const total = gs.reduce((s, g) => s + g.total, 0);
+    if (!gs.length) return { svg: '<div class="pdf-empty-dk">Sem distribuição de lucros no período.</div>', total: 0 };
+
+    const W = 540, hMax = 140, yBase = hMax + (multi ? 30 : 22), padL = 18, padR = 14;
+    let out = '';
+    if (!multi) {
+      const maxVal = Math.max(1, ...gs.map(g => g.serie[0])) * 1.18, esc = hMax / maxVal;
+      const step = (W - padL - padR) / gs.length, bw = Math.min(90, step * 0.48);
+      gs.forEach((g, i) => { const cx = padL + step * i + step / 2, v = g.serie[0], h = v * esc;
+        out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(yBase - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="${g.cor}"/>`;
+        out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="${REL_DK.ink}">${this._fmt(v)}</text>`;
+        out += `<text x="${cx.toFixed(1)}" y="${(yBase + 15).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="${g.cor}">${this._esc(g.nome)}</text>`;
+      });
+    } else {
+      const maxVal = Math.max(1, ...gs.flatMap(g => g.serie)) * 1.16, esc = hMax / maxVal;
+      const gap = 20, innerW = (W - padL - padR) - gap * (gs.length - 1);
+      const nBars = gs.length * ymsB.length, slot = innerW / nBars, bw = slot * 0.68;
+      let x = padL;
+      gs.forEach(g => { const xs = [], ys = [];
+        g.serie.forEach((v, mi) => { const cx = x + slot * mi + slot / 2, h = v * esc, y = yBase - h;
+          out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2.5" fill="${g.cor}" opacity="0.9"/>`;
+          out += `<text x="${cx.toFixed(1)}" y="${(yBase + 12).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${REL_DK.mute}">${this._mesAbbr(ymsB[mi]).slice(0, 3)}</text>`;
+          xs.push(cx); ys.push(y);
+        });
+        out += `<path d="${this._pathSuave(xs, ys)}" fill="none" stroke="${g.cor}" stroke-width="1.4" opacity="0.85"/>`;
+        const tl = this._linReg(xs, ys);
+        out += `<line x1="${xs[0].toFixed(1)}" y1="${tl(xs[0]).toFixed(1)}" x2="${xs[xs.length - 1].toFixed(1)}" y2="${tl(xs[xs.length - 1]).toFixed(1)}" stroke="${g.cor}" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>`;
+        out += `<text x="${(x + slot * ymsB.length / 2).toFixed(1)}" y="${(yBase + 25).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${g.cor}">${this._esc(g.nome)}</text>`;
+        x += slot * ymsB.length + gap;
+      });
+    }
+    const svgH = yBase + (multi ? 32 : 24);
+    const svg = `<svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">
+      <line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_DK.base}" stroke-width="0.8"/>${out}</svg>`;
+    return { svg, total };
+  },
+
+  /* legenda compartilhada das fontes presentes */
+  _legendaEntradas(grupos) {
+    const itens = [];
+    grupos.slice().sort((a, b) => b.total - a.total).forEach(g => {
+      g.partes.forEach(p => itens.push({ cor: p.cor, nome: p.nome }));
+    });
+    if (!itens.length) return '';
+    return '<div class="ent-legend">' + itens.map(it =>
+      `<span class="ent-lg"><span class="ent-dot" style="background:${it.cor};"></span>${this._esc(it.nome)}</span>`
+    ).join('') + '</div>';
+  },
+
+  /* monta a parte inicial do relatório: 4a + (4b) + 4c + reserva de imposto */
+  _secaoEntradasFoco(grupos, ctx) {
+    if (!grupos.length)
+      return this._secao('💰', 'Entradas por fonte',
+        '<div class="pdf-card no-break"><div class="pdf-empty-dk">Sem entradas no período.</div></div>');
+
+    const multi = ctx.yms.length > 1;
+    const lg = this._legendaEntradas(grupos);
+
+    let html = this._secao('💰', 'Entradas · mês corrente',
+      `<div class="pdf-card no-break ent-block">
+        <div class="ent-desc">Por fonte, em ordem decrescente. SAITG e OFTALMONEST aparecem unidos às suas sub-fontes (AAB / particular) na mesma coluna.</div>
+        ${this._chEntradasMes(grupos, ctx.ym)}${lg}</div>`);
+
+    if (multi) {
+      html += this._secao('📈', 'Entradas · evolução por fonte',
+        `<div class="pdf-card no-break ent-block">
+          <div class="ent-desc">Meses de cada fonte lado a lado, fontes em ordem de importância no período. Linha sólida: média suavizada. Linha tracejada: tendência.</div>
+          ${this._chEntradasEvolucao(grupos, ctx.yms)}${lg}</div>`);
+    }
+
+    const div = this._chDividendos(grupos, ctx.yms);
+    const lo = div.total * 0.07, hi = div.total * 0.10;
+    const reserva = div.total > 0
+      ? `<div class="tax-callout no-break">
+           <div class="tax-ico">🧾</div>
+           <div>
+             <div class="tax-tt">Reserva para o imposto sobre dividendos</div>
+             <div class="tax-tx">Total distribuído no período: <b>${this._fmt(div.total)}</b>. Separe entre <b>${this._fmt(lo)}</b> (7%) e <b>${this._fmt(hi)}</b> (10%).</div>
+           </div>
+         </div>`
+      : '';
+    html += this._secao('🏦', 'Distribuição de lucros · base do imposto',
+      `<div class="pdf-card no-break ent-block">
+        <div class="ent-desc">Apenas distribuição de lucros de cada CNPJ — exclui SES (salário) e OFTALMONEST particular.</div>
+        ${div.svg}${reserva}</div>`);
+
+    return html;
+  },
+
   /* compromissos: 1 coluna empilhada (fixos + parcelas) + legenda lateral */
   _chCompromissos(fixos, parcelas) {
     const total = fixos + parcelas;
@@ -9278,7 +9516,7 @@ window.relatorioElegante = {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${this._esc(titulo)}</title>
 <style>${this._css()}</style>
-</head><body>
+</head><body class="${ctx.tema === 'dark' ? 'tema-dark' : ''}">
 <div class="toolbar no-print">
   <span class="toolbar-title">${this._esc(titulo)}</span>
   <span class="toolbar-actions">
@@ -9448,7 +9686,42 @@ text{font-family:'Montserrat',sans-serif;}
   body{background:#fff;}
   .no-print{display:none !important;}
   .pdf-container{width:auto;margin:0;padding:0;box-shadow:none;}
-}`;
+  body.tema-dark{background:#06121A;}
+}
+
+/* ===== Tema escuro — só no Relatório de Fluxo de Caixa (Rel 2) ===== */
+body.tema-dark{background:#06121A;}
+body.tema-dark .pdf-container{
+  --pdf-bg:#0C1F29;--pdf-surface:#102A37;--pdf-border:rgba(255,255,255,0.10);
+  --pdf-ink:#EAF3F2;--pdf-ink-soft:#B9CBCE;--pdf-ink-mute:#7E9AA1;
+  --pdf-in:#34D17E;--pdf-out:#F08A5D;--pdf-invest:#5AA9E6;
+  box-shadow:0 6px 44px rgba(0,0,0,.55);
+}
+body.tema-dark .pdf-capa{
+  background:linear-gradient(155deg,#103040,#0A2230);
+  border:1px solid rgba(255,255,255,0.08);
+}
+body.tema-dark .pdf-card{background:var(--pdf-surface);}
+body.tema-dark .bar-track{background:rgba(255,255,255,0.08);}
+body.tema-dark .dpc-membro-head{background:rgba(255,255,255,0.05);}
+body.tema-dark .tg-table th{border-bottom-color:var(--pdf-border);}
+body.tema-dark .tg-table td{border-bottom-color:var(--pdf-border);}
+
+/* entradas em foco */
+.ent-block{padding:16px 16px 14px;}
+.ent-desc{font-size:9.5px;color:var(--pdf-ink-mute);margin-bottom:10px;line-height:1.45;}
+.ent-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;padding-top:11px;border-top:1px solid var(--pdf-border);}
+.ent-lg{display:flex;align-items:center;gap:5px;font-size:9.5px;color:var(--pdf-ink-soft);}
+.ent-dot{width:9px;height:9px;border-radius:2px;flex:none;}
+.pdf-empty-dk{text-align:center;padding:18px 0;font-size:11px;color:var(--pdf-ink-mute);}
+
+/* callout de reserva de imposto */
+.tax-callout{display:flex;gap:11px;align-items:flex-start;margin-top:14px;padding:12px 14px;
+  border:1px solid rgba(245,149,63,0.40);background:rgba(245,149,63,0.10);border-radius:8px;}
+.tax-ico{font-size:17px;line-height:1;}
+.tax-tt{font-weight:700;font-size:11px;color:#F5953F;margin-bottom:2px;}
+.tax-tx{font-size:10.5px;color:var(--pdf-ink-soft);line-height:1.45;}
+.tax-tx b{color:var(--pdf-ink);}`;
   }
 };
 
