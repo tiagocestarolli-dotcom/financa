@@ -3567,6 +3567,22 @@ label {
 .rel-periodo .rp.active {
   background: var(--ink); color: var(--bg); border-color: var(--ink);
 }
+.rel-periodo .rp-custom {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  padding: 3px 8px; border: 1px solid var(--line); border-radius: 18px;
+  background: var(--bg-elevated);
+}
+.rel-periodo .rp-custom.active { border-color: var(--ink); background: var(--ink); }
+.rel-periodo .rp-custom.active .rp-cn,
+.rel-periodo .rp-custom.active .rp-cl { color: var(--bg); }
+.rel-periodo .rp-step {
+  width: 24px; height: 24px; border-radius: 50%; border: none; cursor: pointer;
+  font-size: 16px; line-height: 1; color: var(--ink-soft); background: transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.rel-periodo .rp-custom.active .rp-step { color: var(--bg); }
+.rel-periodo .rp-cn { min-width: 16px; text-align: center; font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.rel-periodo .rp-cl { font-size: 11px; color: var(--ink-soft); padding-right: 2px; }
 
 .rel-toggle-tiago {
   display: flex; align-items: center; gap: 10px;
@@ -5014,7 +5030,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.40.0 · Rel Fluxo: 4a vira "por fonte no período" (todas as fontes + coluna TOTAL), 4b/4c com sub-tons AAB/PARTIC empilhados, tabela mês a mês das entradas e tabela de reserva de imposto (7% e 10%) por mês e consolidada
+  Finança · v0.41.0 · Rel Fluxo unificado: tela do app usa o mesmo visual/gráficos/planilhas do relatório elegante; fluxo do mês como 1º gráfico; rótulos finos; tabela de fontes agrupada (total + sub-fonte como detalhe); colunas alinhadas; período flexível (qualquer Nº de meses)
 </div>
 
   </section>
@@ -8403,7 +8419,7 @@ window.relatorioElegante = {
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     if (n.includes('AAB')) return 'saitg_aab';
     if (n.includes('SAITG')) return 'saitg';
-    if (n.includes('PARTICULAR') && n.includes('OFTALMO')) return 'oftalmo_part';
+    if (n.includes('OFTALMO') && (n.includes('PARTIC') || n.includes('PART'))) return 'oftalmo_part';
     if (n.includes('OFTALMO')) return 'oftalmo';
     if (n.includes('CLINAS')) return 'clinas';
     if (n.includes('SES') || n.includes('ESTATUT') || n.includes('SAUDE')) return 'ses';
@@ -8531,7 +8547,11 @@ window.relatorioElegante = {
     }
 
     const ym      = (st && st.ym) || ymNow;
-    const periodo = REL_PERIODOS.find(p => p.id === ((st && st.periodo) || 'mes')) || REL_PERIODOS[0];
+    let   periodo = REL_PERIODOS.find(p => p.id === ((st && st.periodo) || 'mes')) || REL_PERIODOS[0];
+    if (tipo === 'rel2' && st && st.periodo === 'custom') {
+      const n = (typeof rel2EffMonths === 'function') ? rel2EffMonths() : (st.periodoCustomN || 6);
+      periodo = { id: 'custom', months: n, label: 'últimos ' + n };
+    }
     const yms     = relYmsHistorico(ym, periodo.months);
     const escopo4 = (tipo === 'rel4' && st) ? (st.escopo || 'familia') : 'familia';
     const arquivo = (tipo === 'rel4')
@@ -8970,9 +8990,15 @@ window.relatorioElegante = {
   },
 
   _gerarRel2(d, ctx) {
-    const periodoLabel = this._periodoLabel(ctx);
+    return this._documento(ctx, this._corpoRel2(d, ctx, { capa: true }));
+  },
 
-    const capa = this._capa({
+  /* corpo do Rel 2 — fonte única usada pelo PDF/HTML elegante E pela tela do app.
+     opts.capa: inclui a capa escura (no PDF sim; na tela o cabeçalho já tem os números). */
+  _corpoRel2(d, ctx, opts) {
+    opts = opts || {};
+    const periodoLabel = this._periodoLabel(ctx);
+    const capa = opts.capa ? this._capa({
       titulo: ctx.titulo, sub: ctx.sub, periodoLabel,
       colunas: [
         { label: 'ENTRADAS', valor: d.entradas, cor: '#fff' },
@@ -8980,17 +9006,16 @@ window.relatorioElegante = {
         { label: 'SALDO', valor: d.saldo, cor: d.saldo >= 0 ? '#9FD3B0' : '#E8A593' }
       ],
       rodapeExtra: 'Regime de caixa: cartão entra no mês do pagamento da fatura'
-    });
+    }) : '';
 
-    const secEntFoco = this._secaoEntradasFoco(d.entGrupos, ctx);
-    const secSaidas  = this._secaoSaidasFoco(d, ctx);
-
-    const secTop = this._secaoTopGastos(d.topGastos);
-    const secLista = this._secaoFluxoDetalhado(d.listaFluxo, d.entradas, d.saidas + d.invest, d.saldo);
+    const secFluxo  = this._secaoFluxoMes(d);                 /* 1º gráfico */
+    const secEnt    = this._secaoEntradasFoco(d.entGrupos, ctx);
+    const secSaidas = this._secaoSaidasFoco(d, ctx);
+    const secTop    = this._secaoTopGastos(d.topGastos);
+    const secLista  = (opts.lista === false) ? '' : this._secaoFluxoDetalhado(d.listaFluxo, d.entradas, d.saidas + d.invest, d.saldo);
     const secAlertas = this._secaoAlertas(d.alertas);
 
-    const body = capa + secEntFoco + secSaidas + secTop + secLista + secAlertas;
-    return this._documento(ctx, body);
+    return capa + secFluxo + secEnt + secSaidas + secTop + secLista + secAlertas;
   },
 
   /* ================= peças de seção ================= */
@@ -9420,7 +9445,7 @@ window.relatorioElegante = {
       g.partes.forEach(p => { const h = p.valor * esc; yTop -= h;
         out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="${p.cor}"${g.isTotal ? ` stroke="${REL_LK.ink}" stroke-width="0.5"` : ''}/>`;
       });
-      out += `<text x="${cx.toFixed(1)}" y="${(yBase - g.total * esc - 7).toFixed(1)}" text-anchor="middle" font-size="${g.isTotal ? 11 : 10}" font-weight="${g.isTotal ? 700 : 600}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(g.total)}</text>`;
+      out += `<text x="${cx.toFixed(1)}" y="${(yBase - g.total * esc - 7).toFixed(1)}" text-anchor="middle" font-size="${g.isTotal ? 11 : 10}" font-weight="${g.isTotal ? 500 : 400}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(g.total)}</text>`;
       out += `<text x="${cx.toFixed(1)}" y="${(yBase + 16).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="${g.isTotal ? 700 : 600}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.soft}">${this._esc(g.nome)}</text>`;
     });
     out += `<line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_LK.line}" stroke-width="1"/>`;
@@ -9457,27 +9482,36 @@ window.relatorioElegante = {
     return `<svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">${out}</svg>`;
   },
 
-  /* tabela mês a mês das entradas: uma linha por fonte (AAB e particular
-     explícitas), colunas = meses + TOTAL, rodapé com total por mês. */
+  /* tabela mês a mês das entradas: cada FONTE é uma linha de total (em destaque);
+     quando tem sub-fontes (SAITG+AAB, OFTALMONEST+particular), elas aparecem
+     logo abaixo, recuadas, só como detalhe. Colunas = meses + TOTAL. */
   _tabelaEntradasPorMes(grupos, ymsB) {
-    const partes = [];
-    grupos.slice().sort((a, b) => b.total - a.total).forEach(g => {
-      g.partes.forEach(p => { if (p.total > 0) partes.push({ nome: p.nome, cor: p.cor, porYm: p.porYm, total: p.total }); });
-    });
-    if (!partes.length) return '';
+    const gs = grupos.filter(g => g.total > 0).sort((a, b) => b.total - a.total);
+    if (!gs.length) return '';
+    const cel = v => (v > 0 ? this._fmtN(v) : '—');
     const head = '<th>FONTE</th>' + ymsB.map(ym => `<th class="tg-th-val">${this._esc(this._mesAbbr(ym))}</th>`).join('') + '<th class="tg-th-val">TOTAL</th>';
-    const rows = partes.map(p => {
-      const cells = ymsB.map(ym => `<td class="tg-val">${(p.porYm[ym] || 0) > 0 ? this._fmt(p.porYm[ym]) : '—'}</td>`).join('');
-      return `<tr><td><span class="ent-dot" style="background:${p.cor};display:inline-block;margin-right:6px;vertical-align:middle;"></span>${this._esc(p.nome)}</td>${cells}<td class="tg-val">${this._fmt(p.total)}</td></tr>`;
-    }).join('');
-    const totMes = ymsB.map(ym => partes.reduce((s, p) => s + (p.porYm[ym] || 0), 0));
+    let body = '';
+    gs.forEach(g => {
+      const serieMes = ymsB.map(ym => g.partes.reduce((s, p) => s + (p.porYm[ym] || 0), 0));
+      const cells = serieMes.map(v => `<td class="tg-val">${cel(v)}</td>`).join('');
+      body += `<tr class="ent-grp"><td><span class="ent-dot" style="background:${g.cor};"></span>${this._esc(g.nome)}</td>${cells}<td class="tg-val">${this._fmtN(g.total)}</td></tr>`;
+      if (g.partes.length > 1) {
+        g.partes.forEach(p => {
+          const pc = ymsB.map(ym => `<td class="tg-val">${cel(p.porYm[ym] || 0)}</td>`).join('');
+          body += `<tr class="ent-sub"><td>${this._esc(p.nome)}</td>${pc}<td class="tg-val">${this._fmtN(p.total)}</td></tr>`;
+        });
+      }
+    });
+    const totMes = ymsB.map(ym => gs.reduce((s, g) => s + g.partes.reduce((a, p) => a + (p.porYm[ym] || 0), 0), 0));
     const totGeral = totMes.reduce((s, v) => s + v, 0);
-    const totCells = totMes.map(v => `<td class="tg-val">${this._fmt(v)}</td>`).join('');
-    return `<div class="ent-tabela-wrap no-break"><table class="tg-table ent-tabela">
-      <thead><tr>${head}</tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr class="ent-tfoot"><td class="fx-foot-lbl">Total / mês</td>${totCells}<td class="tg-val">${this._fmt(totGeral)}</td></tr></tfoot>
-    </table></div>`;
+    const totCells = totMes.map(v => `<td class="tg-val">${this._fmtN(v)}</td>`).join('');
+    return `<div class="ent-tabela-wrap no-break">
+      <div class="ent-tabela-nota">Valores em R$. Cada fonte aparece como total (linha em destaque); sub-fontes logo abaixo, recuadas, apenas como detalhe.</div>
+      <table class="tg-table ent-tabela">
+        <thead><tr>${head}</tr></thead>
+        <tbody>${body}</tbody>
+        <tfoot><tr class="ent-tfoot"><td class="fx-foot-lbl">Total / mês</td>${totCells}<td class="tg-val">${this._fmtN(totGeral)}</td></tr></tfoot>
+      </table></div>`;
   },
 
   /* tabela de reserva de imposto sobre dividendos: por mês e consolidada,
@@ -9490,16 +9524,18 @@ window.relatorioElegante = {
     const linha = (label, div, isTot) =>
       `<tr${isTot ? ' class="ent-tfoot"' : ''}>
         <td${isTot ? ' class="fx-foot-lbl"' : ''}>${this._esc(label)}</td>
-        <td class="tg-val">${div > 0 ? this._fmt(div) : '—'}</td>
-        <td class="tg-val tax-cell">${div > 0 ? this._fmt(div * 0.07) : '—'}</td>
-        <td class="tg-val tax-cell">${div > 0 ? this._fmt(div * 0.10) : '—'}</td>
+        <td class="tg-val">${div > 0 ? this._fmtN(div) : '—'}</td>
+        <td class="tg-val tax-cell">${div > 0 ? this._fmtN(div * 0.07) : '—'}</td>
+        <td class="tg-val tax-cell">${div > 0 ? this._fmtN(div * 0.10) : '—'}</td>
       </tr>`;
     const body = ymsB.map((ym, i) => linha(this._mesAbbr(ym), totMes[i], false)).join('');
-    return `<div class="ent-tabela-wrap no-break"><table class="tg-table ent-tabela">
-      <thead><tr><th>MÊS</th><th class="tg-th-val">DIVIDENDOS</th><th class="tg-th-val">RESERVA 7%</th><th class="tg-th-val">RESERVA 10%</th></tr></thead>
-      <tbody>${body}</tbody>
-      <tfoot>${linha('Período', total, true)}</tfoot>
-    </table></div>`;
+    return `<div class="ent-tabela-wrap no-break">
+      <div class="ent-tabela-nota">Valores em R$. Reserva = dividendos do mês × alíquota.</div>
+      <table class="tg-table ent-tabela">
+        <thead><tr><th>MÊS</th><th class="tg-th-val">DIVIDENDOS</th><th class="tg-th-val">RESERVA 7%</th><th class="tg-th-val">RESERVA 10%</th></tr></thead>
+        <tbody>${body}</tbody>
+        <tfoot>${linha('Período', total, true)}</tfoot>
+      </table></div>`;
   },
 
   /* 4c — distribuição de lucros (só ehLucro), decrescente.
@@ -9524,7 +9560,7 @@ window.relatorioElegante = {
       items.forEach((it, i) => {
         const cx = x0 + i * (bw + gap) + bw / 2, h = it.v * esc;
         out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(yBase - h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="${it.cor}"${it.isTotal ? ` stroke="${REL_LK.ink}" stroke-width="0.5"` : ''}/>`;
-        out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="${it.isTotal ? 12 : 11}" font-weight="${it.isTotal ? 700 : 600}" fill="${it.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(it.v)}</text>`;
+        out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="${it.isTotal ? 12 : 11}" font-weight="${it.isTotal ? 500 : 400}" fill="${it.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(it.v)}</text>`;
         out += `<text x="${cx.toFixed(1)}" y="${(yBase + 16).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="${it.isTotal ? 700 : 600}" fill="${it.isTotal ? FONTE_VIZ_TOTAL : it.cor}">${this._esc(it.nome)}</text>`;
       });
     } else {
@@ -9568,7 +9604,7 @@ window.relatorioElegante = {
     itens.forEach((c, i) => {
       const cx = x0 + i * (bw + gap) + bw / 2, h = c.v * esc;
       out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(yBase - h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="${c.cor}"/>`;
-      out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="${REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(c.v)}</text>`;
+      out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="400" fill="${REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(c.v)}</text>`;
       out += `<text x="${cx.toFixed(1)}" y="${(yBase + 16).toFixed(1)}" text-anchor="middle" font-size="10" fill="${REL_LK.soft}">${this._esc(c.nome)}</text>`;
     });
     out += `<line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_LK.line}" stroke-width="1"/>`;
@@ -9683,18 +9719,9 @@ window.relatorioElegante = {
     return html;
   },
 
-  /* PÁGINA 2 — saídas e fluxo (começa em nova página): 5 + 5a + (5b) */
-  _secaoSaidasFoco(d, ctx) {
-    const multi = ctx.yms.length > 1;
-    let idx = ctx.yms.indexOf(ctx.ym); if (idx < 0) idx = ctx.yms.length - 1;
-    const sai = d.saiGrupos || [];
-    const lg = this._legenda(sai.map(c => ({ cor: c.cor, nome: c.nome })));
-    const totMes = sai.reduce((s, c) => s + (c.serie[idx] || 0), 0);
-    const totPer = sai.reduce((s, c) => s + c.total, 0);
-
-    let html = '<div class="page-break-before"></div>';
-
-    html += this._secao('📊', 'Fluxo do mês · entradas, saídas e saldo',
+  /* Fluxo do mês · entradas, saídas e saldo — PRIMEIRO gráfico do relatório */
+  _secaoFluxoMes(d) {
+    return this._secao('📊', 'Fluxo do mês · entradas, saídas e saldo',
       `<div class="pdf-card no-break ent-block">
         ${this._totLinha('Saldo do período', d.saldo, d.saldo >= 0 ? 'color-in' : 'color-out')}
         <div class="ent-desc">Entradas (verde) e saídas + investimentos (terracota) por mês; a linha escura é o saldo (E − S).</div>
@@ -9704,6 +9731,18 @@ window.relatorioElegante = {
           <span class="ent-lg"><span class="ent-dot" style="background:#A8462C;"></span>Saídas + invest.</span>
           <span class="ent-lg"><span class="ent-dot" style="background:#1C1A15;"></span>Saldo (E − S)</span>
         </div></div>`);
+  },
+
+  /* PÁGINA 2 — saídas (começa em nova página): 5a + (5b) */
+  _secaoSaidasFoco(d, ctx) {
+    const multi = ctx.yms.length > 1;
+    let idx = ctx.yms.indexOf(ctx.ym); if (idx < 0) idx = ctx.yms.length - 1;
+    const sai = d.saiGrupos || [];
+    const lg = this._legenda(sai.map(c => ({ cor: c.cor, nome: c.nome })));
+    const totMes = sai.reduce((s, c) => s + (c.serie[idx] || 0), 0);
+    const totPer = sai.reduce((s, c) => s + c.total, 0);
+
+    let html = '<div class="page-break-before"></div>';
 
     html += this._secao('💸', 'Saídas do mês · por categoria',
       `<div class="pdf-card no-break ent-block">
@@ -9816,43 +9855,25 @@ window.relatorioElegante = {
     return 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   },
 
+  /* número sem "R$" — para células de tabela onde o cabeçalho já indica a moeda */
+  _fmtN(v) {
+    return (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  },
+
   _fmtK(v) {
     v = Number(v) || 0;
     if (Math.abs(v) >= 1000) return (v / 1000).toFixed(1).replace('.0', '') + 'k';
     return Math.round(v).toString();
   },
 
-  _css() {
+  _cssCore() {
     return `
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 :root{
   --pdf-in:#1F6F54;--pdf-out:#A8462C;--pdf-invest:#2B5F86;
   --pdf-bg:#FBF8F1;--pdf-surface:#FFFFFF;--pdf-border:#E6DFCD;
   --pdf-ink:#1C1A15;--pdf-ink-soft:#4A463C;--pdf-ink-mute:#928A79;
   --pdf-display:'Fraunces',Georgia,serif;
 }
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;}
-body{
-  font-family:'Montserrat',-apple-system,Helvetica,Arial,sans-serif;
-  font-size:12px;color:var(--pdf-ink);background:#EFEADD;
-  -webkit-print-color-adjust:exact;print-color-adjust:exact;line-height:1.5;
-}
-text{font-family:'Montserrat',sans-serif;}
-.toolbar{
-  position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;
-  gap:12px;padding:10px 16px;background:#1E3A5F;color:#fff;flex-wrap:wrap;
-}
-.toolbar-title{font-size:13px;font-weight:600;opacity:.95;}
-.toolbar-actions{display:flex;gap:8px;align-items:center;}
-.toolbar button,.toolbar a{
-  font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:none;
-  padding:7px 13px;border-radius:8px;border:none;background:#fff;color:#1E3A5F;
-}
-.toolbar a{display:inline-block;}
-.pdf-container{width:178mm;max-width:100%;margin:18px auto;background:var(--pdf-bg);
-  padding:22px 24px 30px;box-shadow:0 4px 24px rgba(0,0,0,.12);}
-@page{size:A4 portrait;margin:14mm 16mm;}
 .page-break-before{page-break-before:always;}
 .no-break{page-break-inside:avoid;}
 
@@ -9921,12 +9942,6 @@ text{font-family:'Montserrat',sans-serif;}
 .pdf-footer{margin-top:26px;padding-top:10px;border-top:1px solid var(--pdf-border);
   font-size:9px;color:var(--pdf-ink-mute);text-align:center;}
 
-@media print{
-  body{background:#fff;}
-  .no-print{display:none !important;}
-  .pdf-container{width:auto;margin:0;padding:0;box-shadow:none;}
-}
-
 /* entradas / saídas em foco */
 .ent-block{padding:16px 16px 14px;}
 .rel-ttot{font-size:11px;color:var(--pdf-ink-mute);margin-bottom:8px;}
@@ -9947,17 +9962,70 @@ text{font-family:'Montserrat',sans-serif;}
 .tax-tx b{color:var(--pdf-ink);}
 
 /* tabelas mês a mês (entradas e reserva de imposto) */
-.ent-tabela-wrap{margin-top:14px;}
-.ent-tabela{font-size:8.5px;}
+.ent-tabela-wrap{margin-top:14px;overflow-x:auto;}
+.ent-tabela-nota{font-size:8.5px;color:var(--pdf-ink-mute);margin-bottom:6px;line-height:1.4;}
+.ent-tabela{font-size:9px;}
+.ent-tabela th,.ent-tabela td{white-space:nowrap;}
 .ent-tabela th{padding-bottom:5px;font-size:7.5px;}
-.ent-tabela td{padding:4px 6px;}
+.ent-tabela td{padding:4px 8px;}
 .ent-tabela th:first-child,.ent-tabela td:first-child{text-align:left;}
 .ent-tabela .tg-val{color:var(--pdf-ink-soft);font-weight:500;}
 .ent-tabela .tax-cell{color:#9A6526;}
+.ent-tabela .ent-dot{display:inline-block;vertical-align:middle;margin-right:6px;}
+.ent-tabela tr.ent-grp td{font-weight:700;color:var(--pdf-ink);border-bottom-color:transparent;}
+.ent-tabela tr.ent-grp .tg-val{color:var(--pdf-ink);font-weight:700;}
+.ent-tabela tr.ent-sub td{font-size:8px;color:var(--pdf-ink-mute);padding-top:1px;padding-bottom:3px;}
+.ent-tabela tr.ent-sub td:first-child{padding-left:21px;font-style:italic;}
+.ent-tabela tr.ent-sub .tg-val{color:var(--pdf-ink-mute);font-weight:500;}
 .ent-tabela tfoot td,.ent-tabela tr.ent-tfoot td{border-top:1.5px solid var(--pdf-border);border-bottom:none;padding-top:7px;font-weight:700;color:var(--pdf-ink);}
 .ent-tabela tr.ent-tfoot .tg-val{color:var(--pdf-ink);font-weight:700;}
 .ent-tabela tr.ent-tfoot .tax-cell{color:#9A6526;}
 .ent-tabela .fx-foot-lbl{text-align:left;color:var(--pdf-ink);}`;
+  },
+
+  _css() {
+    return `
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;
+9..144,500;9..144,600&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Montserrat',-apple-system,Helvetica,Arial,sans-serif;
+  font-size:12px;color:var(--pdf-ink);background:#EFEADD;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;line-height:1.5;
+}
+text{font-family:'Montserrat',sans-serif;}
+.toolbar{
+  position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:10px 16px;background:#1E3A5F;color:#fff;flex-wrap:wrap;
+}
+.toolbar-title{font-size:13px;font-weight:600;opacity:.95;}
+.toolbar-actions{display:flex;gap:8px;align-items:center;}
+.toolbar button,.toolbar a{
+  font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:none;
+  padding:7px 13px;border-radius:8px;border:none;background:#fff;color:#1E3A5F;
+}
+.toolbar a{display:inline-block;}
+.pdf-container{width:178mm;max-width:100%;margin:18px auto;background:var(--pdf-bg);
+  padding:22px 24px 30px;box-shadow:0 4px 24px rgba(0,0,0,.12);}
+@page{size:A4 portrait;margin:14mm 16mm;}
+` + this._cssCore() + `
+@media print{
+  body{background:#fff;}
+  .no-print{display:none !important;}
+  .pdf-container{width:auto;margin:0;padding:0;box-shadow:none;}
+}`;
+  },
+
+  _cssInApp() {
+    return `
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;
+.rel-elegante{background:var(--pdf-bg);color:var(--pdf-ink);font-family:'Montserrat',-apple-system,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;border-radius:14px;padding:16px 16px 22px;}
+.rel-elegante text{font-family:'Montserrat',sans-serif;}
+.rel-elegante .pdf-section-header:first-of-type{margin-top:2px;}
+.rel-elegante .pdf-capa{margin-bottom:18px;}
+` + this._cssCore();
   }
 };
 
@@ -10802,8 +10870,27 @@ function _relDrillListaHtml(gastos) {
 let rel2State = {
   ym: null,
   periodo: 'mes',
+  periodoCustomN: 6,   /* nº de meses quando periodo === 'custom' (ponto 5) */
   incluiTiago: false
 };
+
+/* meses efetivos do Rel 2: presets fixos OU custom (qualquer N de 1 a 36) */
+function rel2EffMonths() {
+  if (rel2State.periodo === 'custom') return Math.max(1, Math.min(36, rel2State.periodoCustomN || 6));
+  const p = REL_PERIODOS.find(x => x.id === rel2State.periodo) || REL_PERIODOS[0];
+  return p.months;
+}
+
+/* injeta uma vez o CSS elegante (núcleo) para uso na tela do app */
+function _ensureEleganteCss() {
+  if (document.getElementById('relEleganteCss')) return;
+  try {
+    const st = document.createElement('style');
+    st.id = 'relEleganteCss';
+    st.textContent = window.relatorioElegante._cssInApp();
+    document.head.appendChild(st);
+  } catch (e) { console.error('[relEleganteCss]', e); }
+}
 
 /* v0.20.1: cache de faturas pagas (cardId:ym → boolean). Construído lazy
    na primeira consulta; invalidado pelo `_renderRel2Inner` antes de cada
@@ -11000,36 +11087,14 @@ function _renderRel2Inner() {
   if (!host) return;
 
   _rel2InvalidaCachePagamentos(); /* v0.20.1: rebuilds cache de faturas pagas */
+  _ensureEleganteCss();           /* v0.41.0: mesmo visual do relatório elegante na tela */
 
-  const cats = rel2CategoriasSaidas();
-  const periodo = REL_PERIODOS.find(p => p.id === rel2State.periodo) || REL_PERIODOS[0];
-  const ym = rel2State.ym;
-  const yms = relYmsHistorico(ym, periodo.months);
+  const R = window.relatorioElegante;
+  const ctx = R._resolverContexto();   /* relView === 'rel2' */
+  const d = R._dadosRel2(ctx);
 
-  /* Hero do mês corrente sempre (consistência com Rel 1) */
-  const entradas = rel2CalcEntradas(ym);
-  const saidas = rel2CalcSaidas(ym, cats);
-  const invest = rel2CalcInvestimentos(ym, cats);
-
-  let html = '';
-  html += _rel2HeaderHtml(ym, periodo);
-  html += _rel2HeroHtml(entradas, saidas, invest, ym, cats);
-  html += _rel2SecaoComposicaoMesHtml(ym, cats, entradas, saidas);
-
-  if (periodo.months > 1) {
-    const historico = rel2CalcHistorico(ym, periodo.months, cats);
-    html += _rel2SecaoMultiMesHtml(historico, periodo);
-  }
-
-  const entradasPorFonte = rel2CalcEntradasPorFonte(yms);
-  const saidasPorCat = rel2CalcSaidasPorCategoria(yms, cats);
-  const investPorSubcat = rel2CalcInvestPorSubcat(yms, cats);
-  const saidasPorConta = rel2CalcSaidasPorConta(yms, cats);
-
-  html += _rel2SecaoEntradasFontesHtml(entradasPorFonte);
-  html += _rel2SecaoSaidasCatHtml(saidasPorCat);
-  html += _rel2SecaoInvestHtml(investPorSubcat);
-  html += _rel2SecaoSaidasContaHtml(saidasPorConta);
+  let html = _rel2HeaderHtml(ctx.ym, ctx.periodo);
+  html += '<div class="rel-elegante">' + R._corpoRel2(d, ctx, { capa: true }) + '</div>';
 
   host.innerHTML = html;
   _rel2BindEvents();
@@ -11037,16 +11102,24 @@ function _renderRel2Inner() {
 
 function _rel2HeaderHtml(ym, periodo) {
   const ymLabel = MESES_PT[Number(ym.split('-')[1]) - 1] + ' / ' + ym.split('-')[0].slice(2);
-  const periodoHtml = REL_PERIODOS.map(p =>
+  const isCustom = rel2State.periodo === 'custom';
+  const presets = REL_PERIODOS.map(p =>
     '<button class="rp ' + (p.id === rel2State.periodo ? 'active' : '') + '" data-rel2-periodo="' + p.id + '">' + escapeHtml(p.label) + '</button>'
   ).join('');
+  const custom =
+    '<span class="rp-custom ' + (isCustom ? 'active' : '') + '">' +
+      '<button class="rp-step" data-rel2-step="-1" aria-label="menos um mês">−</button>' +
+      '<span class="rp-cn">' + (isCustom ? rel2EffMonths() : '·') + '</span>' +
+      '<button class="rp-step" data-rel2-step="1" aria-label="mais um mês">+</button>' +
+      '<span class="rp-cl">meses</span>' +
+    '</span>';
   return `
     <div class="rel-monthnav">
       <button id="rel2Prev" aria-label="Mês anterior">‹</button>
       <span class="rel-monthlabel">${escapeHtml(ymLabel)}</span>
       <button id="rel2Next" aria-label="Próximo mês">›</button>
     </div>
-    <div class="rel-periodo">${periodoHtml}</div>
+    <div class="rel-periodo">${presets}${custom}</div>
     <div class="rel-toggle-tiago ${rel2State.incluiTiago ? 'on' : ''}" id="rel2ToggleTiago">
       <div class="rt-sw"></div>
       <div class="rt-label">Incluir Tiago no fluxo da família</div>
@@ -11436,6 +11509,16 @@ function _rel2BindEvents() {
 
   el.querySelectorAll('[data-rel2-periodo]').forEach(b => {
     b.onclick = () => { rel2State.periodo = b.dataset.rel2Periodo; renderRelatorios(); };
+  });
+
+  el.querySelectorAll('[data-rel2-step]').forEach(b => {
+    b.onclick = () => {
+      const delta = Number(b.dataset.rel2Step) || 0;
+      const base = (rel2State.periodo === 'custom') ? (rel2State.periodoCustomN || 6) : rel2EffMonths();
+      rel2State.periodoCustomN = Math.max(1, Math.min(36, base + delta));
+      rel2State.periodo = 'custom';
+      renderRelatorios();
+    };
   });
 
   const togTiago = document.getElementById('rel2ToggleTiago');
