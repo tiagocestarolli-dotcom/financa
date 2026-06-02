@@ -5030,7 +5030,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.43.0 · Reset seguro: relatório volta ao visual do v0.40; tela interativa preservada; período flexível (Nº de meses) na tela; correção do PARTIC (não-lucro, fora da base do imposto). Ajustes visuais do relatório serão reaplicados 1 a 1.
+  Finança · v0.44.0 · Fonte por ID: cada fonte de renda carrega sua natureza fiscal (é lucro? entra no imposto), grupo de exibição (junta fontes) e cor — editáveis no cadastro, com nome livre. O relatório deixa de adivinhar pela palavra no nome. Migração preserva o comportamento atual
 </div>
 
   </section>
@@ -5451,6 +5451,46 @@ const StorageAdapter = {
       if (merged.members[k] && merged.members[k].icone === mig.from) {
         merged.members[k].icone = mig.to;
       }
+    }
+    /* Migração v0.44: viz da fonte por ID. Cada fonte passa a carregar sua
+       natureza fiscal (ehLucro), grupo de exibição (grupoViz) e cor. Os defaults
+       são inferidos UMA vez a partir do nome (preserva o comportamento atual);
+       depois o nome fica livre e deixa de governar a classificação. */
+    if (Array.isArray(merged.fontesRenda)) {
+      const VP = {
+        saitg:        { cor:'#1F6F54', grupo:'SAITG',       ehLucro:true  },
+        saitg_aab:    { cor:'#74B295', grupo:'SAITG',       ehLucro:true  },
+        oftalmo:      { cor:'#2B5F86', grupo:'OFTALMONEST', ehLucro:true  },
+        oftalmo_part: { cor:'#8FB4D0', grupo:'OFTALMONEST', ehLucro:false },
+        clinas:       { cor:'#B5742E', grupo:'CLINAS',      ehLucro:true  },
+        ses:          { cor:'#5C584F', grupo:'SES',         ehLucro:false }
+      };
+      const RAMP = ['#2F6E54','#2C6E9E','#B5742E','#7A6450','#8B6FA8','#A85A82','#3E7C7C','#9A7B3C'];
+      const keyDe = (nome) => {
+        const n = (nome || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (n.includes('AAB')) return 'saitg_aab';
+        if (n.includes('SAITG')) return 'saitg';
+        if (n.includes('OFTALMO') && (n.includes('PARTIC') || n.includes('PART'))) return 'oftalmo_part';
+        if (n.includes('OFTALMO')) return 'oftalmo';
+        if (n.includes('CLINAS')) return 'clinas';
+        if (n.includes('SES') || n.includes('ESTATUT') || n.includes('SAUDE')) return 'ses';
+        return null;
+      };
+      let ri = 0;
+      merged.fontesRenda.forEach(f => {
+        if (f.vizVer >= 1) return;
+        const k = keyDe(f.nome);
+        if (k && VP[k]) {
+          if (typeof f.ehLucro !== 'boolean') f.ehLucro = VP[k].ehLucro;
+          if (!f.grupoViz) f.grupoViz = VP[k].grupo;
+          if (!f.cor) f.cor = VP[k].cor;
+        } else {
+          if (typeof f.ehLucro !== 'boolean') f.ehLucro = (f.tipo === 'variavel');
+          if (!f.grupoViz) f.grupoViz = f.nome;
+          if (!f.cor) f.cor = RAMP[ri++ % RAMP.length];
+        }
+        f.vizVer = 1;
+      });
     }
     return merged;
   }
@@ -7544,10 +7584,10 @@ function openFontesSheet() {
       ${ativas.length === 0 ? '<div class="empty" style="padding:18px;">Nenhuma fonte ativa</div>' : `
         <ul class="list">${ativas.map(f => `
           <li class="list-row">
-            <div class="lr-leading" style="background:var(--flow-in-soft);color:var(--flow-in);">💵</div>
+            <div class="lr-leading" style="background:${f.cor || 'var(--flow-in)'};color:#fff;">💵</div>
             <div class="lr-body">
               <div class="lr-title">${escapeHtml(f.nome)}</div>
-              <div class="lr-sub">${tipoLabel(f.tipo)} · ${usoCount[f.id] || 0} ${usoCount[f.id] === 1 ? 'lançamento' : 'lançamentos'}</div>
+              <div class="lr-sub">${f.ehLucro ? 'lucro · entra no imposto' : 'fora do imposto'}${f.grupoViz && f.grupoViz !== f.nome ? ' · grupo: ' + escapeHtml(f.grupoViz) : ''} · ${usoCount[f.id] || 0} ${usoCount[f.id] === 1 ? 'lançamento' : 'lançamentos'}</div>
             </div>
             <div class="lr-actions">
               <button class="tiny-btn" data-rename-fonte="${f.id}">Editar</button>
@@ -7592,16 +7632,9 @@ function openFontesSheet() {
       toast('Adicionada', 'success');
     };
 
-    document.querySelectorAll('[data-rename-fonte]').forEach(b => b.onclick = async () => {
+    document.querySelectorAll('[data-rename-fonte]').forEach(b => b.onclick = () => {
       const f = state.fontesRenda.find(x => x.id === b.dataset.renameFonte);
-      const nome = await askText({
-        title: 'Renomear fonte',
-        defaultValue: f.nome,
-        confirmLabel: 'Salvar'
-      });
-      if (!nome) return;
-      f.nome = nome;
-      saveState(state); render(); if (activeView === 'entradas') renderEntradas();
+      if (f) openFonteEditor(f);
     });
 
     document.querySelectorAll('[data-arquivar-fonte]').forEach(b => b.onclick = async () => {
@@ -7636,6 +7669,86 @@ function openFontesSheet() {
     });
   }
   render();
+}
+
+/* Editor da fonte (por ID): nome livre + natureza fiscal (ehLucro) + grupo de
+   exibição (junta fontes) + cor. Substitui o antigo "renomear". */
+function openFonteEditor(f) {
+  const pal = (typeof COLOR_PALETTE !== 'undefined' && COLOR_PALETTE.length)
+    ? COLOR_PALETTE : ['#1F6F54','#2B5F86','#B5742E','#5C584F','#8B6FA8','#A85A82'];
+  const corAtual = f.cor || pal[0];
+  const grupoVal = (f.grupoViz && f.grupoViz !== f.nome) ? f.grupoViz : '';
+  const html = `
+    <div class="form-grid">
+      <div>
+        <label>Nome da fonte</label>
+        <input type="text" id="f_nome" value="${escapeHtml(f.nome)}" maxlength="60" autocomplete="off" autocorrect="off" autocapitalize="words">
+      </div>
+      <div class="card-flat" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div style="flex:1;">
+          <strong style="font-size:14px;">Distribuição de lucro</strong>
+          <div class="muted" style="font-size:12px;margin-top:2px;line-height:1.4;">Entra na base do imposto sobre dividendos. Desligue para salário, pró-labore ou receita particular.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="f_lucro" ${f.ehLucro ? 'checked' : ''}>
+          <span class="sl"></span>
+        </label>
+      </div>
+      <div>
+        <label>Grupo no relatório <span class="muted" style="font-weight:400;">(opcional)</span></label>
+        <input type="text" id="f_grupo" value="${escapeHtml(grupoVal)}" placeholder="${escapeHtml(f.nome)}" maxlength="40" autocomplete="off" autocapitalize="words">
+        <div class="muted" style="font-size:12px;margin-top:4px;line-height:1.4;">Fontes com o mesmo grupo se juntam numa coluna só (ex.: duas contas da mesma empresa). Em branco = usa o nome da fonte.</div>
+      </div>
+      <div>
+        <label>Cor no gráfico</label>
+        <div class="color-grid" id="f_palette">
+          ${pal.map(c => `<div class="color-swatch ${c.toLowerCase() === corAtual.toLowerCase() ? 'selected' : ''}" data-color="${c}" style="background:${c};"></div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <label>Cor personalizada</label>
+        <input type="color" id="f_cor" value="${corAtual}">
+      </div>
+    </div>
+  `;
+  const footer = `
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="f_cancel">Cancelar</button>
+      <button class="btn btn-primary" id="f_save">Salvar</button>
+    </div>
+  `;
+  sheet.open('Editar fonte', html, footer);
+
+  let selectedCor = corAtual;
+  const corInput = document.getElementById('f_cor');
+  function selectCor(c) {
+    selectedCor = c;
+    if (corInput.value.toLowerCase() !== c.toLowerCase()) corInput.value = c;
+    document.querySelectorAll('#f_palette .color-swatch').forEach(s =>
+      s.classList.toggle('selected', s.dataset.color.toLowerCase() === c.toLowerCase()));
+  }
+  document.querySelectorAll('#f_palette .color-swatch').forEach(s =>
+    s.onclick = () => selectCor(s.dataset.color));
+  corInput.addEventListener('input', () => selectCor(corInput.value));
+
+  document.getElementById('f_cancel').onclick = () => openFontesSheet();
+  document.getElementById('f_save').onclick = () => {
+    const nome = (document.getElementById('f_nome').value || '').trim();
+    if (!nome) { toast('Dê um nome à fonte', 'error'); return; }
+    if (state.fontesRenda.some(x => x.id !== f.id && x.nome.toLowerCase() === nome.toLowerCase())) {
+      toast('Já existe uma fonte com esse nome', 'error'); return;
+    }
+    const grupo = (document.getElementById('f_grupo').value || '').trim();
+    f.nome = nome;
+    f.ehLucro = document.getElementById('f_lucro').checked;
+    f.grupoViz = grupo || nome;
+    f.cor = selectedCor;
+    f.vizVer = 1;
+    saveState(state);
+    if (typeof activeView !== 'undefined' && activeView === 'entradas') renderEntradas();
+    toast('Salvo', 'success');
+    openFontesSheet();
+  };
 }
 
 function tipoLabel(t) {
@@ -8390,11 +8503,12 @@ function _atualizarPrintMeta(viewId) {
 /* ============================================================
    Viz das fontes de entrada (Rel 2 elegante) — cor, grupo e
    se a fonte é distribuição de lucros (base do imposto de dividendos).
-   Resolve por NOME da fonte (funciona com os dados atuais sem ajuste).
-   Para fixar com precisão, mapeie o ID da fonte em FONTE_VIZ_MAP.
+   v0.44: resolve pelos CAMPOS DA PRÓPRIA FONTE (por ID): fonte.grupoViz,
+   fonte.ehLucro e fonte.cor — definidos no cadastro, nome livre. O matcher
+   por nome (abaixo) é só FALLBACK para dados antigos ainda não migrados.
    ============================================================ */
 const FONTE_VIZ_MAP = {
-  /* 'idDaFonteNoApp': 'saitg' | 'saitg_aab' | 'oftalmo' | 'oftalmo_part' | 'clinas' | 'ses' */
+  /* legado — não mais necessário; viz vive na própria fonte (fonte.grupoViz/ehLucro/cor) */
 };
 const FONTE_VIZ_PRESET = {
   saitg:        { cor:'#1F6F54', grupo:'saitg',   grupoNome:'SAITG',       ehLucro:true,  ordem:1 },
@@ -8426,9 +8540,17 @@ window.relatorioElegante = {
     return '_auto';
   },
   _vizDeFonte(fonte) {
+    /* Novo (por ID): a fonte carrega sua própria viz — grupo, natureza fiscal e cor.
+       O nome fica livre e não governa mais a classificação. */
+    if (fonte && (fonte.grupoViz || typeof fonte.ehLucro === 'boolean' || fonte.cor)) {
+      const grupo = fonte.grupoViz || fonte.nome || fonte.id || 'Fonte';
+      return { key: fonte.id || grupo, auto: false, cor: fonte.cor || null,
+               grupo: 'g:' + grupo, grupoNome: grupo,
+               ehLucro: !!fonte.ehLucro, ordem: fonte.vizOrdem || 1 };
+    }
+    /* Legado: resolve por nome (compatibilidade com dados ainda não migrados) */
     const k = this._vizKeyDeFonte(fonte);
     if (k !== '_auto') return Object.assign({ key: k, auto: false }, FONTE_VIZ_PRESET[k]);
-    /* fonte não reconhecida: cor vem do ramp depois; é lucro se o tipo for 'variável' */
     const idk = (fonte && fonte.id) || (fonte && fonte.nome) || '?';
     return { key: 'auto:' + idk, auto: true, cor: null, grupo: 'auto:' + idk,
              grupoNome: (fonte && fonte.nome) || 'Fonte',
