@@ -5030,7 +5030,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.45.0 · Ajuste visual 1/4: rótulos de valor no topo das colunas mais finos (peso 400/500 em vez de 600/700) nos gráficos do relatório
+  Finança · v0.45.1 · Ajuste 1 (cont.): rótulos de valor das colunas menores (8/9px) e sem "R$" repetido (moeda já no título/eixo) — evita sobreposição quando colunas têm altura parecida
 </div>
 
   </section>
@@ -9562,8 +9562,8 @@ window.relatorioElegante = {
       g.partes.forEach(p => { const h = p.valor * esc; yTop -= h;
         out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="${p.cor}"${g.isTotal ? ` stroke="${REL_LK.ink}" stroke-width="0.5"` : ''}/>`;
       });
-      out += `<text x="${cx.toFixed(1)}" y="${(yBase - g.total * esc - 7).toFixed(1)}" text-anchor="middle" font-size="${g.isTotal ? 11 : 10}" font-weight="${g.isTotal ? 500 : 400}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(g.total)}</text>`;
-      out += `<text x="${cx.toFixed(1)}" y="${(yBase + 16).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="${g.isTotal ? 700 : 600}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.soft}">${this._esc(g.nome)}</text>`;
+      out += `<text x="${cx.toFixed(1)}" y="${(yBase - g.total * esc - 6).toFixed(1)}" text-anchor="middle" font-size="${g.isTotal ? 9 : 8}" font-weight="${g.isTotal ? 500 : 400}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmtN(g.total)}</text>`;
+      out += `<text x="${cx.toFixed(1)}" y="${(yBase + 15).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="${g.isTotal ? 700 : 600}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.soft}">${this._esc(g.nome)}</text>`;
     });
     out += `<line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_LK.line}" stroke-width="1"/>`;
     return `<svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">${out}</svg>`;
@@ -9666,7 +9666,7 @@ window.relatorioElegante = {
       items.forEach((it, i) => {
         const cx = x0 + i * (bw + gap) + bw / 2, h = it.v * esc;
         out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(yBase - h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="${it.cor}"${it.isTotal ? ` stroke="${REL_LK.ink}" stroke-width="0.5"` : ''}/>`;
-        out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="${it.isTotal ? 12 : 11}" font-weight="${it.isTotal ? 500 : 400}" fill="${it.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(it.v)}</text>`;
+        out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="${it.isTotal ? 9 : 8}" font-weight="${it.isTotal ? 500 : 400}" fill="${it.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmtN(it.v)}</text>`;
         out += `<text x="${cx.toFixed(1)}" y="${(yBase + 16).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="${it.isTotal ? 700 : 600}" fill="${it.isTotal ? FONTE_VIZ_TOTAL : it.cor}">${this._esc(it.nome)}</text>`;
       });
     } else {
@@ -9710,7 +9710,7 @@ window.relatorioElegante = {
     itens.forEach((c, i) => {
       const cx = x0 + i * (bw + gap) + bw / 2, h = c.v * esc;
       out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(yBase - h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="${c.cor}"/>`;
-      out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="400" fill="${REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(c.v)}</text>`;
+      out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="400" fill="${REL_LK.ink}" font-family="Fraunces,serif">${this._fmtN(c.v)}</text>`;
       out += `<text x="${cx.toFixed(1)}" y="${(yBase + 16).toFixed(1)}" text-anchor="middle" font-size="10" fill="${REL_LK.soft}">${this._esc(c.nome)}</text>`;
     });
     out += `<line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_LK.line}" stroke-width="1"/>`;
@@ -9956,6 +9956,11 @@ window.relatorioElegante = {
 
   _fmt(v) {
     return 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  },
+
+  /* número sem "R$" — usado nos rótulos de coluna (a moeda já aparece no título/eixo) */
+  _fmtN(v) {
+    return (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   },
 
   _fmtK(v) {
