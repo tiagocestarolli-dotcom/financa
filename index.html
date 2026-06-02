@@ -5030,7 +5030,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.46.0 · Ajuste 2/4: fluxo do mês passa a ser o 1º gráfico do relatório e ganha tabela de valores (mês a mês: entradas, saídas+inv, saldo). R$ de volta nos topos das colunas, com espaçamento adaptativo para não sobrepor
+  Finança · v0.47.1 · Correção de alinhamento: cabeçalho das colunas (JAN, FEV…, VALOR) agora com o mesmo recuo das células, então o título fica exatamente em cima do número. Vale para as três tabelas (entradas, reserva, fluxo)
 </div>
 
   </section>
@@ -9604,25 +9604,36 @@ window.relatorioElegante = {
 
   /* tabela mês a mês das entradas: uma linha por fonte (AAB e particular
      explícitas), colunas = meses + TOTAL, rodapé com total por mês. */
+  /* tabela mês a mês das entradas: cada GRUPO é uma linha de total em destaque;
+     quando o grupo tem mais de uma fonte, elas aparecem recuadas abaixo, como
+     detalhe. Colunas = meses + TOTAL. Sem "R$" nas células (largura no A4). */
   _tabelaEntradasPorMes(grupos, ymsB) {
-    const partes = [];
-    grupos.slice().sort((a, b) => b.total - a.total).forEach(g => {
-      g.partes.forEach(p => { if (p.total > 0) partes.push({ nome: p.nome, cor: p.cor, porYm: p.porYm, total: p.total }); });
-    });
-    if (!partes.length) return '';
+    const gs = grupos.filter(g => g.total > 0).sort((a, b) => b.total - a.total);
+    if (!gs.length) return '';
+    const cel = v => (v > 0 ? this._fmtN(v) : '—');
     const head = '<th>FONTE</th>' + ymsB.map(ym => `<th class="tg-th-val">${this._esc(this._mesAbbr(ym))}</th>`).join('') + '<th class="tg-th-val">TOTAL</th>';
-    const rows = partes.map(p => {
-      const cells = ymsB.map(ym => `<td class="tg-val">${(p.porYm[ym] || 0) > 0 ? this._fmt(p.porYm[ym]) : '—'}</td>`).join('');
-      return `<tr><td><span class="ent-dot" style="background:${p.cor};display:inline-block;margin-right:6px;vertical-align:middle;"></span>${this._esc(p.nome)}</td>${cells}<td class="tg-val">${this._fmt(p.total)}</td></tr>`;
-    }).join('');
-    const totMes = ymsB.map(ym => partes.reduce((s, p) => s + (p.porYm[ym] || 0), 0));
+    let body = '';
+    gs.forEach(g => {
+      const serieMes = ymsB.map(ym => g.partes.reduce((s, p) => s + (p.porYm[ym] || 0), 0));
+      const cells = serieMes.map(v => `<td class="tg-val">${cel(v)}</td>`).join('');
+      body += `<tr class="ent-grp"><td><span class="ent-dot" style="background:${g.cor};"></span>${this._esc(g.nome)}</td>${cells}<td class="tg-val">${this._fmtN(g.total)}</td></tr>`;
+      if (g.partes.length > 1) {
+        g.partes.slice().sort((a, b) => b.total - a.total).forEach(p => {
+          const pc = ymsB.map(ym => `<td class="tg-val">${cel(p.porYm[ym] || 0)}</td>`).join('');
+          body += `<tr class="ent-sub"><td>${this._esc(p.nome)}</td>${pc}<td class="tg-val">${this._fmtN(p.total)}</td></tr>`;
+        });
+      }
+    });
+    const totMes = ymsB.map(ym => gs.reduce((s, g) => s + g.partes.reduce((a, p) => a + (p.porYm[ym] || 0), 0), 0));
     const totGeral = totMes.reduce((s, v) => s + v, 0);
-    const totCells = totMes.map(v => `<td class="tg-val">${this._fmt(v)}</td>`).join('');
-    return `<div class="ent-tabela-wrap no-break"><table class="tg-table ent-tabela">
-      <thead><tr>${head}</tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr class="ent-tfoot"><td class="fx-foot-lbl">Total / mês</td>${totCells}<td class="tg-val">${this._fmt(totGeral)}</td></tr></tfoot>
-    </table></div>`;
+    const totCells = totMes.map(v => `<td class="tg-val">${this._fmtN(v)}</td>`).join('');
+    return `<div class="ent-tabela-wrap no-break">
+      <div class="ent-nota">Valores em R$. Cada fonte aparece como total (linha em destaque); quando se divide em sub-fontes, elas vêm recuadas abaixo, só como detalhe.</div>
+      <table class="tg-table ent-tabela">
+        <thead><tr>${head}</tr></thead>
+        <tbody>${body}</tbody>
+        <tfoot><tr class="ent-tfoot"><td class="fx-foot-lbl">Total / mês</td>${totCells}<td class="tg-val">${this._fmtN(totGeral)}</td></tr></tfoot>
+      </table></div>`;
   },
 
   /* tabela de reserva de imposto sobre dividendos: por mês e consolidada,
@@ -9800,7 +9811,7 @@ window.relatorioElegante = {
     let html = this._secao('💰', 'Entradas por fonte · no período',
       `<div class="pdf-card no-break ent-block">
         ${this._totLinha('Total de entradas no período', totPer, 'color-in')}
-        <div class="ent-desc">Uma coluna por fonte, em ordem decrescente. SAITG e OFTALMONEST mostram as sub-fontes (AAB / particular) empilhadas em tom mais claro. Coluna TOTAL ao final.</div>
+        <div class="ent-desc">Uma coluna por fonte (ou grupo de fontes), em ordem decrescente. Fontes do mesmo grupo aparecem empilhadas em tons da mesma cor. Coluna TOTAL ao final.</div>
         ${this._chEntradasPeriodo(grupos)}${lg}</div>`);
 
     /* 4b — evolução mês a mês + tabela detalhada (só faz sentido multi-mês) */
@@ -9826,7 +9837,7 @@ window.relatorioElegante = {
       : '';
     html += this._secao('🏦', 'Distribuição de lucros · base do imposto',
       `<div class="pdf-card no-break ent-block">
-        <div class="ent-desc">Apenas distribuição de lucros de cada CNPJ — exclui SES (salário) e OFTALMONEST particular. SAITG soma a sub-fonte AAB. Total por mês e consolidado na tabela.</div>
+        <div class="ent-desc">Apenas as fontes marcadas como distribuição de lucro — exclui salário, pró-labore e receitas particulares. Fontes do mesmo grupo somam juntas. Total por mês e consolidado na tabela.</div>
         ${div.svg}${reserva}${tabReserva}</div>`);
 
     return html;
@@ -10127,11 +10138,19 @@ text{font-family:'Montserrat',sans-serif;}
 .tax-tx b{color:var(--pdf-ink);}
 
 /* tabelas mês a mês (entradas e reserva de imposto) */
-.ent-tabela-wrap{margin-top:14px;}
+.ent-tabela-wrap{margin-top:14px;overflow-x:auto;}
+.ent-nota{font-size:8.5px;color:var(--pdf-ink-mute);margin-bottom:6px;line-height:1.4;}
 .ent-tabela{font-size:8.5px;}
-.ent-tabela th{padding-bottom:5px;font-size:7.5px;}
-.ent-tabela td{padding:4px 6px;}
+.ent-tabela th,.ent-tabela td{white-space:nowrap;}
+.ent-tabela th{padding:0 7px 5px;font-size:7.5px;}
+.ent-tabela td{padding:4px 7px;}
 .ent-tabela th:first-child,.ent-tabela td:first-child{text-align:left;}
+.ent-tabela .ent-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+.ent-tabela tr.ent-grp td{font-weight:700;color:var(--pdf-ink);}
+.ent-tabela tr.ent-grp .tg-val{color:var(--pdf-ink);font-weight:700;}
+.ent-tabela tr.ent-sub td{font-size:8px;color:var(--pdf-ink-mute);padding-top:1px;padding-bottom:3px;}
+.ent-tabela tr.ent-sub td:first-child{padding-left:21px;font-style:italic;}
+.ent-tabela tr.ent-sub .tg-val{color:var(--pdf-ink-mute);font-weight:500;}
 .ent-tabela .tg-val{color:var(--pdf-ink-soft);font-weight:500;}
 .ent-tabela .tax-cell{color:#9A6526;}
 .ent-tabela tfoot td,.ent-tabela tr.ent-tfoot td{border-top:1.5px solid var(--pdf-border);border-bottom:none;padding-top:7px;font-weight:700;color:var(--pdf-ink);}
