@@ -5030,7 +5030,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.45.1 · Ajuste 1 (cont.): rótulos de valor das colunas menores (8/9px) e sem "R$" repetido (moeda já no título/eixo) — evita sobreposição quando colunas têm altura parecida
+  Finança · v0.46.0 · Ajuste 2/4: fluxo do mês passa a ser o 1º gráfico do relatório e ganha tabela de valores (mês a mês: entradas, saídas+inv, saldo). R$ de volta nos topos das colunas, com espaçamento adaptativo para não sobrepor
 </div>
 
   </section>
@@ -9124,6 +9124,7 @@ window.relatorioElegante = {
       rodapeExtra: 'Regime de caixa: cartão entra no mês do pagamento da fatura'
     });
 
+    const secFluxo  = this._secaoFluxoMes(d);              /* 1º gráfico */
     const secEntFoco = this._secaoEntradasFoco(d.entGrupos, ctx);
     const secSaidas  = this._secaoSaidasFoco(d, ctx);
 
@@ -9131,7 +9132,7 @@ window.relatorioElegante = {
     const secLista = this._secaoFluxoDetalhado(d.listaFluxo, d.entradas, d.saidas + d.invest, d.saldo);
     const secAlertas = this._secaoAlertas(d.alertas);
 
-    const body = capa + secEntFoco + secSaidas + secTop + secLista + secAlertas;
+    const body = capa + secFluxo + secEntFoco + secSaidas + secTop + secLista + secAlertas;
     return this._documento(ctx, body);
   },
 
@@ -9554,15 +9555,17 @@ window.relatorioElegante = {
 
     const W = 540, padL = 40, padR = 12, padT = 16, hMax = 150, yBase = padT + hMax, svgH = yBase + 30;
     const maxVal = Math.max(1, ...cols.map(g => g.total)) * 1.16, esc = hMax / maxVal;
-    const bw = 30, gap = 22, clusterW = cols.length * bw + (cols.length - 1) * gap;
-    const x0 = padL + ((W - padL - padR) - clusterW) / 2;
+    const bw = 30, avail = W - padL - padR;
+    const gap = cols.length > 1 ? Math.max(14, Math.min(40, (avail - cols.length * bw) / (cols.length - 1))) : 0;
+    const clusterW = cols.length * bw + (cols.length - 1) * gap;
+    const x0 = padL + (avail - clusterW) / 2;
     let out = this._grade(W, yBase, hMax, maxVal, padL, padR);
     cols.forEach((g, i) => {
       const cx = x0 + i * (bw + gap) + bw / 2; let yTop = yBase;
       g.partes.forEach(p => { const h = p.valor * esc; yTop -= h;
         out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="${p.cor}"${g.isTotal ? ` stroke="${REL_LK.ink}" stroke-width="0.5"` : ''}/>`;
       });
-      out += `<text x="${cx.toFixed(1)}" y="${(yBase - g.total * esc - 6).toFixed(1)}" text-anchor="middle" font-size="${g.isTotal ? 9 : 8}" font-weight="${g.isTotal ? 500 : 400}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmtN(g.total)}</text>`;
+      out += `<text x="${cx.toFixed(1)}" y="${(yBase - g.total * esc - 6).toFixed(1)}" text-anchor="middle" font-size="${g.isTotal ? 9 : 8}" font-weight="${g.isTotal ? 500 : 400}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(g.total)}</text>`;
       out += `<text x="${cx.toFixed(1)}" y="${(yBase + 15).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="${g.isTotal ? 700 : 600}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.soft}">${this._esc(g.nome)}</text>`;
     });
     out += `<line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_LK.line}" stroke-width="1"/>`;
@@ -9661,12 +9664,14 @@ window.relatorioElegante = {
                       .concat([{ nome: 'TOTAL', cor: FONTE_VIZ_TOTAL, v: total, isTotal: true }]);
       const maxVal = Math.max(1, ...items.map(it => it.v)) * 1.16, esc = hMax / maxVal;
       out += this._grade(W, yBase, hMax, maxVal, padL, padR);
-      const bw = 30, gap = 24, clusterW = items.length * bw + (items.length - 1) * gap;
-      const x0 = padL + ((W - padL - padR) - clusterW) / 2;
+      const bw = 30, avail = W - padL - padR;
+      const gap = items.length > 1 ? Math.max(14, Math.min(40, (avail - items.length * bw) / (items.length - 1))) : 0;
+      const clusterW = items.length * bw + (items.length - 1) * gap;
+      const x0 = padL + (avail - clusterW) / 2;
       items.forEach((it, i) => {
         const cx = x0 + i * (bw + gap) + bw / 2, h = it.v * esc;
         out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(yBase - h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="${it.cor}"${it.isTotal ? ` stroke="${REL_LK.ink}" stroke-width="0.5"` : ''}/>`;
-        out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="${it.isTotal ? 9 : 8}" font-weight="${it.isTotal ? 500 : 400}" fill="${it.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmtN(it.v)}</text>`;
+        out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="${it.isTotal ? 9 : 8}" font-weight="${it.isTotal ? 500 : 400}" fill="${it.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(it.v)}</text>`;
         out += `<text x="${cx.toFixed(1)}" y="${(yBase + 16).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="${it.isTotal ? 700 : 600}" fill="${it.isTotal ? FONTE_VIZ_TOTAL : it.cor}">${this._esc(it.nome)}</text>`;
       });
     } else {
@@ -9704,13 +9709,15 @@ window.relatorioElegante = {
     if (!itens.length) return '<div class="rel-empty">Sem saídas no mês.</div>';
     const W = 540, padL = 40, padR = 12, padT = 16, hMax = 140, yBase = padT + hMax, svgH = yBase + 30;
     const maxVal = Math.max(1, ...itens.map(c => c.v)) * 1.16, esc = hMax / maxVal;
-    const bw = 28, gap = 24, clusterW = itens.length * bw + (itens.length - 1) * gap;
-    const x0 = padL + ((W - padL - padR) - clusterW) / 2;
+    const bw = 28, avail = W - padL - padR;
+    const gap = itens.length > 1 ? Math.max(14, Math.min(40, (avail - itens.length * bw) / (itens.length - 1))) : 0;
+    const clusterW = itens.length * bw + (itens.length - 1) * gap;
+    const x0 = padL + (avail - clusterW) / 2;
     let out = this._grade(W, yBase, hMax, maxVal, padL, padR);
     itens.forEach((c, i) => {
       const cx = x0 + i * (bw + gap) + bw / 2, h = c.v * esc;
       out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(yBase - h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="${c.cor}"/>`;
-      out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="400" fill="${REL_LK.ink}" font-family="Fraunces,serif">${this._fmtN(c.v)}</text>`;
+      out += `<text x="${cx.toFixed(1)}" y="${(yBase - h - 7).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="400" fill="${REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(c.v)}</text>`;
       out += `<text x="${cx.toFixed(1)}" y="${(yBase + 16).toFixed(1)}" text-anchor="middle" font-size="10" fill="${REL_LK.soft}">${this._esc(c.nome)}</text>`;
     });
     out += `<line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_LK.line}" stroke-width="1"/>`;
@@ -9825,7 +9832,44 @@ window.relatorioElegante = {
     return html;
   },
 
-  /* PÁGINA 2 — saídas e fluxo (começa em nova página): 5 + 5a + (5b) */
+  /* Fluxo do mês — entradas, saídas e saldo (PRIMEIRO gráfico) + tabela de valores */
+  _secaoFluxoMes(d) {
+    return this._secao('📊', 'Fluxo do mês · entradas, saídas e saldo',
+      `<div class="pdf-card no-break ent-block">
+        ${this._totLinha('Saldo do período', d.saldo, d.saldo >= 0 ? 'color-in' : 'color-out')}
+        <div class="ent-desc">Entradas (verde) e saídas + investimentos (terracota) por mês; a linha escura é o saldo (E − S). Os valores estão na tabela abaixo.</div>
+        ${this._chFluxoMes(d.historico)}
+        <div class="ent-legend">
+          <span class="ent-lg"><span class="ent-dot" style="background:#1F6F54;"></span>Entradas</span>
+          <span class="ent-lg"><span class="ent-dot" style="background:#A8462C;"></span>Saídas + invest.</span>
+          <span class="ent-lg"><span class="ent-dot" style="background:#1C1A15;"></span>Saldo (E − S)</span>
+        </div>
+        ${this._tabelaFluxoMes(d.historico)}</div>`);
+  },
+
+  /* tabela mês a mês do fluxo: Entradas · Saídas+Inv · Saldo + linha Período */
+  _tabelaFluxoMes(historico) {
+    if (!historico || !historico.length) return '';
+    const linha = (label, e, s, isTot) => {
+      const saldo = e - s;
+      return `<tr${isTot ? ' class="ent-tfoot"' : ''}>
+        <td${isTot ? ' class="fx-foot-lbl"' : ''}>${this._esc(label)}</td>
+        <td class="tg-val" style="color:#1F6F54;">${this._fmt(e)}</td>
+        <td class="tg-val" style="color:#A8462C;">${this._fmt(s)}</td>
+        <td class="tg-val" style="color:${saldo >= 0 ? '#1F6F54' : '#A8462C'};">${this._fmt(saldo)}</td>
+      </tr>`;
+    };
+    const body = historico.map(d => linha(this._mesAbbr(d.ym), d.entradas, (d.saidas + d.invest), false)).join('');
+    const tE = historico.reduce((a, d) => a + d.entradas, 0);
+    const tS = historico.reduce((a, d) => a + d.saidas + d.invest, 0);
+    return `<div class="ent-tabela-wrap no-break"><table class="tg-table ent-tabela">
+      <thead><tr><th>MÊS</th><th class="tg-th-val">ENTRADAS</th><th class="tg-th-val">SAÍDAS + INV.</th><th class="tg-th-val">SALDO</th></tr></thead>
+      <tbody>${body}</tbody>
+      <tfoot>${linha('Período', tE, tS, true)}</tfoot>
+    </table></div>`;
+  },
+
+  /* PÁGINA 2 — saídas (começa em nova página): 5a + (5b) */
   _secaoSaidasFoco(d, ctx) {
     const multi = ctx.yms.length > 1;
     let idx = ctx.yms.indexOf(ctx.ym); if (idx < 0) idx = ctx.yms.length - 1;
@@ -9835,17 +9879,6 @@ window.relatorioElegante = {
     const totPer = sai.reduce((s, c) => s + c.total, 0);
 
     let html = '<div class="page-break-before"></div>';
-
-    html += this._secao('📊', 'Fluxo do mês · entradas, saídas e saldo',
-      `<div class="pdf-card no-break ent-block">
-        ${this._totLinha('Saldo do período', d.saldo, d.saldo >= 0 ? 'color-in' : 'color-out')}
-        <div class="ent-desc">Entradas (verde) e saídas + investimentos (terracota) por mês; a linha escura é o saldo (E − S).</div>
-        ${this._chFluxoMes(d.historico)}
-        <div class="ent-legend">
-          <span class="ent-lg"><span class="ent-dot" style="background:#1F6F54;"></span>Entradas</span>
-          <span class="ent-lg"><span class="ent-dot" style="background:#A8462C;"></span>Saídas + invest.</span>
-          <span class="ent-lg"><span class="ent-dot" style="background:#1C1A15;"></span>Saldo (E − S)</span>
-        </div></div>`);
 
     html += this._secao('💸', 'Saídas do mês · por categoria',
       `<div class="pdf-card no-break ent-block">
