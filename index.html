@@ -5014,7 +5014,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.39.0 · Relatório de Fluxo de Caixa redesenhado (folha clara): entradas 4a/4b/4c + página de saídas/fluxo 5/5a/5b, linha de média + tendência
+  Finança · v0.40.0 · Rel Fluxo: 4a vira "por fonte no período" (todas as fontes + coluna TOTAL), 4b/4c com sub-tons AAB/PARTIC empilhados, tabela mês a mês das entradas e tabela de reserva de imposto (7% e 10%) por mês e consolidada
 </div>
 
   </section>
@@ -9397,7 +9397,38 @@ window.relatorioElegante = {
     return `<svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">${out}</svg>`;
   },
 
-  /* 4b — evolução: meses de cada grupo lado a lado; média (tracejada) + tendência (cheia) */
+  /* 4a-período — entradas por fonte NO PERÍODO: uma coluna por fonte (sub-fontes
+     empilhadas em tom mais claro) + coluna TOTAL (dourada). Garante que todas as
+     fontes apareçam, mesmo que não tenham entrada no mês de referência. */
+  _chEntradasPeriodo(grupos) {
+    const itens = grupos.map(g => {
+      const partes = g.partes.map(p => ({ cor: p.cor, valor: p.total })).filter(p => p.valor > 0);
+      return { nome: g.nome, total: partes.reduce((s, p) => s + p.valor, 0), partes, isTotal: false };
+    }).filter(g => g.total > 0).sort((a, b) => b.total - a.total);
+    if (!itens.length) return '<div class="rel-empty">Sem entradas no período.</div>';
+    const totalGeral = itens.reduce((s, g) => s + g.total, 0);
+    const cols = itens.concat([{ nome: 'TOTAL', total: totalGeral, isTotal: true,
+                                 partes: [{ cor: FONTE_VIZ_TOTAL, valor: totalGeral }] }]);
+
+    const W = 540, padL = 40, padR = 12, padT = 16, hMax = 150, yBase = padT + hMax, svgH = yBase + 30;
+    const maxVal = Math.max(1, ...cols.map(g => g.total)) * 1.16, esc = hMax / maxVal;
+    const bw = 30, gap = 22, clusterW = cols.length * bw + (cols.length - 1) * gap;
+    const x0 = padL + ((W - padL - padR) - clusterW) / 2;
+    let out = this._grade(W, yBase, hMax, maxVal, padL, padR);
+    cols.forEach((g, i) => {
+      const cx = x0 + i * (bw + gap) + bw / 2; let yTop = yBase;
+      g.partes.forEach(p => { const h = p.valor * esc; yTop -= h;
+        out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="${p.cor}"${g.isTotal ? ` stroke="${REL_LK.ink}" stroke-width="0.5"` : ''}/>`;
+      });
+      out += `<text x="${cx.toFixed(1)}" y="${(yBase - g.total * esc - 7).toFixed(1)}" text-anchor="middle" font-size="${g.isTotal ? 11 : 10}" font-weight="${g.isTotal ? 700 : 600}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.ink}" font-family="Fraunces,serif">${this._fmt(g.total)}</text>`;
+      out += `<text x="${cx.toFixed(1)}" y="${(yBase + 16).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="${g.isTotal ? 700 : 600}" fill="${g.isTotal ? FONTE_VIZ_TOTAL : REL_LK.soft}">${this._esc(g.nome)}</text>`;
+    });
+    out += `<line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_LK.line}" stroke-width="1"/>`;
+    return `<svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">${out}</svg>`;
+  },
+
+  /* 4b — evolução: meses de cada grupo lado a lado, com sub-fontes (AAB/particular)
+     empilhadas em tom mais claro; média (tracejada) + tendência (cheia) sobre o total. */
   _chEntradasEvolucao(grupos, ymsB) {
     const gs = grupos.filter(g => g.total > 0).sort((a, b) => b.total - a.total);
     if (!gs.length) return '<div class="rel-empty">Sem entradas no período.</div>';
@@ -9408,11 +9439,15 @@ window.relatorioElegante = {
     let out = this._grade(W, yBase, hMax, maxVal, padL, padR), x = padL;
     gs.forEach(g => {
       const xs = [], ys = [];
-      g.serie.forEach((v, mi) => {
-        const cx = x + slot * mi + slot / 2, h = v * esc, y = yBase - h;
-        out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${g.cor}"/>`;
-        out += `<text x="${cx.toFixed(1)}" y="${(yBase + 11).toFixed(1)}" text-anchor="middle" font-size="7" fill="${REL_LK.mute}">${this._mesAbbr(ymsB[mi]).charAt(0)}</text>`;
-        xs.push(cx); ys.push(y);
+      ymsB.forEach((ym, mi) => {
+        const cx = x + slot * mi + slot / 2; let yTop = yBase;
+        g.partes.forEach(p => {
+          const v = p.porYm[ym] || 0; if (v <= 0) return;
+          const h = v * esc; yTop -= h;
+          out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${p.cor}"/>`;
+        });
+        out += `<text x="${cx.toFixed(1)}" y="${(yBase + 11).toFixed(1)}" text-anchor="middle" font-size="7" fill="${REL_LK.mute}">${this._mesAbbr(ym).charAt(0)}</text>`;
+        xs.push(cx); ys.push(yTop);
       });
       out += this._mediaTrend(g.serie, xs, ys, x + 2, x + slot * ymsB.length - 2, yBase, esc, g.cor);
       out += `<text x="${(x + slot * ymsB.length / 2).toFixed(1)}" y="${(yBase + 30).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${g.cor}">${this._esc(g.nome)}</text>`;
@@ -9422,11 +9457,57 @@ window.relatorioElegante = {
     return `<svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">${out}</svg>`;
   },
 
+  /* tabela mês a mês das entradas: uma linha por fonte (AAB e particular
+     explícitas), colunas = meses + TOTAL, rodapé com total por mês. */
+  _tabelaEntradasPorMes(grupos, ymsB) {
+    const partes = [];
+    grupos.slice().sort((a, b) => b.total - a.total).forEach(g => {
+      g.partes.forEach(p => { if (p.total > 0) partes.push({ nome: p.nome, cor: p.cor, porYm: p.porYm, total: p.total }); });
+    });
+    if (!partes.length) return '';
+    const head = '<th>FONTE</th>' + ymsB.map(ym => `<th class="tg-th-val">${this._esc(this._mesAbbr(ym))}</th>`).join('') + '<th class="tg-th-val">TOTAL</th>';
+    const rows = partes.map(p => {
+      const cells = ymsB.map(ym => `<td class="tg-val">${(p.porYm[ym] || 0) > 0 ? this._fmt(p.porYm[ym]) : '—'}</td>`).join('');
+      return `<tr><td><span class="ent-dot" style="background:${p.cor};display:inline-block;margin-right:6px;vertical-align:middle;"></span>${this._esc(p.nome)}</td>${cells}<td class="tg-val">${this._fmt(p.total)}</td></tr>`;
+    }).join('');
+    const totMes = ymsB.map(ym => partes.reduce((s, p) => s + (p.porYm[ym] || 0), 0));
+    const totGeral = totMes.reduce((s, v) => s + v, 0);
+    const totCells = totMes.map(v => `<td class="tg-val">${this._fmt(v)}</td>`).join('');
+    return `<div class="ent-tabela-wrap no-break"><table class="tg-table ent-tabela">
+      <thead><tr>${head}</tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr class="ent-tfoot"><td class="fx-foot-lbl">Total / mês</td>${totCells}<td class="tg-val">${this._fmt(totGeral)}</td></tr></tfoot>
+    </table></div>`;
+  },
+
+  /* tabela de reserva de imposto sobre dividendos: por mês e consolidada,
+     com as duas alíquotas (7% e 10%). Base = só distribuição de lucros. */
+  _tabelaReservaImposto(grupos, ymsB) {
+    const totMes = ymsB.map(ym => grupos.reduce((s, g) =>
+      s + g.partes.filter(p => p.ehLucro).reduce((a, p) => a + (p.porYm[ym] || 0), 0), 0));
+    const total = totMes.reduce((s, v) => s + v, 0);
+    if (total <= 0) return '';
+    const linha = (label, div, isTot) =>
+      `<tr${isTot ? ' class="ent-tfoot"' : ''}>
+        <td${isTot ? ' class="fx-foot-lbl"' : ''}>${this._esc(label)}</td>
+        <td class="tg-val">${div > 0 ? this._fmt(div) : '—'}</td>
+        <td class="tg-val tax-cell">${div > 0 ? this._fmt(div * 0.07) : '—'}</td>
+        <td class="tg-val tax-cell">${div > 0 ? this._fmt(div * 0.10) : '—'}</td>
+      </tr>`;
+    const body = ymsB.map((ym, i) => linha(this._mesAbbr(ym), totMes[i], false)).join('');
+    return `<div class="ent-tabela-wrap no-break"><table class="tg-table ent-tabela">
+      <thead><tr><th>MÊS</th><th class="tg-th-val">DIVIDENDOS</th><th class="tg-th-val">RESERVA 7%</th><th class="tg-th-val">RESERVA 10%</th></tr></thead>
+      <tbody>${body}</tbody>
+      <tfoot>${linha('Período', total, true)}</tfoot>
+    </table></div>`;
+  },
+
   /* 4c — distribuição de lucros (só ehLucro), decrescente.
      Mês único: colunas + coluna TOTAL (dourada). Multi: barras + média/tendência. */
   _chDividendos(grupos, ymsB) {
     const multi = ymsB.length > 1;
-    const gs = grupos.map(g => ({ nome: g.nome, cor: g.cor, serie: g.serieLucro, total: g.totalLucro }))
+    const gs = grupos.map(g => ({ nome: g.nome, cor: g.cor, serie: g.serieLucro, total: g.totalLucro,
+        lucroPartes: g.partes.filter(p => p.ehLucro) }))
         .filter(g => g.total > 0).sort((a, b) => b.total - a.total);
     const total = gs.reduce((s, g) => s + g.total, 0);
     if (!gs.length) return { svg: '<div class="rel-empty">Sem distribuição de lucros no período.</div>', total: 0 };
@@ -9454,11 +9535,15 @@ window.relatorioElegante = {
       let x = padL;
       gs.forEach(g => {
         const xs = [], ys = [];
-        g.serie.forEach((v, mi) => {
-          const cx = x + slot * mi + slot / 2, h = v * esc, y = yBase - h;
-          out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${g.cor}"/>`;
-          out += `<text x="${cx.toFixed(1)}" y="${(yBase + 11).toFixed(1)}" text-anchor="middle" font-size="7" fill="${REL_LK.mute}">${this._mesAbbr(ymsB[mi]).charAt(0)}</text>`;
-          xs.push(cx); ys.push(y);
+        ymsB.forEach((ym, mi) => {
+          const cx = x + slot * mi + slot / 2; let yTop = yBase;
+          g.lucroPartes.forEach(p => {
+            const v = p.porYm[ym] || 0; if (v <= 0) return;
+            const h = v * esc; yTop -= h;
+            out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${p.cor}"/>`;
+          });
+          out += `<text x="${cx.toFixed(1)}" y="${(yBase + 11).toFixed(1)}" text-anchor="middle" font-size="7" fill="${REL_LK.mute}">${this._mesAbbr(ym).charAt(0)}</text>`;
+          xs.push(cx); ys.push(yTop);
         });
         out += this._mediaTrend(g.serie, xs, ys, x + 2, x + slot * ymsB.length - 2, yBase, esc, g.cor);
         out += `<text x="${(x + slot * ymsB.length / 2).toFixed(1)}" y="${(yBase + 30).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${g.cor}">${this._esc(g.nome)}</text>`;
@@ -9552,7 +9637,7 @@ window.relatorioElegante = {
     return `<div class="rel-ttot">${this._esc(label)}: <b class="${cls || ''}">${this._fmt(valor)}</b></div>`;
   },
 
-  /* PÁGINA 1 — entradas em foco: 4a + (4b) + 4c + reserva de imposto */
+  /* PÁGINA 1 — entradas em foco: 4a (por fonte no período) + 4b (evolução + tabela) + 4c (lucros + reserva) */
   _secaoEntradasFoco(grupos, ctx) {
     if (!grupos.length)
       return this._secao('💰', 'Entradas por fonte',
@@ -9560,38 +9645,40 @@ window.relatorioElegante = {
 
     const multi = ctx.yms.length > 1;
     const lg = this._legendaEntradas(grupos);
-    const totMes = grupos.reduce((s, g) => s + (g.partes.reduce((a, p) => a + (p.porYm[ctx.ym] || 0), 0)), 0);
     const totPer = grupos.reduce((s, g) => s + g.total, 0);
 
-    let html = this._secao('💰', 'Entradas do mês · por fonte',
+    /* 4a — por fonte no período (todas as fontes + coluna TOTAL) */
+    let html = this._secao('💰', 'Entradas por fonte · no período',
       `<div class="pdf-card no-break ent-block">
-        ${this._totLinha('Total de entradas no mês', totMes, 'color-in')}
-        <div class="ent-desc">Por fonte, em ordem decrescente. SAITG e OFTALMONEST aparecem unidos às sub-fontes (AAB / particular) na mesma coluna.</div>
-        ${this._chEntradasMes(grupos, ctx.ym)}${lg}</div>`);
+        ${this._totLinha('Total de entradas no período', totPer, 'color-in')}
+        <div class="ent-desc">Uma coluna por fonte, em ordem decrescente. SAITG e OFTALMONEST mostram as sub-fontes (AAB / particular) empilhadas em tom mais claro. Coluna TOTAL ao final.</div>
+        ${this._chEntradasPeriodo(grupos)}${lg}</div>`);
 
+    /* 4b — evolução mês a mês + tabela detalhada (só faz sentido multi-mês) */
     if (multi) {
       html += this._secao('📈', 'Entradas · evolução por fonte',
         `<div class="pdf-card no-break ent-block">
-          ${this._totLinha('Total de entradas no período', totPer, 'color-in')}
-          <div class="ent-desc">Meses de cada fonte lado a lado, em ordem de importância. Linha tracejada: média do período · linha cheia: tendência.</div>
-          ${this._chEntradasEvolucao(grupos, ctx.yms)}${lg}</div>`);
+          <div class="ent-desc">Meses de cada fonte lado a lado, com as sub-fontes empilhadas em tom mais claro. Linha tracejada: média do período · linha cheia: tendência. A tabela abaixo abre os valores de cada fonte, mês a mês.</div>
+          ${this._chEntradasEvolucao(grupos, ctx.yms)}
+          ${this._tabelaEntradasPorMes(grupos, ctx.yms)}${lg}</div>`);
     }
 
+    /* 4c — distribuição de lucros (base do imposto) + reserva mês a mês */
     const div = this._chDividendos(grupos, ctx.yms);
-    const lo = div.total * 0.07, hi = div.total * 0.10;
+    const tabReserva = this._tabelaReservaImposto(grupos, ctx.yms);
     const reserva = div.total > 0
       ? `<div class="tax-callout no-break">
            <div class="tax-ico">🧾</div>
            <div>
              <div class="tax-tt">Reserva para o imposto sobre dividendos</div>
-             <div class="tax-tx">Total distribuído no período: <b>${this._fmt(div.total)}</b>. Separe entre <b>${this._fmt(lo)}</b> (7%) e <b>${this._fmt(hi)}</b> (10%).</div>
+             <div class="tax-tx">Total distribuído no período: <b>${this._fmt(div.total)}</b>. Provisão sugerida entre <b>${this._fmt(div.total * 0.07)}</b> (7%) e <b>${this._fmt(div.total * 0.10)}</b> (10%) — abertura mês a mês na tabela abaixo.</div>
            </div>
          </div>`
       : '';
     html += this._secao('🏦', 'Distribuição de lucros · base do imposto',
       `<div class="pdf-card no-break ent-block">
-        <div class="ent-desc">Apenas distribuição de lucros de cada CNPJ — exclui SES (salário) e OFTALMONEST particular. Coluna TOTAL ao final.</div>
-        ${div.svg}${reserva}</div>`);
+        <div class="ent-desc">Apenas distribuição de lucros de cada CNPJ — exclui SES (salário) e OFTALMONEST particular. SAITG soma a sub-fonte AAB. Total por mês e consolidado na tabela.</div>
+        ${div.svg}${reserva}${tabReserva}</div>`);
 
     return html;
   },
@@ -9857,7 +9944,20 @@ text{font-family:'Montserrat',sans-serif;}
 .tax-ico{font-size:17px;line-height:1;}
 .tax-tt{font-weight:700;font-size:11px;color:#9A6526;margin-bottom:2px;}
 .tax-tx{font-size:10.5px;color:var(--pdf-ink-soft);line-height:1.45;}
-.tax-tx b{color:var(--pdf-ink);}`;
+.tax-tx b{color:var(--pdf-ink);}
+
+/* tabelas mês a mês (entradas e reserva de imposto) */
+.ent-tabela-wrap{margin-top:14px;}
+.ent-tabela{font-size:8.5px;}
+.ent-tabela th{padding-bottom:5px;font-size:7.5px;}
+.ent-tabela td{padding:4px 6px;}
+.ent-tabela th:first-child,.ent-tabela td:first-child{text-align:left;}
+.ent-tabela .tg-val{color:var(--pdf-ink-soft);font-weight:500;}
+.ent-tabela .tax-cell{color:#9A6526;}
+.ent-tabela tfoot td,.ent-tabela tr.ent-tfoot td{border-top:1.5px solid var(--pdf-border);border-bottom:none;padding-top:7px;font-weight:700;color:var(--pdf-ink);}
+.ent-tabela tr.ent-tfoot .tg-val{color:var(--pdf-ink);font-weight:700;}
+.ent-tabela tr.ent-tfoot .tax-cell{color:#9A6526;}
+.ent-tabela .fx-foot-lbl{text-align:left;color:var(--pdf-ink);}`;
   }
 };
 
