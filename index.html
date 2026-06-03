@@ -3583,6 +3583,7 @@ label {
 }
 .rel-periodo .rp-cn { min-width: 16px; text-align: center; font-size: 12.5px; font-weight: 700; color: var(--ink); }
 .rel-periodo .rp-cl { font-size: 11px; color: var(--ink-soft); padding-right: 2px; }
+.rel2-frame { width: 100%; border: none; background: transparent; display: block; min-height: 420px; margin-top: 10px; overflow: hidden; }
 
 .rel-toggle-tiago {
   display: flex; align-items: center; gap: 10px;
@@ -5030,7 +5031,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.47.1 · Correção de alinhamento: cabeçalho das colunas (JAN, FEV…, VALOR) agora com o mesmo recuo das células, então o título fica exatamente em cima do número. Vale para as três tabelas (entradas, reserva, fluxo)
+  Finança · v0.48.0 · Tela do Rel Fluxo unificada ao PDF: a tela (desktop e celular) agora mostra o MESMO relatório elegante, renderizado num iframe isolado (sem o CSS do app interferir). Mesmos gráficos, tabelas e padrão nos dois lugares
 </div>
 
   </section>
@@ -9133,7 +9134,15 @@ window.relatorioElegante = {
     const secAlertas = this._secaoAlertas(d.alertas);
 
     const body = capa + secFluxo + secEntFoco + secSaidas + secTop + secLista + secAlertas;
+    this._corpoRel2Cache = body;
     return this._documento(ctx, body);
+  },
+
+  /* mesmo corpo do PDF, mas como documento para embutir na tela (sem barra de
+     impressão). Garante que tela e export sejam IDÊNTICOS. */
+  _gerarRel2Embed(d, ctx) {
+    this._gerarRel2(d, ctx);                 /* preenche _corpoRel2Cache */
+    return this._documento(ctx, this._corpoRel2Cache, { embed: true });
   },
 
   /* ================= peças de seção ================= */
@@ -9931,23 +9940,26 @@ window.relatorioElegante = {
 
   /* ================= documento completo + abrir ================= */
 
-  _documento(ctx, body) {
+  _documento(ctx, body, opts) {
+    opts = opts || {};
     const titulo = 'Relatório · ' + ctx.titulo + ' · ' + this._periodoLabel(ctx);
     const versao = (typeof _appVersionShort === 'function') ? _appVersionShort() : 'Finança';
-    return `<!DOCTYPE html>
-<html lang="pt-BR"><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${this._esc(titulo)}</title>
-<style>${this._css()}</style>
-</head><body>
-<div class="toolbar no-print">
+    const toolbar = opts.embed ? '' : `<div class="toolbar no-print">
   <span class="toolbar-title">${this._esc(titulo)}</span>
   <span class="toolbar-actions">
     <button onclick="window.print()">🖨 Imprimir / Salvar PDF</button>
     <a id="dl" download="${this._esc(ctx.arquivo)}">⬇ Baixar HTML</a>
   </span>
-</div>
+</div>`;
+    const embedCss = opts.embed ? '<style>body{padding:0!important;}.pdf-container{margin:0 auto!important;box-shadow:none!important;}</style>' : '';
+    return `<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${this._esc(titulo)}</title>
+<style>${this._css()}</style>${embedCss}
+</head><body>
+${toolbar}
 <div class="pdf-container">
   ${body}
   <div class="pdf-footer">${this._esc(versao)} · app.financa · documento gerado automaticamente</div>
@@ -11208,38 +11220,35 @@ function _renderRel2Inner() {
 
   _rel2InvalidaCachePagamentos(); /* v0.20.1: rebuilds cache de faturas pagas */
 
-  const cats = rel2CategoriasSaidas();
-  const nMeses = rel2EffMonths();           /* respeita período custom */
-  const ym = rel2State.ym;
-  const yms = relYmsHistorico(ym, nMeses);
+  const R = window.relatorioElegante;
+  const ctx = R._resolverContexto();      /* relView === 'rel2' */
+  const d = R._dadosRel2(ctx);
+  const nMeses = rel2EffMonths();
   const periodoObj = { months: nMeses, label: 'últimos ' + nMeses };
 
-  /* Hero do mês corrente sempre (consistência com Rel 1) */
-  const entradas = rel2CalcEntradas(ym);
-  const saidas = rel2CalcSaidas(ym, cats);
-  const invest = rel2CalcInvestimentos(ym, cats);
+  /* mesmo documento elegante do PDF, isolado num iframe (sem o CSS do app vazar) */
+  let docHtml = '';
+  try { docHtml = R._gerarRel2Embed(d, ctx); }
+  catch (e) { console.error('[rel2 embed]', e); }
 
-  let html = '';
-  html += _rel2HeaderHtml(ym, periodoObj);
-  html += _rel2HeroHtml(entradas, saidas, invest, ym, cats);
-  html += _rel2SecaoComposicaoMesHtml(ym, cats, entradas, saidas);
+  let html = _rel2HeaderHtml(ctx.ym, periodoObj);
+  html += '<iframe id="rel2Frame" class="rel2-frame" title="Relatório de Fluxo de Caixa" scrolling="no"></iframe>';
+  host.innerHTML = html;
 
-  if (nMeses > 1) {
-    const historico = rel2CalcHistorico(ym, nMeses, cats);
-    html += _rel2SecaoMultiMesHtml(historico, periodoObj);
+  const fr = document.getElementById('rel2Frame');
+  if (fr) {
+    const ajusta = () => {
+      try {
+        const doc = fr.contentDocument || (fr.contentWindow && fr.contentWindow.document);
+        if (!doc || !doc.body) return;
+        const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
+        if (h > 0) fr.style.height = (h + 16) + 'px';
+      } catch (e) {}
+    };
+    fr.onload = () => { ajusta(); setTimeout(ajusta, 250); setTimeout(ajusta, 800); };
+    fr.srcdoc = docHtml;
   }
 
-  const entradasPorFonte = rel2CalcEntradasPorFonte(yms);
-  const saidasPorCat = rel2CalcSaidasPorCategoria(yms, cats);
-  const investPorSubcat = rel2CalcInvestPorSubcat(yms, cats);
-  const saidasPorConta = rel2CalcSaidasPorConta(yms, cats);
-
-  html += _rel2SecaoEntradasFontesHtml(entradasPorFonte);
-  html += _rel2SecaoSaidasCatHtml(saidasPorCat);
-  html += _rel2SecaoInvestHtml(investPorSubcat);
-  html += _rel2SecaoSaidasContaHtml(saidasPorConta);
-
-  host.innerHTML = html;
   _rel2BindEvents();
 }
 
