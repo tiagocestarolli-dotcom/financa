@@ -2827,6 +2827,35 @@ label {
   font-size: 13px;
 }
 
+/* v0.49.0 — Central de Contas do mês: badges de status fortes + ações inline.
+   Row vira layout em coluna: linha de cima (badge + nome + valor),
+   linha de baixo (meta + botões de ação). */
+.cm-row { flex-direction: column; align-items: stretch; gap: 7px; }
+.cm-rtop { display: flex; align-items: center; gap: 10px; }
+.cm-rtop .cm-info { flex: 1; min-width: 0; }
+.cm-rbot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cm-badge {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 3px 8px; border-radius: var(--r-sm, 8px); white-space: nowrap; flex-shrink: 0;
+}
+.cm-badge.pago   { background: var(--flow-in-soft, #E4ECDF); color: var(--flow-in, #2D5F3F); }
+.cm-badge.apagar { background: #F6E4CC; color: #8A5A1F; }
+.cm-badge.auto   { background: #E8EDF5; color: #3A6991; }
+.cm-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.cm-act {
+  border: 1px solid var(--line, #E5E1D5); background: var(--bg-elevated, #fff);
+  border-radius: var(--r-sm, 8px); padding: 6px 11px; font-size: 12.5px; font-weight: 500;
+  color: var(--ink-soft, #3D3A33); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+  line-height: 1; white-space: nowrap;
+}
+.cm-act:active { transform: scale(0.96); }
+.cm-act.pay { border-color: var(--flow-in, #2D5F3F); color: var(--flow-in, #2D5F3F); }
+.cm-act.del { color: var(--flow-out, #A8462C); }
+.cm-fatura-note {
+  font-size: 11px; color: var(--ink-mute, #6E6857); font-style: italic;
+  margin: 2px 2px 6px;
+}
+
 /* Section header dentro de uma view */
 .view-section-h {
   display: flex;
@@ -4797,7 +4826,7 @@ label {
 
   <section class="view" data-view="familia">
     <div id="familiaTotalConsolidado"></div>
-    <button class="compromissos-btn" data-compromissos="familia">📋 Compromissos do mês</button>
+    <button class="compromissos-btn" data-compromissos="familia">📋 Contas do mês</button>
     <div class="subtabs" id="familiaSubtabs"></div>
     <div id="familiaContent"></div>
     <button class="extrato-btn" data-extrato="familia">🧾 Ver extrato do mês (todos os lançamentos)</button>
@@ -4807,7 +4836,7 @@ label {
   <!-- TIAGO — gastos isolados, nunca somam família -->
 
   <section class="view" data-view="tiago">
-    <button class="compromissos-btn" data-compromissos="tiago">📋 Compromissos do mês</button>
+    <button class="compromissos-btn" data-compromissos="tiago">📋 Contas do mês</button>
     <div id="tiagoContent"></div>
     <button class="extrato-btn" data-extrato="tiago">🧾 Ver extrato do mês (todos os lançamentos)</button>
     <button class="fab" id="tiagoFab" aria-label="Novo gasto">＋</button>
@@ -5031,7 +5060,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.48.0 · Tela do Rel Fluxo unificada ao PDF: a tela (desktop e celular) agora mostra o MESMO relatório elegante, renderizado num iframe isolado (sem o CSS do app interferir). Mesmos gráficos, tabelas e padrão nos dois lugares
+  Finança · v0.49.0 · Central de Contas do mês administrável: o botão "Contas do mês" agora tem selos de status fortes (a pagar / pago / auto), marcar pago, editar e excluir na própria linha, e uma seção de faturas de cartão pra conferir o pagamento — tudo num só lugar
 </div>
 
   </section>
@@ -7446,6 +7475,63 @@ function parseValor(raw) {
    3 abas (Família · Tiago · Total) × N meses (navegáveis) × toggle parcelas. */
 let cmState = { view: 'familia', ym: null, incluiParcelas: true };
 
+/* v0.49.0 — Exclusão de gasto reutilizável (extraída do handler do formulário).
+   Mesma lógica de confirmação + limpeza de projeções + recálculo de fatura,
+   usada tanto pelo openGastoForm quanto pela Central de Contas do mês.
+   opts.keepSheet: não fecha a sheet aberta (a Central quer continuar aberta).
+   opts.onDone: callback após sucesso (ex.: re-render da Central).
+   Retorna true se excluiu, false se cancelou. */
+async function excluirGastoPorId(id, opts = {}) {
+  const g = state.gastos.find(x => x.id === id);
+  if (!g) return false;
+  const isClone = g.isFixo && g.parentFixoId;
+  const ymCorrenteDel = currentYM();
+  const projetadasFuturas = g.parcelaChave
+    ? state.gastos.filter(x =>
+        x.id !== g.id &&
+        x.parcelaChave === g.parcelaChave &&
+        x.pago === false &&
+        x.ym > ymCorrenteDel
+      )
+    : [];
+  let msg;
+  if (isClone) {
+    msg = 'Excluir apenas este lançamento deste mês? A recorrência mensal continua ativa — para parar de replicar todo mês, use Config → Gastos fixos.';
+  } else {
+    msg = `${fmtBRL(g.valor)} em ${g.data.split('-').reverse().join('/')} será removido.`;
+    if (projetadasFuturas.length > 0) {
+      msg += `\n\n⚠️ Esta compra parcelada tem ${projetadasFuturas.length} parcela${projetadasFuturas.length > 1 ? 's' : ''} projetada${projetadasFuturas.length > 1 ? 's' : ''} em meses futuros — também ${projetadasFuturas.length > 1 ? 'serão removidas' : 'será removida'}.`;
+    }
+  }
+  const ok = await askConfirm({
+    title: 'Excluir lançamento?',
+    message: msg,
+    confirmLabel: 'Excluir',
+    danger: true
+  });
+  if (!ok) return false;
+  const wasTiago = g.categoria === 'tiago';
+  const parcelaChaveDel = g.parcelaChave;
+  const cardIdDel = g.cardId;
+  const ymDel = g.ym;
+  state.gastos = state.gastos.filter(x => x.id !== id);
+  if (parcelaChaveDel) limparProjecoesFuturasDeParcela(parcelaChaveDel);
+  if (cardIdDel && ymDel) recalcularPagamentoFatura(cardIdDel, ymDel);
+  saveState(state);
+  if (!opts.keepSheet) sheet.close();
+  try { renderCartoes(); } catch (e) {}
+  try { if (wasTiago) renderTiagoView(); else renderFamiliaContent(); } catch (e) {}
+  try { renderContas(); } catch (e) {}
+  renderConfigCounts();
+  if (projetadasFuturas.length > 0) {
+    toast(`Excluído + ${projetadasFuturas.length} parcela${projetadasFuturas.length > 1 ? 's' : ''} projetada${projetadasFuturas.length > 1 ? 's' : ''}`);
+  } else {
+    toast('Excluído');
+  }
+  if (opts.onDone) opts.onDone();
+  return true;
+}
+
 function openCompromissosSheet(viewInicial = 'familia') {
   cmState = { view: viewInicial, ym: currentYM(), incluiParcelas: true };
   renderCompromissosSheet();
@@ -7490,26 +7576,88 @@ function renderCompromissosSheet() {
   const total = c.somaFixos + c.somaParcelas;
 
   const ymLabel = `${MESES_PT_ABBR[Number(ym.split('-')[1]) - 1]}/${ym.split('-')[0].slice(2)}`;
+  const fmtV = (v) => 'R$ ' + (Number(v) || 0).toFixed(2).replace('.', ',');
+
+  /* Selo de status forte (substitui o círculo ✓/○) */
+  const badge = (g) => {
+    if (g.pago) return '<span class="cm-badge pago">pago ✓</span>';
+    if (g.pagamento === 'cartao' || g.pagamento === 'debito') return '<span class="cm-badge auto">⚡ auto</span>';
+    return '<span class="cm-badge apagar">a pagar</span>';
+  };
+
+  /* Ações inline por linha — marcar pago / desfazer / editar / excluir */
+  const acts = (g) => {
+    const parts = [];
+    if (g.pago) parts.push(`<button class="cm-act" data-cm-unpay="${g.id}">↩︎ desfazer</button>`);
+    else parts.push(`<button class="cm-act pay" data-cm-pay="${g.id}">✓ marcar pago</button>`);
+    parts.push(`<button class="cm-act" data-cm-edit="${g.id}">✏️ editar</button>`);
+    parts.push(`<button class="cm-act del" data-cm-del="${g.id}">🗑 excluir</button>`);
+    return parts.join('');
+  };
 
   const rowHTML = (g) => {
     const isProj = g.isParcelaProjetada || g.isFixoProjetado;
-    const card = g.cardId ? (state.cards.find(c => c.id === g.cardId) || null) : null;
-    const cardLabel = card ? card.nome : (g.pagamento === 'manual' ? 'manual' : g.pagamento);
+    const card = g.cardId ? (state.cards.find(cc => cc.id === g.cardId) || null) : null;
+    const cardLabel = card ? card.nome : (g.pagamento === 'manual' ? 'manual' : (g.pagamento || '—'));
     const parcLabel = (g.parcela && g.parcela.total > 1)
       ? `<span class="cm-tag parcela">${g.parcela.atual}/${g.parcela.total}</span>`
       : '';
     const projLabel = isProj ? '<span class="cm-tag projetado">proj</span>' : '';
     return `
       <div class="cm-row ${isProj ? 'projetado' : ''}">
-        <div class="cm-status ${g.pago ? 'pago' : 'pendente'}">${g.pago ? '✓' : '○'}</div>
-        <div class="cm-info">
-          <div class="cm-name">${escapeHtml(g.nome || '—')} ${parcLabel} ${projLabel}</div>
-          <div class="cm-meta">${escapeHtml(state.members[g.categoria]?.nome || g.categoria)} · ${escapeHtml(cardLabel)}</div>
+        <div class="cm-rtop">
+          ${badge(g)}
+          <div class="cm-info">
+            <div class="cm-name">${escapeHtml(g.nome || '—')} ${parcLabel} ${projLabel}</div>
+            <div class="cm-meta">${escapeHtml(state.members[g.categoria]?.nome || g.categoria || '—')} · ${escapeHtml(cardLabel)}</div>
+          </div>
+          <div class="cm-val">${fmtV(g.valor)}</div>
         </div>
-        <div class="cm-val">R$ ${(g.valor || 0).toFixed(2).replace('.', ',')}</div>
+        <div class="cm-rbot">
+          <span></span>
+          <div class="cm-acts">${acts(g)}</div>
+        </div>
       </div>
     `;
   };
+
+  /* Faturas de cartão do mês — bill-level, não é por membro; sempre visível.
+     Conferência do pagamento da fatura (as compras já entram como gasto na compra). */
+  const faturas = (state.cards || [])
+    .map(card => ({ card, total: calcularTotalFatura(card.id, ym), pag: buscarPagamentoFatura(card.id, ym) }))
+    .filter(f => f.total > 0 || f.pag);
+
+  const fatRow = (f) => {
+    const { card, total, pag } = f;
+    const venc = obterDataVencimentoFatura(card, ym);
+    const [, vmm, vdd] = venc.split('-');
+    let bcls, blabel;
+    if (pag) { bcls = 'pago'; blabel = 'paga ✓'; }
+    else if (card.debitoAutomatico) { bcls = 'auto'; blabel = '⚡ auto'; }
+    else { bcls = 'apagar'; blabel = 'a pagar'; }
+    const valorMostrar = pag ? (Number(pag.valor) || total) : total;
+    const act = pag
+      ? `<button class="cm-act" data-cm-fat-undo="${card.id}">↩︎ desfazer</button>`
+      : `<button class="cm-act pay" data-cm-fat-pay="${card.id}">✓ marcar paga</button>`;
+    return `
+      <div class="cm-row">
+        <div class="cm-rtop">
+          <span class="cm-badge ${bcls}">${blabel}</span>
+          <div class="cm-info">
+            <div class="cm-name">💳 ${escapeHtml(card.nome)}</div>
+            <div class="cm-meta">venc ${vdd}/${vmm}${card.debitoAutomatico ? ' · débito automático' : ''}</div>
+          </div>
+          <div class="cm-val">${fmtV(valorMostrar)}</div>
+        </div>
+        <div class="cm-rbot"><span></span><div class="cm-acts">${act}</div></div>
+      </div>
+    `;
+  };
+
+  const faturasSec = faturas.length === 0 ? '' :
+    `<div class="cm-section-title">Faturas de cartão</div>
+     <div class="cm-fatura-note">As compras já contam como gasto na data da compra; aqui você confere o pagamento da fatura.</div>
+     ${faturas.map(fatRow).join('')}`;
 
   const fixosSec = c.fixos.length === 0
     ? `<div class="cm-empty">Nenhum gasto fixo neste mês</div>`
@@ -7539,6 +7687,8 @@ function renderCompromissosSheet() {
       <input type="checkbox" id="cmTogParc" ${incluiParcelas ? 'checked' : ''}>
     </label>
 
+    ${faturasSec}
+
     <div class="cm-section-title">Gastos fixos · R$ ${c.somaFixos.toFixed(2).replace('.', ',')} <span class="muted" style="font-size:11px;">(${c.fixos.filter(g => g.pago).length}/${c.fixos.length} pagos)</span></div>
     ${fixosSec}
 
@@ -7552,15 +7702,74 @@ function renderCompromissosSheet() {
     </div>
   `;
 
-  sheet.open(`Compromissos · ${ymLabel}`, html);
+  sheet.open(`Contas do mês · ${ymLabel}`, html);
 
-  /* Hooks */
+  /* Hooks de navegação */
   document.querySelectorAll('[data-cm-view]').forEach(b => {
     b.onclick = () => { cmState.view = b.dataset.cmView; renderCompromissosSheet(); };
   });
   document.getElementById('cmPrev').onclick = () => { cmState.ym = ymPrev(cmState.ym); renderCompromissosSheet(); };
   document.getElementById('cmNext').onclick = () => { cmState.ym = ymNext(cmState.ym); renderCompromissosSheet(); };
   document.getElementById('cmTogParc').onchange = (e) => { cmState.incluiParcelas = e.target.checked; renderCompromissosSheet(); };
+
+  /* Hooks de ação inline (gastos) */
+  document.querySelectorAll('[data-cm-pay]').forEach(b => {
+    b.onclick = () => {
+      const g = state.gastos.find(x => x.id === b.dataset.cmPay);
+      if (g) abrirDialogoCheckin(g, { keepSheet: true, onDone: renderCompromissosSheet });
+    };
+  });
+  document.querySelectorAll('[data-cm-unpay]').forEach(b => {
+    b.onclick = () => {
+      const g = state.gastos.find(x => x.id === b.dataset.cmUnpay);
+      if (!g) return;
+      g.pago = false; g.dataPagamento = null;
+      saveState(state);
+      try { renderCartoes(); } catch (e) {}
+      try { if (g.categoria === 'tiago') renderTiagoView(); else renderFamiliaContent(); } catch (e) {}
+      try { renderContas(); } catch (e) {}
+      renderConfigCounts();
+      toast('Marcado como a pagar');
+      renderCompromissosSheet();
+    };
+  });
+  document.querySelectorAll('[data-cm-edit]').forEach(b => {
+    b.onclick = () => {
+      const g = state.gastos.find(x => x.id === b.dataset.cmEdit);
+      if (g) openGastoForm(g.id, g.categoria);
+    };
+  });
+  document.querySelectorAll('[data-cm-del]').forEach(b => {
+    b.onclick = () => {
+      excluirGastoPorId(b.dataset.cmDel, { keepSheet: true, onDone: renderCompromissosSheet });
+    };
+  });
+
+  /* Hooks de ação inline (faturas) */
+  document.querySelectorAll('[data-cm-fat-pay]').forEach(b => {
+    b.onclick = () => {
+      const r = marcarFaturaPaga(b.dataset.cmFatPay, cmState.ym);
+      if (r && r.erro) { toast(r.erro, 'error'); return; }
+      saveState(state);
+      try { renderCartoes(); } catch (e) {}
+      try { renderContas(); } catch (e) {}
+      renderConfigCounts();
+      toast('Fatura marcada como paga', 'success');
+      renderCompromissosSheet();
+    };
+  });
+  document.querySelectorAll('[data-cm-fat-undo]').forEach(b => {
+    b.onclick = () => {
+      const r = desfazerPagamentoFatura(b.dataset.cmFatUndo, cmState.ym);
+      if (r && r.erro) { toast(r.erro, 'error'); return; }
+      saveState(state);
+      try { renderCartoes(); } catch (e) {}
+      try { renderContas(); } catch (e) {}
+      renderConfigCounts();
+      toast('Pagamento da fatura desfeito');
+      renderCompromissosSheet();
+    };
+  });
 }
 
 /* ===== Configurações: Gerenciar Fontes de Renda ===== */
@@ -14568,57 +14777,7 @@ function openGastoForm(id, defaultCategoria, opts) {
   /* Cancelar / Excluir */
   if (editing) {
     document.getElementById('g_delete').onclick = async () => {
-      const isClone = editing.isFixo && editing.parentFixoId;
-      /* v0.14.2: detecta projeções futuras de parcelas relacionadas (mesma parcelaChave).
-         Se houver, avisa o usuário no diálogo de confirmação. */
-      const ymCorrenteDel = currentYM();
-      const projetadasFuturas = editing.parcelaChave
-        ? state.gastos.filter(g =>
-            g.id !== editing.id &&
-            g.parcelaChave === editing.parcelaChave &&
-            g.pago === false &&
-            g.ym > ymCorrenteDel
-          )
-        : [];
-      let msg;
-      if (isClone) {
-        msg = 'Excluir apenas este lançamento deste mês? A recorrência mensal continua ativa — para parar de replicar todo mês, use Config → Gastos fixos.';
-      } else {
-        msg = `${fmtBRL(editing.valor)} em ${editing.data.split('-').reverse().join('/')} será removido.`;
-        if (projetadasFuturas.length > 0) {
-          msg += `\n\n⚠️ Esta compra parcelada tem ${projetadasFuturas.length} parcela${projetadasFuturas.length > 1 ? 's' : ''} projetada${projetadasFuturas.length > 1 ? 's' : ''} em meses futuros — também ${projetadasFuturas.length > 1 ? 'serão removidas' : 'será removida'}.`;
-        }
-      }
-      const ok = await askConfirm({
-        title: 'Excluir lançamento?',
-        message: msg,
-        confirmLabel: 'Excluir',
-        danger: true
-      });
-      if (!ok) return;
-      const wasTiago = editing.categoria === 'tiago';
-      const parcelaChaveDel = editing.parcelaChave; /* captura ANTES do filter */
-      const cardIdDel = editing.cardId; /* v0.15.0: captura cartão pra recalc de pagamento */
-      const ymDel = editing.ym;
-      state.gastos = state.gastos.filter(x => x.id !== id);
-      /* v0.14.2: limpa projeções futuras da mesma compra parcelada (se houver) */
-      if (parcelaChaveDel) limparProjecoesFuturasDeParcela(parcelaChaveDel);
-      /* v0.15.0: se gasto era de cartão e fatura está paga, recalcula valor */
-      if (cardIdDel && ymDel) recalcularPagamentoFatura(cardIdDel, ymDel);
-      saveState(state);
-      sheet.close();
-      /* Re-renderiza todas as views que podem estar mostrando este gasto.
-         Funções de render são idempotentes e tocam apenas o seu próprio host —
-         chamar todas é seguro e elimina dependência do activeView. */
-      try { renderCartoes(); } catch (e) {}
-      try { if (wasTiago) renderTiagoView(); else renderFamiliaContent(); } catch (e) {}
-      try { renderContas(); } catch (e) {}
-      renderConfigCounts();
-      if (projetadasFuturas.length > 0) {
-        toast(`Excluído + ${projetadasFuturas.length} parcela${projetadasFuturas.length > 1 ? 's' : ''} projetada${projetadasFuturas.length > 1 ? 's' : ''}`);
-      } else {
-        toast('Excluído');
-      }
+      await excluirGastoPorId(id);
     };
   } else {
     document.getElementById('g_cancel').onclick = () => sheet.close();
@@ -14790,7 +14949,7 @@ function openFixedEditor(id) {
    Diálogo customizado: pergunta data do pagamento e conta utilizada.
    Default: data = hoje; conta = a configurada no fixo (ou principal).
    ========================================================================= */
-function abrirDialogoCheckin(gasto) {
+function abrirDialogoCheckin(gasto, opts = {}) {
   return new Promise((resolve) => {
     const contasAtivas = (state.contas || []).filter(c => !c.arquivado);
     let selectedConta = gasto.contaId || (getContaPrincipal()?.id || '');
@@ -14851,12 +15010,13 @@ function abrirDialogoCheckin(gasto) {
       gasto.contaId = selectedConta;
       saveState(state);
       overlay.remove();
-      sheet.close();
+      if (!opts.keepSheet) sheet.close();
       if (activeView === 'tiago') renderTiagoView();
       else if (activeView === 'familia') renderFamiliaContent();
       if (activeView === 'contas') renderContas();
       if (activeView === 'cartoes') renderCartoes();
       toast('Pagamento confirmado', 'success');
+      if (opts.onDone) opts.onDone();
       resolve(true);
     };
     overlay.querySelector('#__chkCancel').onclick = () => { overlay.remove(); resolve(false); };
