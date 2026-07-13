@@ -5060,7 +5060,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.50.0 · Sincronização robusta: escrita imediata quando o app perde o foco, boot que mantém o lado mais recente (fim da perda de dados), app sempre na versão nova, aviso de teto de dados — e o anti-duplicata agora reconhece fixos pela data de pagamento (adeus convênio duplicado)
+  Finança · v0.52.0 · Baixa automática pelo extrato (Fatia 3): conta pendente reconhecida no extrato vira baixa com um toque — marca pago com data e conta reais, sem duplicar; divergência de valor levanta bandeira; contas já pagas aparecem como ✓ já registrado; tudo reversível pelo histórico de importações
 </div>
 
   </section>
@@ -14157,7 +14157,15 @@ function openGastoForm(id, defaultCategoria, opts) {
   /* Painel de check-in (Fatia 2): aparece quando é um clone de fixo MANUAL,
      mostrando se está pago ou pendente, com botão pra alternar o estado. */
   const checkinPanel = (() => {
-    if (!editing || !editing.parentFixoId || editing.pagamento !== 'manual') return '';
+    /* v0.51.1: regra ampliada. Antes o painel só aparecia em réplicas de fixo
+       criadas com o toggle 🔁 (parentFixoId) e pagamento manual — gastos
+       pendentes nascidos por outro caminho (fixo por edição, importação)
+       ficavam num beco sem saída: "a pagar" pra sempre, sem botão de baixa.
+       Regra nova: PENDENTE não-cartão sempre tem o botão de marcar pago;
+       PAGO mostra o desfazer se for fixo ou se já passou por check-in.
+       Cartão fica de fora: gasto de cartão é quitado pela fatura. */
+    if (!editing || editing.pagamento === 'cartao') return '';
+    const eraElegivel = editing.parentFixoId && editing.pagamento === 'manual';
     if (editing.pago === false) {
       return `
         <div class="card-flat" style="background:color-mix(in srgb,#C28846 12%,white);border:1px solid color-mix(in srgb,#C28846 26%,transparent);">
@@ -14169,6 +14177,7 @@ function openGastoForm(id, defaultCategoria, opts) {
         </div>
       `;
     }
+    if (!eraElegivel && !editing.isFixo) return '';
     const dataLbl = editing.dataPagamento ? ' em ' + editing.dataPagamento.split('-').reverse().join('/') : '';
     return `
       <div class="card-flat" style="background:color-mix(in srgb,var(--flow-in) 8%,white);border:1px solid color-mix(in srgb,var(--flow-in) 20%,transparent);">
@@ -16340,13 +16349,35 @@ function calcularProximoVencimento(diaVencimento, hojeISO) {
    do estabelecimento — removidos antes da extração da chave. */
 const ALIAS_PREFIXOS_REMOVIVEIS = /^(IFD\*|PG \*|PG\*|PD |DL\*|UB\*|MP\*|GP\*)/i;
 
+/* v0.51.0 (Fatia B): tokens de TIPO DE TRANSAÇÃO que aparecem no começo das
+   descrições de EXTRATO (Itaú/Sicoob/BTG) e não identificam o estabelecimento.
+   Sem essa limpeza, a memória aprendia chaves inúteis como "PIX QRS" ou
+   "COMPRA CARTAO" — que ou não casavam nada ou casavam tudo errado. */
+const ALIAS_STOPWORDS_EXTRATO = new Set([
+  'PIX', 'TED', 'DOC', 'QRS', 'QRES', 'QR', 'TRANSF', 'TRANSFERENCIA',
+  'PAGTO', 'PAG', 'PGTO', 'PAGAMENTO', 'DEB', 'DEBITO', 'AUT', 'AUTOM',
+  'AUTOMATICO', 'COMPRA', 'CARTAO', 'CARD', 'BOLETO', 'SISPAG', 'TBI',
+  'DA', 'CH', 'DOCUMENTO', 'ENVIADO', 'RECEBIDO', 'INT', 'MOVTO'
+]);
+
+/* Remove tokens de transação do INÍCIO da descrição, preservando pelo menos
+   um token (se a descrição inteira for só prefixo, devolve como estava). */
+function _limparPrefixosExtrato(tokens) {
+  let i = 0;
+  while (i < tokens.length - 1 && ALIAS_STOPWORDS_EXTRATO.has(tokens[i].replace(/[^A-Z0-9]/g, ''))) i++;
+  return tokens.slice(i);
+}
+
 /* Extrai a chave de match de uma descrição. Tenta pegar a primeira palavra
    significativa. Se ela for curta (≤4 chars), agrega a segunda. */
 function extrairChaveAlias(descricao) {
   if (!descricao) return '';
   let s = descricao.toUpperCase().trim();
   s = s.replace(ALIAS_PREFIXOS_REMOVIVEIS, '').trim();
-  const tokens = s.split(/\s+/).filter(Boolean);
+  let tokens = s.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return '';
+  /* v0.51.0 (Fatia B): pula tokens de tipo de transação (PIX, TED, DEB AUT…) */
+  tokens = _limparPrefixosExtrato(tokens);
   if (tokens.length === 0) return '';
   let chave = tokens[0];
   /* Stop em / pra evitar "APPLE.COM/BILL." → quer "APPLE.COM" */
@@ -16368,6 +16399,11 @@ function buscarAliasParaDescricao(descricaoBruta, parcelaTotal) {
 
   const candidatos = state.aliasItems.filter(a => {
     if (!a.chave) return false;
+    /* v0.51.0 (Fatia B): quarentena de chaves-lixo legadas. Aliases antigos
+       aprendidos antes da limpeza de prefixos podem ter chave tipo "PIX QRS"
+       — composta SÓ de tokens de transação. Casariam com tudo. Ignorar. */
+    const tokensChave = a.chave.split(/\s+/).filter(Boolean);
+    if (tokensChave.length > 0 && tokensChave.every(t => ALIAS_STOPWORDS_EXTRATO.has(t.replace(/[^A-Z0-9]/g, '')))) return false;
     if (!descUpper.includes(a.chave)) return false;
     const aliasIsParc = (a.parcelaTotal !== null && a.parcelaTotal !== undefined);
     /* Discriminador parcela: alias-parcela só matche gasto-parcela com mesmo total;
@@ -18783,6 +18819,7 @@ function _diasEntre(isoA, isoB) {
 function dedupExtrato(lancs, contaId) {
   for (const l of lancs) {
     if (l.tipo === 'IGNORAR') continue;
+    if (l.baixaFixo) continue; /* v0.52.0: linha já reconhecida como baixa de pendente */
     if (l.tipo === 'PAGAMENTO_FATURA' && l.matchPagamentoFaturaId) continue; /* já tratado */
 
     const match = _detectarPotencialMatch(l, contaId);
@@ -18796,7 +18833,9 @@ function dedupExtrato(lancs, contaId) {
       categoria: match.gasto.categoria || null,
       subcategoria: match.gasto.subcategoria || null,
       confianca: match.confianca,
-      kind: match.kind /* 'gasto' ou 'entrada' */
+      kind: match.kind, /* 'gasto' ou 'entrada' */
+      pago: match.kind === 'gasto' ? (match.gasto.pago !== false) : true,
+      isFixo: match.gasto.isFixo === true
     };
     /* Alta e média confiança: default ignorar.
        Baixa confiança: default incluir, Tiago decide. */
@@ -18984,7 +19023,9 @@ async function importarExtratoBancario(file, contaId) {
     }
 
     classificarLancamentosExtrato(lancs, contaId);
+    detectarBaixasPendentes(lancs, contaId);
     dedupExtrato(lancs, contaId);
+    aplicarAliasesExtrato(lancs);
 
     revisaoExtratoState = { contaId, lancs, banco, metaPeriodo, filtroTipo: 'todos' };
     salvarRascunhoRevisao();
@@ -18995,6 +19036,102 @@ async function importarExtratoBancario(file, contaId) {
     console.error('[importarExtrato] erro:', err);
     toast(err.message || 'Erro ao importar extrato', 'error');
   }
+}
+
+/* v0.51.0 (Fatia B): pré-aplica as memórias (aliases) na revisão do EXTRATO —
+   paridade com o que a revisão de FATURA já fazia desde a v0.9. Antes, o
+   alias só era consultado silenciosamente no commit final: a tela mostrava
+   tudo como "a classificar" e o Tiago reclassificava à mão sem necessidade.
+   Agora lançamentos reconhecidos chegam com sugestão visível e tag "auto". */
+function aplicarAliasesExtrato(lancs) {
+  let n = 0;
+  for (const l of lancs) {
+    if (l.tipo !== 'SAIDA_CONSUMO' && l.tipo !== 'SAIDA_TARIFA') continue;
+    if (l.classifManual) continue;
+    if (l.baixaFixo) continue; /* v0.52.0: baixa não precisa de classificação — o gasto já existe */
+    const alias = (typeof buscarAliasParaDescricao === 'function')
+      ? buscarAliasParaDescricao(l.descricaoOriginal, null) : null;
+    if (alias && alias.categoria) {
+      l.aliasSugerido = {
+        aliasId: alias.id,
+        categoria: alias.categoria,
+        subcategoria: alias.subcategoria || 'a classificar',
+        grupoId: alias.grupoId || null,
+        isFixo: alias.isFixo === true,
+        identificacao: alias.identificacao || null
+      };
+      n++;
+    }
+  }
+  return n;
+}
+
+/* =========================================================================
+   v0.52.0 (Fatia 3) — BAIXA AUTOMÁTICA DE CONTAS PENDENTES VIA EXTRATO
+   Quando um débito do extrato bate com um gasto PENDENTE do app (fixo do mês,
+   conta a pagar), a linha vira uma ação de BAIXA: ao aplicar a revisão, o
+   gasto pendente é marcado como pago com a data e a conta reais do débito —
+   um evento, um registro, sem duplicidade e sem passo manual depois.
+   Divergência de valor levanta bandeira visível, nunca sobrescreve calado.
+   ========================================================================= */
+function detectarBaixasPendentes(lancs, contaId) {
+  const pendentes = (state.gastos || []).filter(g =>
+    g.pago === false && !g.isAjuste && g.pagamento !== 'cartao'
+  );
+  if (pendentes.length === 0) return 0;
+  const usados = new Set(); /* cada pendente absorve no máximo UMA linha */
+  let n = 0;
+
+  for (const l of lancs) {
+    if (l.tipo !== 'SAIDA_CONSUMO' && l.tipo !== 'SAIDA_TARIFA') continue;
+    const valorL = Number(l.valor) || 0;
+    const descUpper = (l.descricaoOriginal || '').toUpperCase();
+
+    /* Janela temporal: mesmo mês de competência, ou até 10 dias cruzando a
+       virada (competência 28/jun, débito 05/jul). */
+    const naJanela = (g) => {
+      if (g.ym === l.dataISO.slice(0, 7)) return true;
+      return Math.abs(_diasEntre(g.data, l.dataISO)) <= 10;
+    };
+
+    /* Tier 1 — valor exato (±R$ 0,01): baixa direta */
+    let alvo = pendentes.find(g =>
+      !usados.has(g.id) && naJanela(g) &&
+      Math.abs((Number(g.valor) || 0) - valorL) <= 0.01
+    );
+    let divergente = false;
+
+    /* Tier 2 — valor divergente até 10%, exigindo palavra compartilhada
+       (≥4 letras) entre a descrição do extrato e o nome do gasto. Pega
+       reajuste de convênio, juros de boleto etc. Comparação sem acentos:
+       o extrato vem "CONVENIO", o app guarda "Convênio". */
+    if (!alvo) {
+      const _semAcento = (s) => (s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const palavras = _semAcento(descUpper).split(/\s+/).filter(p => p.length >= 4);
+      alvo = pendentes.find(g => {
+        if (usados.has(g.id) || !naJanela(g)) return false;
+        const vG = Number(g.valor) || 0;
+        if (vG <= 0 || Math.abs(vG - valorL) > vG * 0.10) return false;
+        const nomeUpper = _semAcento((g.nome || '') + ' ' + (g.observacao || ''));
+        return palavras.some(p => nomeUpper.includes(p));
+      });
+      if (alvo) divergente = true;
+    }
+
+    if (alvo) {
+      usados.add(alvo.id);
+      l.baixaFixo = {
+        gastoId: alvo.id,
+        nome: alvo.nome || alvo.subcategoria || '(sem nome)',
+        valorPrevisto: Number(alvo.valor) || 0,
+        isFixo: alvo.isFixo === true,
+        divergente
+      };
+      l.excluir = false; /* incluída = executa a baixa */
+      n++;
+    }
+  }
+  return n;
 }
 
 /* v0.23.2: retomar revisão a partir do rascunho */
@@ -19030,7 +19167,7 @@ function openRevisaoExtratoSheet() {
     tarifas: lancs.filter(l => l.tipo === 'SAIDA_TARIFA').length,
     pagfat: lancs.filter(l => l.tipo === 'PAGAMENTO_FATURA').length,
     ignorados: lancs.filter(l => l.excluir).length,
-    aclassificar: lancs.filter(l => !l.excluir && !l.classifManual && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA')).length,
+    aclassificar: lancs.filter(l => !l.excluir && !l.classifManual && !l.aliasSugerido && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA')).length,
     duplicatas: lancs.filter(l => l.potencialMatch).length,
     rendimento: lancs.filter(l => l.tipo === 'ENTRADA_RENDIMENTO').length
   };
@@ -19105,18 +19242,21 @@ function openRevisaoExtratoSheet() {
     }
 
     /* Confirmação antes de aplicar */
-    const nSaidas = naoExcluidos.filter(l => l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA' || l.tipo === 'PAGAMENTO_FATURA').length;
+    /* v0.52.0 (Fatia 3): baixas contam separado — não são gastos novos */
+    const nBaixasRev = naoExcluidos.filter(l => l.baixaFixo).length;
+    const nSaidas = naoExcluidos.filter(l => !l.baixaFixo && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA' || l.tipo === 'PAGAMENTO_FATURA')).length;
     const nEntradas = naoExcluidos.filter(l => l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO').length;
     const partes = [];
-    if (nSaidas > 0) partes.push(`${nSaidas} saída${nSaidas !== 1 ? 's' : ''}`);
+    if (nSaidas > 0) partes.push(`${nSaidas} saída${nSaidas !== 1 ? 's' : ''} nova${nSaidas !== 1 ? 's' : ''}`);
     if (nEntradas > 0) partes.push(`${nEntradas} entrada${nEntradas !== 1 ? 's' : ''}`);
+    if (nBaixasRev > 0) partes.push(`${nBaixasRev} baixa${nBaixasRev !== 1 ? 's' : ''} de conta${nBaixasRev !== 1 ? 's' : ''} pendente${nBaixasRev !== 1 ? 's' : ''}`);
 
-    const nAClassif = naoExcluidos.filter(l => !l.classifManual && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA')).length;
+    const nAClassif = naoExcluidos.filter(l => !l.classifManual && !l.aliasSugerido && !l.baixaFixo && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA')).length;
     const aviso = nAClassif > 0 ? ` ${nAClassif} ficarão como "a classificar" — você pode editar depois.` : '';
 
     const confirmado = await askConfirm({
       title: 'Aplicar importação?',
-      message: `Vou criar ${partes.join(' + ')} no app.${aviso} Você pode desfazer essa importação em Config → Histórico de importações.`,
+      message: `Vou aplicar ${partes.join(' + ')} no app.${aviso} Você pode desfazer essa importação em Config → Histórico de importações.`,
       confirmLabel: 'Aplicar',
       cancelLabel: 'Voltar à revisão'
     });
@@ -19148,7 +19288,7 @@ function _rexRenderList() {
     if (f === 'tarifas') return l.tipo === 'SAIDA_TARIFA';
     if (f === 'pagfat') return l.tipo === 'PAGAMENTO_FATURA';
     if (f === 'duplicatas') return !!l.potencialMatch;
-    if (f === 'aclassificar') return !l.excluir && !l.classifManual && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA');
+    if (f === 'aclassificar') return !l.excluir && !l.classifManual && !l.aliasSugerido && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA');
     if (f === 'ignorados') return l.excluir;
     return true;
   });
@@ -19193,12 +19333,27 @@ function _rexRenderRow(l, idxGlobal) {
 
   /* Banner de potencial duplicata */
   let bannerDup = '';
-  if (l.potencialMatch) {
+  /* v0.52.0 (Fatia 3): baixa de conta pendente reconhecida — banner próprio */
+  if (l.baixaFixo) {
+    const b = l.baixaFixo;
+    const divergHtml = b.divergente
+      ? `<div style="color:#8A5A1F;font-size:12px;margin-top:3px;">⚠ valor previsto ${fmtBRL(b.valorPrevisto)}, debitado ${fmtBRL(l.valor)} — a baixa registra o valor real</div>`
+      : '';
+    bannerDup = `
+      <div class="rex-match-banner" style="border-left-color:var(--flow-in);">
+        <div class="rex-match-title" style="color:var(--flow-in);">${b.isFixo ? '🔁' : '⏳'} Conta pendente reconhecida</div>
+        <div class="rex-match-body">
+          <strong>${escapeHtml(b.nome)}</strong> · ${fmtBRL(b.valorPrevisto)} — ao aplicar, será <strong>marcada como paga</strong> nesta data e conta.
+          ${divergHtml}
+        </div>
+      </div>
+    `;
+  } else if (l.potencialMatch) {
     const m = l.potencialMatch;
     const corMap = { alta: 'var(--flow-out)', media: '#C18C2D', baixa: 'var(--ink-mute)' };
     const labelMap = { alta: 'duplicata provável', media: 'possível duplicata', baixa: 'talvez relacionado' };
-    const cor = corMap[m.confianca] || 'var(--ink-mute)';
-    const label = labelMap[m.confianca] || m.confianca;
+    const cor = (m.pago && m.confianca !== 'baixa') ? 'var(--flow-in)' : (corMap[m.confianca] || 'var(--ink-mute)');
+    const label = (m.pago && m.confianca !== 'baixa') ? '✓ já registrado e pago no app' : (labelMap[m.confianca] || m.confianca);
     const catLabel = m.categoria ? `${m.categoria}${m.subcategoria ? ' › ' + m.subcategoria : ''}` : '(sem categoria)';
     bannerDup = `
       <div class="rex-match-banner" style="border-left-color:${cor};">
@@ -19212,11 +19367,18 @@ function _rexRenderRow(l, idxGlobal) {
 
   /* Linha de classificação inline (só para saídas que não são pagamento de fatura nem entradas) */
   let classifLinha = '';
-  if (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA') {
-    const cat = l.classifManualCategoria || (l.tipo === 'SAIDA_TARIFA' ? 'tiago' : 'tiago');
-    const sub = l.classifManualSubcategoria || (l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar');
+  if (l.baixaFixo) {
+    /* v0.52.0: baixa não precisa de classificação — herda a do gasto pendente */
+    classifLinha = '';
+  } else if (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA') {
+    /* v0.51.0 (Fatia B): prioridade de exibição — manual > memória (auto) > default */
+    const sug = (!l.classifManual && l.aliasSugerido) ? l.aliasSugerido : null;
+    const cat = l.classifManualCategoria || (sug && sug.categoria) || 'tiago';
+    const sub = l.classifManualSubcategoria || (sug && sug.subcategoria) || (l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar');
     const classificado = !!l.classifManual;
-    const badge = classificado ? '<span class="rex-tag rex-tag-classif">✓ classificado</span>' : '';
+    let badge = '';
+    if (classificado) badge = '<span class="rex-tag rex-tag-classif">✓ classificado</span>';
+    else if (sug) badge = '<span class="rex-tag rex-tag-classif" style="background:color-mix(in srgb,var(--accent,#4A6741) 14%,transparent);color:var(--accent,#4A6741);">✦ auto</span>';
     classifLinha = `
       <div class="rex-row-classif">
         <button class="rex-classif-btn" data-rex-classif="${idxGlobal}">
@@ -19555,7 +19717,8 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
       ? ` · ${_fmtDataBR(revisaoExtratoState.metaPeriodo.dataInicio)} → ${_fmtDataBR(revisaoExtratoState.metaPeriodo.dataFim)}`
       : ''),
     gastoIds: [],
-    entradaIds: []
+    entradaIds: [],
+    baixaGastoIds: [] /* v0.52.0: gastos que receberam baixa (não são removidos no undo — são revertidos a pendente) */
   };
 
   /* Procura uma fonte de renda padrão pra entradas (a primeira ativa) */
@@ -19565,6 +19728,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
   let nEntradas = 0;
   let nIgnoradosClassif = 0;
   let nClassifPorAlias = 0;
+  let nBaixas = 0; /* v0.52.0 (Fatia 3): contas pendentes baixadas via extrato */
 
   for (const l of lancs) {
     /* PAGAMENTO_FATURA sem match — cria como saída técnica isPagamentoFatura */
@@ -19623,6 +19787,31 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
     }
 
     if (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA') {
+      /* v0.52.0 (Fatia 3): linha reconhecida como BAIXA de conta pendente.
+         Não cria gasto novo — marca o pendente como pago com a data e a
+         conta reais do débito. Divergência de valor: registra o valor real
+         e deixa rastro visível na observação (bandeira, não sobrescrita muda). */
+      if (l.baixaFixo) {
+        const alvo = state.gastos.find(g => g.id === l.baixaFixo.gastoId);
+        if (alvo && alvo.pago === false) {
+          const previsto = Number(alvo.valor) || 0;
+          alvo.pago = true;
+          alvo.dataPagamento = l.dataISO;
+          alvo.contaId = contaId;
+          if (l.baixaFixo.divergente && Math.abs(previsto - l.valor) > 0.005) {
+            alvo.valor = l.valor;
+            alvo.observacao = ((alvo.observacao || '') + ' · baixa via extrato ⚠ previsto ' + fmtBRL(previsto) + ', debitado ' + fmtBRL(l.valor)).trim();
+          } else {
+            alvo.observacao = ((alvo.observacao || '') + ' · baixa via extrato').trim();
+          }
+          lote.baixaGastoIds.push(alvo.id);
+          nBaixas++;
+        } else {
+          /* Gasto foi pago (ou sumiu) entre a revisão e o aplicar — não duplica */
+          nIgnoradosClassif++;
+        }
+        continue;
+      }
       /* v0.23.2: priorizar classificação manual feita na tela de revisão.
          Fallback pra aliasItems se não houver classificação manual.
          Último fallback: 'tiago > a classificar' (ou 'tarifa bancária'). */
@@ -19648,6 +19837,21 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
           const ident = (l.classifManualNome && l.classifManualNome.trim() && l.classifManualNome.trim() !== l.descricaoOriginal)
             ? l.classifManualNome.trim() : null;
           try { aprenderAlias(l.descricaoOriginal, categoria, subcategoria, grupoId, null, ident, isFixo); } catch (e) {}
+        }
+      } else if (l.aliasSugerido && l.aliasSugerido.categoria) {
+        /* v0.51.0 (Fatia B): usa a sugestão que o Tiago VIU na tela de revisão —
+           mesma fonte, sem re-consulta que poderia divergir. */
+        categoria = l.aliasSugerido.categoria;
+        subcategoria = l.aliasSugerido.subcategoria || subcategoria;
+        grupoId = l.aliasSugerido.grupoId || null;
+        isFixo = l.aliasSugerido.isFixo === true;
+        if (l.aliasSugerido.identificacao && l.aliasSugerido.identificacao.trim()) nome = l.aliasSugerido.identificacao.trim();
+        usouAlias = true;
+        nClassifPorAlias++;
+        const aliasObj = (state.aliasItems || []).find(a => a.id === l.aliasSugerido.aliasId);
+        if (aliasObj) {
+          aliasObj.contagemUso = (aliasObj.contagemUso || 0) + 1;
+          aliasObj.ultimoUsoEm = todayISO();
         }
       } else if (typeof buscarAliasParaDescricao === 'function') {
         const alias = buscarAliasParaDescricao(l.descricaoOriginal, null);
@@ -19697,8 +19901,8 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
   }
 
   /* Salva o lote SÓ se houve registros */
-  if (lote.gastoIds.length > 0 || lote.entradaIds.length > 0) {
-    lote.quantidade = lote.gastoIds.length + lote.entradaIds.length;
+  if (lote.gastoIds.length > 0 || lote.entradaIds.length > 0 || lote.baixaGastoIds.length > 0) {
+    lote.quantidade = lote.gastoIds.length + lote.entradaIds.length + lote.baixaGastoIds.length;
     state.lotesImportacao.push(lote);
   }
 
@@ -19711,6 +19915,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
   const parts = [];
   if (nGastos > 0) parts.push(`${nGastos} saída${nGastos !== 1 ? 's' : ''}`);
   if (nEntradas > 0) parts.push(`${nEntradas} entrada${nEntradas !== 1 ? 's' : ''}`);
+  if (nBaixas > 0) parts.push(`${nBaixas} conta${nBaixas !== 1 ? 's' : ''} pendente${nBaixas !== 1 ? 's' : ''} baixada${nBaixas !== 1 ? 's' : ''} ✓`);
   const sufAlias = nClassifPorAlias > 0 ? ` (${nClassifPorAlias} por alias)` : '';
   const msg = parts.length > 0
     ? `Importado: ${parts.join(' + ')}${sufAlias} · toque em Config → Histórico de importações pra desfazer`
@@ -19835,6 +20040,23 @@ function desfazerLoteImportacao(loteId) {
   const idsGastos = new Set(lote.gastoIds || []);
   const idsEntradas = new Set(lote.entradaIds || []);
 
+  /* v0.52.0 (Fatia 3): baixas NÃO são removidas — o gasto pendente existia
+     antes da importação. Desfazer o lote reverte a baixa: volta a pendente
+     e limpa o rastro da observação. */
+  const idsBaixas = new Set(lote.baixaGastoIds || []);
+  let nBaixasRevertidas = 0;
+  if (idsBaixas.size > 0) {
+    (state.gastos || []).forEach(g => {
+      if (!idsBaixas.has(g.id)) return;
+      g.pago = false;
+      g.dataPagamento = null;
+      g.observacao = (g.observacao || '')
+        .replace(/\s*·\s*baixa via extrato(\s*⚠[^·]*)?/g, '')
+        .trim();
+      nBaixasRevertidas++;
+    });
+  }
+
   state.gastos = (state.gastos || []).filter(g => !idsGastos.has(g.id));
   state.entradas = (state.entradas || []).filter(e => !idsEntradas.has(e.id));
   state.lotesImportacao = state.lotesImportacao.filter(l => l.id !== loteId);
@@ -19845,7 +20067,8 @@ function desfazerLoteImportacao(loteId) {
   try { if (typeof renderContas === 'function') renderContas(); } catch (e) {}
 
   const total = idsGastos.size + idsEntradas.size;
-  toast(`✓ ${total} lançamento${total !== 1 ? 's' : ''} desfeito${total !== 1 ? 's' : ''}`, 'success');
+  const sufBaixas = nBaixasRevertidas > 0 ? ` · ${nBaixasRevertidas} baixa${nBaixasRevertidas !== 1 ? 's' : ''} revertida${nBaixasRevertidas !== 1 ? 's' : ''} a pendente` : '';
+  toast(`✓ ${total} lançamento${total !== 1 ? 's' : ''} desfeito${total !== 1 ? 's' : ''}${sufBaixas}`, 'success');
   return true;
 }
 
