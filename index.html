@@ -5060,7 +5060,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.49.0 · Central de Contas do mês administrável: o botão "Contas do mês" agora tem selos de status fortes (a pagar / pago / auto), marcar pago, editar e excluir na própria linha, e uma seção de faturas de cartão pra conferir o pagamento — tudo num só lugar
+  Finança · v0.50.0 · Sincronização robusta: escrita imediata quando o app perde o foco, boot que mantém o lado mais recente (fim da perda de dados), app sempre na versão nova, aviso de teto de dados — e o anti-duplicata agora reconhece fixos pela data de pagamento (adeus convênio duplicado)
 </div>
 
   </section>
@@ -5258,6 +5258,10 @@ const StorageAdapter = {
 
   /* Salva o estado. Em modo cloud, agenda escrita no Firestore (debounced) */
   save(s) {
+    /* v0.50.0 (Fatia A): carimbo de recência. Todo save marca QUANDO o estado
+       mudou — é isso que permite ao boot decidir entre local e nuvem em vez
+       de sobrescrever cego (que causava perda de dados). */
+    try { s._updatedAt = Date.now(); } catch (e) {}
     try {
       localStorage.setItem(this._localKey(), JSON.stringify(s));
     } catch (e) {
@@ -5333,6 +5337,17 @@ const StorageAdapter = {
       this.pendingChanges = 0;
       this.lastSyncAt = Date.now();
       this.lastStateString = JSON.stringify(s);
+      /* v0.50.0 (Fatia A): vigia do teto de 1 MB do Firestore. Avisa uma vez
+         por sessão quando os dados passam de 700 KB — margem pra planejar a
+         divisão estrutural (Etapa 7) sem sermos pegos de surpresa. */
+      if (!this._avisouTamanho && this.lastStateString.length > 700 * 1024) {
+        this._avisouTamanho = true;
+        const kb = Math.round(this.lastStateString.length / 1024);
+        console.warn('[sync] estado com ' + kb + ' KB — teto do Firestore é ~1024 KB');
+        if (typeof toast === 'function') {
+          toast('Seus dados chegaram a ' + kb + ' KB (limite da nuvem: 1024 KB). Avise o Claude para planejar a divisão.', 'info');
+        }
+      }
       this._setStatus('idle');
     } catch (e) {
       console.error('Falha sync nuvem:', e);
@@ -5340,6 +5355,20 @@ const StorageAdapter = {
       this.pendingChanges = Math.max(this.pendingChanges, 1);
       this._setStatus(isOffline ? 'offline' : 'error');
     }
+  },
+
+  /* v0.50.0 (Fatia A): descarrega a escrita pendente AGORA, sem esperar o
+     debounce de 800ms. Chamado quando o app perde o foco (troca de app no
+     iOS, aba em segundo plano) — cenário onde o timer era suspenso e a
+     escrita morria, deixando o dado só no aparelho local. */
+  flushNow() {
+    if (this.mode !== 'cloud' || !this.userId) return;
+    if (!this.pendingWrite && this.pendingChanges === 0) return;
+    if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }
+    try {
+      const raw = localStorage.getItem(this._localKey());
+      if (raw) this._cloudSave(JSON.parse(raw));
+    } catch (e) { console.error('Falha flush:', e); }
   },
 
   /* Tenta sincronizar mudanças pendentes (chamado quando volta online) */
@@ -18794,6 +18823,19 @@ function _detectarPotencialMatch(l, contaId) {
   );
   const poolEntradas = (state.entradas || []);
 
+  /* v0.50.0 (Fatia C): distância em dias considerando TAMBÉM a data de
+     pagamento. Um fixo replicado nasce com data de competência (ex.: dia 1),
+     mas o débito real cai em outro dia (ex.: dia 15). Comparar só g.data
+     deixava o fixo pago escapar do dedup e o extrato duplicava o gasto.
+     Usa a MENOR distância entre competência e pagamento. */
+  const _distDiasGasto = (g) => {
+    let d = Math.abs(_diasEntre(g.data, dataAlvo));
+    if (g.pago !== false && g.dataPagamento) {
+      d = Math.min(d, Math.abs(_diasEntre(g.dataPagamento, dataAlvo)));
+    }
+    return d;
+  };
+
   /* Nível ALTA: mesma conta, valor ±R$ 0,01, ±2 dias */
   let m = null;
   if (ehEntrada) {
@@ -18808,7 +18850,7 @@ function _detectarPotencialMatch(l, contaId) {
       g.contaId === contaId &&
       g.pagamento !== 'cartao' &&
       Math.abs((Number(g.valor) || 0) - valorAlvo) <= 0.01 &&
-      Math.abs(_diasEntre(g.data, dataAlvo)) <= 2
+      _distDiasGasto(g) <= 2
     );
     if (m) return { gasto: m, confianca: 'alta', kind: 'gasto' };
   }
@@ -18825,7 +18867,7 @@ function _detectarPotencialMatch(l, contaId) {
     m = poolGastos.find(g =>
       g.pagamento !== 'cartao' &&
       Math.abs((Number(g.valor) || 0) - valorAlvo) <= 0.01 &&
-      Math.abs(_diasEntre(g.data, dataAlvo)) <= 7
+      _distDiasGasto(g) <= 7
     );
     if (m) return { gasto: m, confianca: 'media', kind: 'gasto' };
   }
@@ -18849,7 +18891,7 @@ function _detectarPotencialMatch(l, contaId) {
       m = poolGastos.find(g => {
         if (g.pagamento === 'cartao') return false;
         if (Math.abs((Number(g.valor) || 0) - valorAlvo) > tol) return false;
-        if (Math.abs(_diasEntre(g.data, dataAlvo)) > 15) return false;
+        if (_distDiasGasto(g) > 15) return false;
         const nomeUpper = (g.nome || '').toUpperCase();
         return palavrasChave.some(p => nomeUpper.includes(p));
       });
@@ -19900,7 +19942,7 @@ function _fmtDataHora(iso) {
    ========================================================================= */
 
 const SW_CODE = `
-const CACHE_NAME = 'financa-v1';
+const CACHE_NAME = 'financa-v2';
 const APP_URL = self.registration.scope;
 
 self.addEventListener('install', (event) => {
@@ -19924,6 +19966,28 @@ self.addEventListener('fetch', (event) => {
   /* Ignora requests de outras origens (CDNs, fonts) — deixa o navegador lidar */
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+
+  /* v0.50.0 (Fatia A): o DOCUMENTO (index.html) vai network-first.
+     Antes era stale-while-revalidate: o aparelho sempre abria a versão em
+     cache e só baixava a nova em segundo plano — no PWA do iOS, que quase
+     nunca recarrega, isso deixava o app rodando versões velhas por semanas.
+     Agora: tenta a rede primeiro; cache só como fallback offline. */
+  if (req.mode === 'navigate' || req.destination === 'document') {
+    event.respondWith(
+      fetch(req).then(resp => {
+        if (resp && resp.status === 200) {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, clone)).catch(() => {});
+        }
+        return resp;
+      }).catch(() =>
+        caches.open(CACHE_NAME).then(cache =>
+          cache.match(req, { ignoreSearch: true })
+        ).then(cached => cached || new Response('App offline e sem cache', { status: 503 }))
+      )
+    );
+    return;
+  }
 
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
@@ -19967,6 +20031,21 @@ if ('serviceWorker' in navigator) {
         .catch(() => {/* SW falhou — app continua funcionando online */});
     } catch (e) {/* navegador não suporta — ignora */}
   });
+}
+
+/* v0.50.0 (Fatia A): gatilhos do flush imediato. O momento em que o app
+   perde o foco (troca de app no iPhone, aba minimizada, página fechando) é
+   exatamente quando o timer de 800ms era suspenso e a escrita morria.
+   Agora esses eventos descarregam a escrita pendente na hora. */
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') StorageAdapter.flushNow();
+  });
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', () => StorageAdapter.flushNow());
+  /* Voltou a conexão: tenta reenviar o que ficou pendente offline */
+  window.addEventListener('online', () => StorageAdapter.retrySync());
 }
 
 /* Detecta se está rodando como PWA instalado (standalone) */
@@ -20090,17 +20169,42 @@ async function initFirebaseAuth() {
       StorageAdapter.setCloudMode(user.uid, user.email || null);
 
       const cloudState = await StorageAdapter.pullFromCloud();
-      if (cloudState) {
-        localStorage.setItem(`financa.v1.user.${user.uid}`, JSON.stringify(cloudState));
-      } else {
+      /* v0.50.0 (Fatia A): boot inteligente. Antes, a nuvem sobrescrevia o
+         local incondicionalmente — se uma escrita tinha morrido no aparelho
+         (app fechado antes do debounce), o dado local mais novo era APAGADO
+         pela nuvem desatualizada. Agora compara o carimbo _updatedAt e o
+         lado mais recente vence; se o local ganhar, ele é empurrado pra
+         nuvem na sequência. Estados antigos sem carimbo valem 0 (nuvem
+         vence, comportamento anterior preservado). */
+      const _localKey = `financa.v1.user.${user.uid}`;
+      let localPrev = null;
+      try {
+        const rawPrev = localStorage.getItem(_localKey);
+        if (rawPrev) localPrev = JSON.parse(rawPrev);
+      } catch (e) { localPrev = null; }
+      const tsCloud = (cloudState && Number(cloudState._updatedAt)) || 0;
+      const tsLocal = (localPrev && Number(localPrev._updatedAt)) || 0;
+
+      if (cloudState && tsCloud >= tsLocal) {
+        localStorage.setItem(_localKey, JSON.stringify(cloudState));
+      } else if (localPrev && tsLocal > tsCloud) {
+        /* Local mais novo que a nuvem: mantém o local e sobe pra nuvem */
+        console.info('[boot] estado local mais recente que a nuvem — enviando local');
+        StorageAdapter.save(localPrev);
+      } else if (!cloudState && !localPrev) {
         const fresh = defaultState();
-        localStorage.setItem(`financa.v1.user.${user.uid}`, JSON.stringify(fresh));
+        localStorage.setItem(_localKey, JSON.stringify(fresh));
         StorageAdapter.save(fresh);
       }
 
       bootApp();
 
       StorageAdapter.startRealtimeSync((remoteState) => {
+        /* v0.50.0 (Fatia A): nunca aceitar estado remoto mais VELHO que o
+           local — protege contra eco de escrita atrasada de outro aparelho. */
+        const tsRemote = Number(remoteState._updatedAt) || 0;
+        const tsLocalNow = Number(state && state._updatedAt) || 0;
+        if (tsRemote && tsLocalNow && tsRemote < tsLocalNow) return;
         const oldStr = JSON.stringify(state);
         const newStr = JSON.stringify(remoteState);
         if (oldStr === newStr) return;
