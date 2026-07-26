@@ -5097,7 +5097,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.53.0 · Fatia 5f — cada categoria, mês a mês: um painel por categoria com uma coluna fina por mês do período, coluna e linha da média, mês em curso hachurado e fora do cálculo da média, e toque na coluna abrindo os gastos daquele mês
+  Finança · v0.54.0 · Fatia 5f.1 — Relatório Elegante em três blocos: primeiro o mês selecionado, depois a evolução mês a mês por categoria com média, e o consolidado do período só no final; maiores lançamentos agrupados por recorrência (3× aluguel vira uma linha) e rótulo de gasto unificado entre as seções
 </div>
 
   </section>
@@ -8964,6 +8964,104 @@ window.relatorioElegante = {
   },
 
   /* ---------- extração REL 1 (Gastos & Saídas / Meus Gastos) ---------- */
+  /* Fatia 5f.1 — coleta parametrizada por lista de meses.
+     O MESMO coletor roda para o mes selecionado e para o periodo inteiro,
+     entao os dois blocos do relatorio reconciliam por construcao. */
+  _coletaEscopo(cats, yms) {
+    const inCats = (g) => cats.indexOf(g.categoria) >= 0;
+    const gs = (state.gastos || []).filter(g =>
+      yms.indexOf(g.ym) >= 0 && inCats(g) && _relGastoSaida(g));
+    const soma = (arr) => arr.reduce((sum, g) => sum + (Number(g.valor) || 0), 0);
+
+    const porMembro = cats.map(ck => {
+      const m = (state.members && state.members[ck]) || {};
+      return { key: ck, nome: m.nome || ck, cor: m.cor || '#888888',
+               valor: soma(gs.filter(g => g.categoria === ck)) };
+    }).filter(m => m.valor > 0).sort((a, b) => b.valor - a.valor);
+
+    const subMap = new Map();
+    gs.forEach(g => {
+      const sc = g.subcategoria || '\u2014';
+      if (!subMap.has(sc)) subMap.set(sc, { nome: sc, valor: 0, porCat: {} });
+      const b = subMap.get(sc);
+      const v = Number(g.valor) || 0;
+      b.valor += v;
+      b.porCat[g.categoria] = (b.porCat[g.categoria] || 0) + v;
+    });
+    const subArr = Array.from(subMap.values()).sort((a, b) => b.valor - a.valor);
+    const subTop = subArr.slice(0, 8).map(b => {
+      let dom = null, max = -1;
+      for (const ck in b.porCat) { if (b.porCat[ck] > max) { max = b.porCat[ck]; dom = ck; } }
+      const cor = (state.members && state.members[dom] || {}).cor || '#A8462C';
+      return { nome: b.nome, valor: b.valor, cor };
+    });
+
+    const detMap = new Map();
+    gs.forEach(g => {
+      const ck = g.categoria;
+      if (!detMap.has(ck)) detMap.set(ck, new Map());
+      const subM = detMap.get(ck);
+      const sc = g.subcategoria || 'Sem subcategoria';
+      if (!subM.has(sc)) subM.set(sc, []);
+      subM.get(sc).push(g);
+    });
+    const detalhePorCategoria = cats.map(ck => {
+      const subM = detMap.get(ck);
+      if (!subM) return null;
+      const m = (state.members && state.members[ck]) || {};
+      const subcats = Array.from(subM.entries()).map(pair => ({
+        nome: pair[0],
+        total: pair[1].reduce((sum, g) => sum + (Number(g.valor) || 0), 0),
+        itens: pair[1].slice()
+          .sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0))
+          .map(g => ({ nome: this._rotuloGasto(g), valor: Number(g.valor) || 0, dataISO: g.data }))
+      })).sort((a, b) => b.total - a.total);
+      const total = subcats.reduce((sum, sc) => sum + sc.total, 0);
+      return { key: ck, nome: m.nome || ck, cor: m.cor || '#888888', total, subcats };
+    }).filter(Boolean).filter(m => m.total > 0).sort((a, b) => b.total - a.total);
+
+    return {
+      totalSaidas: soma(gs),
+      consumo: soma(gs.filter(g => _relGastoConta(g))),
+      investimento: soma(gs.filter(g => _isInvestRuntime(g))),
+      porMembro: porMembro,
+      subTop: subTop,
+      subRestoVal: subArr.slice(8).reduce((sum, b) => sum + b.valor, 0),
+      subRestoN: subArr.length - subTop.length,
+      topGastos: gs.slice().sort((a, b) => (b.valor || 0) - (a.valor || 0)).slice(0, 10),
+      topAgrupado: this._agrupaTop(gs, 10),
+      detalhePorCategoria: detalhePorCategoria,
+      gastos: gs
+    };
+  },
+
+  /* Rotulo unico de gasto — antes o top-10 caia em "descricao" e o
+     detalhamento caia em "subcategoria", entao o MESMO lancamento
+     aparecia como "\u2014" numa secao e "Escola" na outra. */
+  _rotuloGasto(g) {
+    return g.nome || g.descricao || g.subcategoria || '\u2014';
+  },
+
+  /* Em periodo multi-mes o top-10 individual vira lista de recorrentes
+     repetidos (aluguel 3x, escola 3x). Agrupado por nome, cada linha
+     vira uma despesa de verdade com a contagem de ocorrencias. */
+  _agrupaTop(gastos, limite) {
+    const mapa = new Map();
+    (gastos || []).forEach(g => {
+      const rot = this._rotuloGasto(g);
+      const chave = (typeof normNome === 'function' ? normNome(rot) : String(rot).toLowerCase());
+      if (!mapa.has(chave)) {
+        mapa.set(chave, { nome: rot, valor: 0, n: 0,
+                          subcategoria: g.subcategoria || '\u2014', categoria: g.categoria });
+      }
+      const b = mapa.get(chave);
+      b.valor += Number(g.valor) || 0;
+      b.n += 1;
+    });
+    return Array.from(mapa.values())
+      .sort((a, b) => b.valor - a.valor).slice(0, limite || 10);
+  },
+
   _dadosRel1(ctx) {
     const cats = ctx.cats;
     const inCats = (g) => cats.indexOf(g.categoria) >= 0;
@@ -8984,7 +9082,14 @@ window.relatorioElegante = {
       const gm = (state.gastos || []).filter(g => g.ym === ym && inCats(g) && _relGastoSaida(g));
       const cons = soma(gm.filter(g => _relGastoConta(g)));
       const inv  = soma(gm.filter(g => _isInvestRuntime(g)));
-      return { ym, consumo: cons, invest: inv };
+      /* Fatia 5f.1: quebra por categoria — alimenta o painel mes a mes.
+         Mesmo filtro do consumo (_relGastoConta), entao a soma das
+         categorias fecha com a coluna de consumo deste mesmo mes. */
+      const porCat = {};
+      cats.forEach(ck => {
+        porCat[ck] = { total: soma(gm.filter(g => g.categoria === ck && _relGastoConta(g))) };
+      });
+      return { ym, consumo: cons, invest: inv, porCat: porCat };
     });
 
     /* por membro (período consolidado) */
@@ -9071,9 +9176,15 @@ window.relatorioElegante = {
         invest: _isInvestRuntime(g)
       }));
 
+    /* Fatia 5f.1: dois escopos no mesmo documento.
+       As chaves antigas seguem apontando pro periodo (compatibilidade). */
+    const escMes = this._coletaEscopo(cats, [ctx.ym]);
+    const escPer = (ctx.periodo.months > 1) ? this._coletaEscopo(cats, ctx.yms) : null;
+
     return {
       totalSaidas, consumo, investimento, historico, porMembro,
-      subTop, subRestoVal, subRestoN, comp, topGastos, alertas, detalhePorCategoria, listaCronologica
+      subTop, subRestoVal, subRestoN, comp, topGastos, alertas, detalhePorCategoria, listaCronologica,
+      mes: escMes, periodo: escPer, cats: cats
     };
   },
 
@@ -9335,55 +9446,95 @@ window.relatorioElegante = {
   /* ================= HTML dos relatórios ================= */
 
   _gerarRel1(d, ctx) {
+    /* Fatia 5f.1 — documento em tres blocos, na ordem que responde
+       as perguntas na sequencia certa:
+         1. O MES selecionado (o que acabou de acontecer)
+         2. O PERIODO mes a mes, por categoria (como esta evoluindo)
+         3. O CONSOLIDADO do periodo (o fechamento, no fim)
+       Quando o periodo e de um mes so, o bloco 3 seria identico ao 1
+       e por isso nao e emitido. */
     const periodoLabel = this._periodoLabel(ctx);
-    const media = ctx.periodo.months > 1 ? (d.totalSaidas / ctx.periodo.months) : null;
+    const multi = ctx.periodo.months > 1;
+    const mesLabel = MESES_PT[Number(ctx.ym.split('-')[1]) - 1] + ' de ' + ctx.ym.split('-')[0];
+    const m = d.mes;
 
     const capa = this._capa({
-      titulo: ctx.titulo, sub: ctx.sub, periodoLabel,
+      titulo: ctx.titulo, sub: ctx.sub,
+      periodoLabel: multi ? (mesLabel + ' \u00b7 com hist\u00f3rico de ' + periodoLabel) : mesLabel,
       colunas: [
-        { label: 'TOTAL DE SAÍDAS', valor: d.totalSaidas, cor: '#fff' },
-        { label: 'CONSUMO', valor: d.consumo, cor: '#fff' },
-        { label: 'INVESTIMENTOS', valor: d.investimento, cor: '#fff' }
+        { label: 'SA\u00cdDAS NO M\u00caS', valor: m.totalSaidas, cor: '#fff' },
+        { label: 'CONSUMO', valor: m.consumo, cor: '#fff' },
+        { label: 'INVESTIMENTOS', valor: m.investimento, cor: '#fff' }
       ],
-      rodapeExtra: media != null ? ('Média mensal: ' + this._fmt(media)) : ''
+      rodapeExtra: multi
+        ? ('Per\u00edodo completo (' + ctx.periodo.months + ' meses): ' + this._fmt(d.totalSaidas) +
+           ' \u00b7 m\u00e9dia mensal ' + this._fmt(d.totalSaidas / ctx.periodo.months))
+        : ''
     });
 
-    const secResumo = this._secaoCards('📊', 'Resumo', [
-      { label: 'TOTAL DE SAÍDAS', valor: this._fmt(d.totalSaidas), cls: 'color-out' },
-      { label: 'CONSUMO', valor: this._fmt(d.consumo), cls: 'color-out' },
-      { label: 'INVESTIMENTOS', valor: this._fmt(d.investimento), cls: 'color-invest' }
+    /* ---------- bloco 1: o mes ---------- */
+    const b1Titulo = this._secaoDivisor('\u25cf', 'O m\u00eas \u00b7 ' + mesLabel);
+    const b1Cards = this._secaoCards('\ud83d\udcca', 'Resumo do m\u00eas', [
+      { label: 'SA\u00cdDAS NO M\u00caS', valor: this._fmt(m.totalSaidas), cls: 'color-out' },
+      { label: 'CONSUMO', valor: this._fmt(m.consumo), cls: 'color-out' },
+      { label: 'INVESTIMENTOS', valor: this._fmt(m.investimento), cls: 'color-invest' }
     ]);
-
-    const secHist = (d.historico.length)
-      ? this._secao('📈', 'Saídas · histórico mensal',
-          '<div class="pdf-card no-break">' + this._chColunasMultiMes(d.historico, ctx.ym) + '</div>')
+    const b1Membro = (m.porMembro.length > 1)
+      ? this._secao('\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67', 'Sa\u00eddas por membro \u00b7 no m\u00eas',
+          '<div class="pdf-card no-break">' + this._chBarrasMembro(m.porMembro) + '</div>')
       : '';
-
-    const secMembro = (d.porMembro.length > 1)
-      ? this._secao('👨‍👩‍👧‍👦', 'Saídas por membro da família',
-          '<div class="pdf-card no-break">' + this._chBarrasMembro(d.porMembro) + '</div>')
-      : '';
-
-    const secSubcat = (d.subTop.length)
-      ? this._secao('🏷️', 'Saídas por categoria',
+    const b1Subcat = (m.subTop.length)
+      ? this._secao('\ud83c\udff7\ufe0f', 'Sa\u00eddas por categoria \u00b7 no m\u00eas',
           '<div class="pdf-card no-break">' +
-            this._chColunasSubcat(d.subTop, d.subRestoVal, d.subRestoN) + '</div>')
+            this._chColunasSubcat(m.subTop, m.subRestoVal, m.subRestoN) + '</div>')
       : '';
-
-    const secComp = (d.comp.total > 0)
-      ? this._secao('🔁', 'Compromissos do mês',
+    const b1Comp = (d.comp.total > 0)
+      ? this._secao('\ud83d\udd01', 'Compromissos do m\u00eas',
           '<div class="pdf-card no-break">' + this._chCompromissos(d.comp.fixos, d.comp.parcelas) + '</div>')
       : '';
+    const b1Top = this._secaoTopAgrupado(m.topAgrupado, 'Maiores lan\u00e7amentos do m\u00eas');
+    const bloco1 = b1Titulo + b1Cards + b1Membro + b1Subcat + b1Comp + b1Top;
 
-    const secTop = this._secaoTopGastos(d.topGastos);
-    /* v0.35.0 (Fatia 5c.8): Rel 3 tem estados próprios; Rel 1 usa os globais */
+    /* ---------- bloco 2: o periodo, mes a mes ---------- */
+    let bloco2 = '';
+    if (d.historico.length > 1) {
+      bloco2 += this._secaoDivisor('\u25d0', 'A evolu\u00e7\u00e3o \u00b7 ' + periodoLabel);
+      bloco2 += this._secaoPainelCategorias(d.historico, d.cats);
+      bloco2 += this._secao('\ud83d\udcc8', 'Sa\u00eddas da fam\u00edlia \u00b7 hist\u00f3rico mensal',
+        '<div class="pdf-card no-break">' + this._chColunasMultiMes(d.historico, ctx.ym) + '</div>');
+    }
+
+    /* ---------- bloco 3: consolidado do periodo ---------- */
+    let bloco3 = '';
+    if (multi) {
+      const p = d.periodo;
+      bloco3 += this._secaoDivisor('\u25a0', 'O consolidado \u00b7 ' + periodoLabel);
+      bloco3 += this._secaoCards('\ud83e\uddfe', 'Fechamento do per\u00edodo', [
+        { label: 'TOTAL DE SA\u00cdDAS', valor: this._fmt(p.totalSaidas), cls: 'color-out' },
+        { label: 'CONSUMO', valor: this._fmt(p.consumo), cls: 'color-out' },
+        { label: 'INVESTIMENTOS', valor: this._fmt(p.investimento), cls: 'color-invest' }
+      ]);
+      if (p.porMembro.length > 1) {
+        bloco3 += this._secao('\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67', 'Sa\u00eddas por membro \u00b7 no per\u00edodo',
+          '<div class="pdf-card no-break">' + this._chBarrasMembro(p.porMembro) + '</div>');
+      }
+      if (p.subTop.length) {
+        bloco3 += this._secao('\ud83c\udff7\ufe0f', 'Sa\u00eddas por categoria \u00b7 no per\u00edodo',
+          '<div class="pdf-card no-break">' +
+            this._chColunasSubcat(p.subTop, p.subRestoVal, p.subRestoN) + '</div>');
+      }
+      bloco3 += this._secaoTopAgrupado(p.topAgrupado, 'Maiores lan\u00e7amentos do per\u00edodo');
+    }
+
+    /* ---------- anexos (seguem os toggles do app) ---------- */
     const detalheOn = (ctx.view === 'rel3') ? rel3PdfDetalheCategoria : relPdfDetalheCategoria;
     const cronoOn   = (ctx.view === 'rel3') ? rel3PdfApendice : relPdfApendice;
-    const secDetalhe = detalheOn ? this._secaoDetalhePorCategoria(d.detalhePorCategoria) : '';
+    const fonteDet  = multi ? d.periodo : d.mes;
+    const secDetalhe = detalheOn ? this._secaoDetalhePorCategoria(fonteDet.detalhePorCategoria) : '';
     const secCrono = cronoOn ? this._secaoCronologicoRel1(d.listaCronologica, d.totalSaidas) : '';
     const secAlertas = this._secaoAlertas(d.alertas);
 
-    const body = capa + secResumo + secHist + secMembro + secSubcat + secComp + secTop + secDetalhe + secCrono + secAlertas;
+    const body = capa + bloco1 + bloco2 + bloco3 + secDetalhe + secCrono + secAlertas;
     return this._documento(ctx, body);
   },
 
@@ -9464,6 +9615,73 @@ window.relatorioElegante = {
       <div class="pdf-section-eyebrow" style="margin-bottom:6px;">SALDO DO PERÍODO</div>
       <div class="pdf-value-xl ${cls}">${this._fmt(saldo)}</div>
     </div>`;
+  },
+
+  /* Fatia 5f.1 — painel mes a mes por categoria dentro do documento.
+     Reusa _relPainelDados/_relPainelSvgHtml do app (mesmo motor da tela),
+     trocando so a paleta pelas variaveis do documento. */
+  _secaoPainelCategorias(historico, cats) {
+    if (!historico || historico.length < 2) return '';
+    const pal = { soft: 'var(--pdf-ink-soft)', mute: 'var(--pdf-ink-mute)',
+                  faint: 'var(--pdf-ink-mute)', linha: 'var(--pdf-border)' };
+    const ymHoje = (typeof currentYM === 'function') ? currentYM() : '9999-99';
+
+    const cards = (cats || []).map(ck => {
+      const m = (state.members && state.members[ck]) || {};
+      const serie = historico.map(h => ({
+        ym: h.ym, valor: (h.porCat && h.porCat[ck] && h.porCat[ck].total) || 0
+      }));
+      const d = _relPainelDados(serie, ymHoje);
+      if (!d.temDado) return '';
+      const cor = m.cor || '#888888';
+      const med = (d.media !== null)
+        ? 'media ' + this._fmt(d.media)
+        : 'nenhum mes fechado';
+      return '<div class="pnl-card">' +
+        '<div class="pnl-head">' +
+          '<span class="pnl-nome" style="color:' + cor + ';">' + this._esc(m.nome || ck) + '</span>' +
+          '<span class="pnl-med">' + this._esc(med) + '</span>' +
+        '</div>' +
+        _relPainelSvgHtml(d, ck, cor, pal) +
+        '<div class="pnl-foot">total do periodo ' + this._fmt(d.total) +
+          (d.max >= 1000 ? ' &middot; colunas em mil' : '') + '</div>' +
+      '</div>';
+    }).join('');
+
+    if (!cards) return '';
+    const nota = 'Cada painel tem escala propria: a leitura e do mes contra os outros meses ' +
+      'da mesma categoria. A coluna tracejada e a media dos meses fechados; ' +
+      'o mes em curso aparece hachurado e fica fora da media.';
+    return this._secao('\ud83d\udcca', 'Cada categoria, mes a mes',
+      '<div class="pdf-card"><div class="pnl-nota">' + this._esc(nota) + '</div>' +
+      cards + '</div>');
+  },
+
+  _secaoTopAgrupado(top, titulo) {
+    if (!top || !top.length) return '';
+    const rows = top.map((b, i) => `
+      <tr>
+        <td class="tg-num">${i + 1}</td>
+        <td>${this._esc(b.nome)}${b.n > 1 ? ' <span class="tg-mute">&middot; ' + b.n + '\u00d7</span>' : ''}</td>
+        <td class="tg-mute">${this._esc(b.subcategoria || '\u2014')}</td>
+        <td class="tg-mute">${this._esc(this._nomeMembro(b.categoria))}</td>
+        <td class="tg-val">${this._fmt(b.valor)}</td>
+      </tr>`).join('');
+    return this._secao('\ud83d\udd22', titulo,
+      `<div class="pdf-card no-break">
+        <table class="tg-table">
+          <thead><tr>
+            <th style="width:22px;">#</th><th>DESCRIÇÃO</th><th>CATEGORIA</th>
+            <th>MEMBRO</th><th class="tg-th-val">VALOR</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`);
+  },
+
+  _secaoDivisor(icone, titulo) {
+    return '<div class="pdf-divisor"><span class="pdf-divisor-ic">' + icone + '</span>' +
+           '<span class="pdf-divisor-tx">' + this._esc(titulo) + '</span></div>';
   },
 
   _secaoTopGastos(top) {
@@ -10309,6 +10527,36 @@ ${toolbar}
   --pdf-ink:#1C1A15;--pdf-ink-soft:#4A463C;--pdf-ink-mute:#928A79;
   --pdf-display:'Fraunces',Georgia,serif;
 }
+
+.pdf-divisor{
+  display:flex;align-items:center;gap:10px;margin:26px 0 10px;
+  padding-bottom:7px;border-bottom:2px solid var(--pdf-ink);
+}
+.pdf-divisor-ic{font-size:13px;color:var(--pdf-out);}
+.pdf-divisor-tx{
+  font-family:var(--pdf-display);font-size:17px;color:var(--pdf-ink);
+  letter-spacing:-0.01em;
+}
+.pnl-nota{
+  font-size:9.5px;color:var(--pdf-ink-mute);font-style:italic;
+  line-height:1.5;margin-bottom:10px;
+}
+.pnl-card{
+  border-top:1px solid var(--pdf-border);padding:9px 0 4px;
+  page-break-inside:avoid;break-inside:avoid;
+}
+.pnl-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  gap:8px;margin-bottom:3px;
+}
+.pnl-nome{
+  font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;
+}
+.pnl-med{font-size:9.5px;color:var(--pdf-ink-mute);white-space:nowrap;}
+.pnl-card svg{width:100%;height:auto;display:block;}
+.pnl-foot{
+  font-size:9px;color:var(--pdf-ink-mute);margin-top:2px;text-align:right;
+}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
@@ -10839,7 +11087,9 @@ function _relPainelValorCurto(v, emMil) {
   return String(Math.round(n));
 }
 
-function _relPainelSvgHtml(d, catKey, cor) {
+function _relPainelSvgHtml(d, catKey, cor, pal) {
+  pal = pal || { soft: 'var(--ink-soft)', mute: 'var(--ink-mute)',
+                 faint: 'var(--ink-faint)', linha: 'var(--line-strong)' };
   const N = d.meses.length;
   const temMedia = d.media !== null;
   const emMil = d.max >= 1000;
@@ -10881,11 +11131,11 @@ function _relPainelSvgHtml(d, catKey, cor) {
       ' rx="1.5" fill="' + fill + '"' + extra + '>' +
       '<title>' + escapeHtml(tip) + '</title></rect>';
     rotulos += '<text x="' + (x + colW / 2).toFixed(2) + '" y="' + (y - 4).toFixed(2) + '"' +
-      ' text-anchor="middle" font-size="' + fsVal + '" fill="var(--ink-soft)"' +
+      ' text-anchor="middle" font-size="' + fsVal + '" fill="' + pal.soft + '"' +
       ' font-weight="500">' + escapeHtml(_relPainelValorCurto(m.valor, emMil)) + '</text>';
     rotulos += '<text x="' + (x + colW / 2).toFixed(2) + '" y="' + yMes + '"' +
       ' text-anchor="middle" font-size="' + fsMes + '"' +
-      ' fill="' + (m.parcial ? 'var(--ink-faint)' : 'var(--ink-mute)') + '">' +
+      ' fill="' + (m.parcial ? pal.faint : pal.mute) + '">' +
       escapeHtml(relYmLabelAbbr(m.ym).toLowerCase()) + '</text>';
   });
 
@@ -10900,23 +11150,23 @@ function _relPainelSvgHtml(d, catKey, cor) {
       ' stroke="' + cor + '" stroke-width="0.8" stroke-dasharray="2,3" opacity="0.55"/>';
     mediaHtml += '<line x1="' + xDiv.toFixed(2) + '" y1="' + yTopo + '"' +
       ' x2="' + xDiv.toFixed(2) + '" y2="' + yBase + '"' +
-      ' stroke="var(--line-strong)" stroke-width="0.5" stroke-dasharray="2,3"/>';
+      ' stroke="' + pal.linha + '" stroke-width="0.5" stroke-dasharray="2,3"/>';
     mediaHtml += '<rect x="' + xm.toFixed(2) + '" y="' + yMed.toFixed(2) + '"' +
       ' width="' + colW.toFixed(2) + '" height="' + hm.toFixed(2) + '"' +
       ' rx="1.5" fill="none" stroke="' + cor + '" stroke-width="1.1"' +
       ' stroke-dasharray="2.2,2"><title>' +
       escapeHtml('media dos meses fechados - ' + _relFmtBR(d.media)) + '</title></rect>';
     mediaHtml += '<text x="' + (xm + colW / 2).toFixed(2) + '" y="' + (yMed - 4).toFixed(2) + '"' +
-      ' text-anchor="middle" font-size="' + fsVal + '" fill="var(--ink-soft)"' +
+      ' text-anchor="middle" font-size="' + fsVal + '" fill="' + pal.soft + '"' +
       ' font-weight="500">' + escapeHtml(_relPainelValorCurto(d.media, emMil)) + '</text>';
     mediaHtml += '<text x="' + (xm + colW / 2).toFixed(2) + '" y="' + yMes + '"' +
-      ' text-anchor="middle" font-size="' + fsMes + '" fill="var(--ink-mute)"' +
+      ' text-anchor="middle" font-size="' + fsMes + '" fill="' + pal.mute + '"' +
       ' font-style="italic">med</text>';
   }
 
   return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet">' +
     '<line x1="' + padL + '" y1="' + yBase + '" x2="' + (W - padR) + '" y2="' + yBase + '"' +
-    ' stroke="var(--line-strong)" stroke-width="0.5"/>' +
+    ' stroke="' + pal.linha + '" stroke-width="0.5"/>' +
     mediaHtml + barras + rotulos + '</svg>';
 }
 
