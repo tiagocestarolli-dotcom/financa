@@ -3789,6 +3789,43 @@ label {
 .rel-small-foot .rs-trend.down { color: var(--flow-in); }
 .rel-small-foot .rs-trend.flat { color: var(--ink-mute); }
 
+/* Fatia 5f — painel mes a mes por categoria */
+.rel-pnls { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.rel-pnl {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 10px 7px;
+}
+.rel-pnl-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; margin-bottom: 6px;
+}
+.rel-pnl-nome {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--ink);
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+}
+.rel-pnl-nome .rp-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.rel-pnl-med {
+  font-size: 10px; color: var(--ink-mute); font-weight: 500;
+  font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0;
+}
+.rel-pnl svg { width: 100%; height: auto; display: block; }
+.rel-pnl-col { cursor: pointer; }
+.rel-pnl-foot {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 8px; font-size: 9.5px; color: var(--ink-soft);
+  font-weight: 500; margin-top: 3px; font-variant-numeric: tabular-nums;
+}
+.rel-pnl-foot .rp-trend.up { color: var(--flow-out); }
+.rel-pnl-foot .rp-trend.down { color: var(--flow-in); }
+.rel-pnl-foot .rp-trend.flat { color: var(--ink-mute); }
+.rel-pnl-nota {
+  font-size: 10px; color: var(--ink-mute); font-style: italic;
+  margin: 2px 0 6px; line-height: 1.45;
+}
+
 .rel-grupos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .rel-grupo-chip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -5060,7 +5097,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.52.0 · Baixa automática pelo extrato (Fatia 3): conta pendente reconhecida no extrato vira baixa com um toque — marca pago com data e conta reais, sem duplicar; divergência de valor levanta bandeira; contas já pagas aparecem como ✓ já registrado; tudo reversível pelo histórico de importações
+  Finança · v0.53.0 · Fatia 5f — cada categoria, mês a mês: um painel por categoria com uma coluna fina por mês do período, coluna e linha da média, mês em curso hachurado e fora do cálculo da média, e toque na coluna abrindo os gastos daquele mês
 </div>
 
   </section>
@@ -10434,7 +10471,7 @@ function _renderRel1Inner() {
   if (periodo.months > 1) {
     const historico = relCalcHistorico(ym, periodo.months, cats);
     html += _relSecaoMultiMesHtml(historico, cats, periodo);
-    html += _relSecaoSmallMultiplesHtml(historico, cats);
+    html += _relSecaoPainelMesAMesHtml(historico, cats);
   }
 
   const grupos = relCalcGrupos(yms, cats);
@@ -10765,75 +10802,200 @@ function _relSecaoMultiMesHtml(historico, cats, periodo) {
   `;
 }
 
-function _relSecaoSmallMultiplesHtml(historico, cats) {
-  const N = historico.length;
-  if (N < 2) return '';
+/* ===== Fatia 5f (v0.53.0) — painel mes a mes por categoria =====
+   Substitui o small multiples 2x2 (que nao tinha rotulo de mes, valor nem media).
+   Nada se perde: a tendencia do bloco antigo migrou pro rodape de cada painel.
+   Logica de calculo separada do render e validada em sandbox Node (23/23). */
 
-  const W = 100, H = 50;
-  const padTop = 3, padBot = 3, padL = 3, padR = 3;
+function _relPainelDados(serie, ymHoje) {
+  const meses = (serie || []).map(p => {
+    const valor = Number(p.valor) || 0;
+    return { ym: p.ym, valor: valor, parcial: p.ym >= ymHoje };
+  });
+  const fechados = meses.filter(m => !m.parcial);
+  const media = fechados.length
+    ? fechados.reduce((sum, m) => sum + m.valor, 0) / fechados.length
+    : null;
+  meses.forEach(m => {
+    m.acima = (media === null || m.parcial) ? null : (m.valor > media);
+  });
+  const cand = meses.map(m => Math.max(0, m.valor));
+  if (media !== null) cand.push(media);
+  const max = Math.max.apply(null, cand.concat([0]));
+  const total = meses.reduce((sum, m) => sum + m.valor, 0);
+  return {
+    meses: meses, media: media, nFechados: fechados.length,
+    max: max, total: total, temDado: total !== 0
+  };
+}
+
+function _relPainelValorCurto(v, emMil) {
+  const n = Number(v) || 0;
+  if (emMil) {
+    return (n / 1000).toLocaleString('pt-BR', {
+      minimumFractionDigits: 1, maximumFractionDigits: 1
+    });
+  }
+  return String(Math.round(n));
+}
+
+function _relPainelSvgHtml(d, catKey, cor) {
+  const N = d.meses.length;
+  const temMedia = d.media !== null;
+  const emMil = d.max >= 1000;
+
+  const W = 300, padL = 4, padR = 4;
+  const yTopo = 13, altBarra = 70;
+  const yBase = yTopo + altBarra;
+  const yMes = yBase + 12;
+  const H = yMes + 4;
+
   const usableW = W - padL - padR;
-  const usableH = H - padTop - padBot;
-  const colW = (usableW / N) * 0.74;
-  const gap = (usableW / N) * 0.26;
+  const slots = N + (temMedia ? 1.5 : 0);
+  const pitch = usableW / slots;
+  const colW = Math.min(13, Math.max(4, pitch * 0.5));
+  const fsVal = N <= 6 ? 8 : (N <= 9 ? 7 : 6.2);
+  const fsMes = N <= 9 ? 7.5 : 6.5;
 
-  const cardsHtml = cats.map(k => {
+  const alt = (v) => (d.max > 0
+    ? Math.max(0, Math.min(altBarra, (Math.max(0, v) / d.max) * altBarra))
+    : 0);
+  const cx = (i) => padL + i * pitch + (pitch - colW) / 2;
+
+  let barras = '', rotulos = '';
+  d.meses.forEach((m, i) => {
+    const h = alt(m.valor);
+    const x = cx(i), y = yBase - h;
+    let fill = cor, extra = '';
+    if (m.parcial) {
+      fill = _relMixWhite(cor, 0.55);
+      extra = ' stroke="' + cor + '" stroke-width="0.8" stroke-dasharray="2,1.6"';
+    } else if (m.acima === false) {
+      fill = _relMixWhite(cor, 0.5);
+    }
+    const tip = relYmLabelAbbr(m.ym) + ' - ' + _relFmtBR(m.valor) +
+      (m.parcial ? ' (mes em curso)' : '');
+    barras += '<rect class="rel-pnl-col" data-rel-cat-mes="' + catKey + '|' + m.ym + '"' +
+      ' x="' + x.toFixed(2) + '" y="' + y.toFixed(2) + '"' +
+      ' width="' + colW.toFixed(2) + '" height="' + h.toFixed(2) + '"' +
+      ' rx="1.5" fill="' + fill + '"' + extra + '>' +
+      '<title>' + escapeHtml(tip) + '</title></rect>';
+    rotulos += '<text x="' + (x + colW / 2).toFixed(2) + '" y="' + (y - 4).toFixed(2) + '"' +
+      ' text-anchor="middle" font-size="' + fsVal + '" fill="var(--ink-soft)"' +
+      ' font-weight="500">' + escapeHtml(_relPainelValorCurto(m.valor, emMil)) + '</text>';
+    rotulos += '<text x="' + (x + colW / 2).toFixed(2) + '" y="' + yMes + '"' +
+      ' text-anchor="middle" font-size="' + fsMes + '"' +
+      ' fill="' + (m.parcial ? 'var(--ink-faint)' : 'var(--ink-mute)') + '">' +
+      escapeHtml(relYmLabelAbbr(m.ym).toLowerCase()) + '</text>';
+  });
+
+  let mediaHtml = '';
+  if (temMedia) {
+    const hm = alt(d.media);
+    const yMed = yBase - hm;
+    const xDiv = padL + N * pitch + pitch * 0.25;
+    const xm = padL + (N + 0.5) * pitch + (pitch - colW) / 2;
+    mediaHtml += '<line x1="' + padL + '" y1="' + yMed.toFixed(2) + '"' +
+      ' x2="' + (xDiv - 2).toFixed(2) + '" y2="' + yMed.toFixed(2) + '"' +
+      ' stroke="' + cor + '" stroke-width="0.8" stroke-dasharray="2,3" opacity="0.55"/>';
+    mediaHtml += '<line x1="' + xDiv.toFixed(2) + '" y1="' + yTopo + '"' +
+      ' x2="' + xDiv.toFixed(2) + '" y2="' + yBase + '"' +
+      ' stroke="var(--line-strong)" stroke-width="0.5" stroke-dasharray="2,3"/>';
+    mediaHtml += '<rect x="' + xm.toFixed(2) + '" y="' + yMed.toFixed(2) + '"' +
+      ' width="' + colW.toFixed(2) + '" height="' + hm.toFixed(2) + '"' +
+      ' rx="1.5" fill="none" stroke="' + cor + '" stroke-width="1.1"' +
+      ' stroke-dasharray="2.2,2"><title>' +
+      escapeHtml('media dos meses fechados - ' + _relFmtBR(d.media)) + '</title></rect>';
+    mediaHtml += '<text x="' + (xm + colW / 2).toFixed(2) + '" y="' + (yMed - 4).toFixed(2) + '"' +
+      ' text-anchor="middle" font-size="' + fsVal + '" fill="var(--ink-soft)"' +
+      ' font-weight="500">' + escapeHtml(_relPainelValorCurto(d.media, emMil)) + '</text>';
+    mediaHtml += '<text x="' + (xm + colW / 2).toFixed(2) + '" y="' + yMes + '"' +
+      ' text-anchor="middle" font-size="' + fsMes + '" fill="var(--ink-mute)"' +
+      ' font-style="italic">med</text>';
+  }
+
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet">' +
+    '<line x1="' + padL + '" y1="' + yBase + '" x2="' + (W - padR) + '" y2="' + yBase + '"' +
+    ' stroke="var(--line-strong)" stroke-width="0.5"/>' +
+    mediaHtml + barras + rotulos + '</svg>';
+}
+
+function _relSecaoPainelMesAMesHtml(historico, cats) {
+  if (!historico || historico.length < 2) return '';
+  const ymHoje = currentYM();
+  let algumEmMil = false;
+
+  const paineis = cats.map(k => {
     const m = state.members[k];
     if (!m) return '';
-    const serie = historico.map(h => (h.porCat[k] && h.porCat[k].total) || 0);
-    const maxSerie = Math.max.apply(null, serie.concat([1]));
-    const med = relMediana(serie);
-    const mm = relMediaMovel(serie, 3);
-
-    let bars = '';
-    const topPts = [];
-    serie.forEach((v, i) => {
-      const x = padL + i * (colW + gap) + gap / 2;
-      const hPx = (v / maxSerie) * usableH;
-      const y = H - padBot - hPx;
-      bars += '<rect x="' + x.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + colW.toFixed(2) + '" height="' + Math.max(0, hPx).toFixed(2) + '" fill="' + relCatColor(k) + '"/>';
-      topPts.push({ x: x + colW / 2, total: v });
-    });
-
-    const medY = H - padBot - (med / maxSerie) * usableH;
-    const mmPontos = mm.map((v, i) => ({
-      x: topPts[i].x,
-      y: H - padBot - (v / maxSerie) * usableH
+    const serie = historico.map(h => ({
+      ym: h.ym,
+      valor: (h.porCat[k] && h.porCat[k].total) || 0
     }));
-    const mmPath = relBezierPath(mmPontos);
+    const d = _relPainelDados(serie, ymHoje);
+    if (!d.temDado) return '';
+    const cor = relCatColor(k);
+    const emMil = d.max >= 1000;
+    if (emMil) algumEmMil = true;
 
-    let trendCls = 'flat', trendTxt = '→ estável';
-    if (mm.length >= 2 && mm[0] > 0) {
-      const delta = (mm[mm.length - 1] - mm[0]) / mm[0];
-      if (delta > 0.05) { trendCls = 'up'; trendTxt = '↑ ' + (delta * 100).toFixed(0) + '%'; }
-      else if (delta < -0.05) { trendCls = 'down'; trendTxt = '↓ ' + (Math.abs(delta) * 100).toFixed(0) + '%'; }
+    const fechados = d.meses.filter(x => !x.parcial).map(x => x.valor);
+    let trendCls = 'flat', trendTxt = '';
+    if (fechados.length >= 3) {
+      const mm = relMediaMovel(fechados, 3);
+      trendTxt = '-> estavel';
+      if (mm[0] > 0) {
+        const delta = (mm[mm.length - 1] - mm[0]) / mm[0];
+        if (delta > 0.05) {
+          trendCls = 'up'; trendTxt = '\u2191 ' + (delta * 100).toFixed(0) + '% no periodo';
+        } else if (delta < -0.05) {
+          trendCls = 'down'; trendTxt = '\u2193 ' + (Math.abs(delta) * 100).toFixed(0) + '% no periodo';
+        } else {
+          trendTxt = '\u2192 estavel';
+        }
+      }
     }
 
-    return `
-      <div class="rel-small">
-        <div class="rel-small-title">
-          <span class="rs-dot" style="background:${relCatColor(k)};"></span>${escapeHtml(m.nome)}
-        </div>
-        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-          ${bars}
-          <line x1="${padL}" y1="${medY.toFixed(2)}" x2="${W - padR}" y2="${medY.toFixed(2)}"
-            stroke="var(--ink)" stroke-width="0.7" stroke-dasharray="1.5,2" opacity="0.5"/>
-          <path d="${mmPath}" stroke="var(--ink)" stroke-width="0.9" fill="none"
-            stroke-linecap="round" opacity="0.7"/>
-        </svg>
-        <div class="rel-small-foot">
-          <span>med ${_relFmtBR(med)}</span>
-          <span class="rs-trend ${trendCls}">${escapeHtml(trendTxt)}</span>
-        </div>
-      </div>
-    `;
+    const medLabel = d.media !== null
+      ? 'media ' + _relFmtBR(d.media)
+      : 'nenhum mes fechado no periodo';
+
+    return '<div class="rel-pnl">' +
+      '<div class="rel-pnl-head">' +
+        '<div class="rel-pnl-nome"><span class="rp-dot" style="background:' + cor + ';"></span>' +
+          escapeHtml(m.nome) + '</div>' +
+        '<div class="rel-pnl-med">' + escapeHtml(medLabel) + '</div>' +
+      '</div>' +
+      _relPainelSvgHtml(d, k, cor) +
+      '<div class="rel-pnl-foot">' +
+        '<span>total ' + _relFmtBR(d.total) + (emMil ? ' &middot; colunas em mil' : '') + '</span>' +
+        (trendTxt ? '<span class="rp-trend ' + trendCls + '">' + escapeHtml(trendTxt) + '</span>' : '') +
+      '</div>' +
+    '</div>';
   }).join('');
 
-  return `
-    <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">🔍</span> por categoria · histórico individual</div>
-      <div class="rel-smalls">${cardsHtml}</div>
-    </div>
-  `;
+  if (!paineis) return '';
+
+  const nota = 'Cada painel tem escala propria — a comparacao aqui e do mes contra os outros meses da mesma categoria. ' +
+    'Coluna tracejada = media dos meses fechados; o mes em curso aparece hachurado e fica fora da media.';
+
+  return '<div class="rel-section">' +
+    '<div class="rel-section-title"><span class="rst-icon">\ud83d\udcca</span> cada categoria, mes a mes</div>' +
+    '<div class="rel-pnl-nota">' + escapeHtml(nota) + '</div>' +
+    '<div class="rel-pnls">' + paineis + '</div>' +
+  '</div>';
+}
+
+/* drill de uma coluna: gastos daquela categoria naquele mes.
+   Usa _relGastoConta — o MESMO filtro que alimenta porCat[k].total,
+   entao a lista sempre fecha com a altura da coluna. */
+function _relDrillCatMes(catKey, ym) {
+  const gastos = state.gastos.filter(g =>
+    g.categoria === catKey && g.ym === ym && _relGastoConta(g)
+  );
+  const m = state.members[catKey] || {};
+  const titulo = (m.nome || catKey) + ' - ' +
+    MESES_PT[Number(ym.split('-')[1]) - 1] + '/' + ym.split('-')[0].slice(2);
+  sheet.open(titulo, _relDrillListaHtml(gastos));
 }
 
 function _relSecaoGruposHtml(grupos) {
@@ -10982,6 +11144,12 @@ function _relBindEvents() {
       e.stopPropagation();
       _relDrillInvestTipo(seg.dataset.relInvestTipo, seg.dataset.relInvestValor);
     };
+  });
+  el.querySelectorAll('[data-rel-cat-mes]').forEach(r => {
+    r.addEventListener('click', () => {
+      const parts = (r.getAttribute('data-rel-cat-mes') || '').split('|');
+      if (parts.length === 2) _relDrillCatMes(parts[0], parts[1]);
+    });
   });
   el.querySelectorAll('[data-rel-compromisso]').forEach(el2 => {
     el2.onclick = (e) => {
