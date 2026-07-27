@@ -5097,7 +5097,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.54.0 · Fatia 5f.1 — Relatório Elegante em três blocos: primeiro o mês selecionado, depois a evolução mês a mês por categoria com média, e o consolidado do período só no final; maiores lançamentos agrupados por recorrência (3× aluguel vira uma linha) e rótulo de gasto unificado entre as seções
+  Finança · v0.55.0 · Fatia 5f.2 — histórico mensal da família abre o bloco de evolução e ganha linhas de média de consumo e de investimento; painéis mês a mês também por grupo de gasto (Moradia, Escola, Saúde, Diaristas, Transporte, Viagens); média calculada só sobre meses fechados em todo o documento
 </div>
 
   </section>
@@ -9089,7 +9089,15 @@ window.relatorioElegante = {
       cats.forEach(ck => {
         porCat[ck] = { total: soma(gm.filter(g => g.categoria === ck && _relGastoConta(g))) };
       });
-      return { ym, consumo: cons, invest: inv, porCat: porCat };
+      /* Fatia 5f.2: quebra por subcategoria (Moradia, Escola, Saude...).
+         Mesmo filtro _relGastoConta, entao soma(porSub) == consumo do mes. */
+      const porSub = {};
+      gm.forEach(g => {
+        if (!_relGastoConta(g)) return;
+        const sc = g.subcategoria || '\u2014';
+        porSub[sc] = (porSub[sc] || 0) + (Number(g.valor) || 0);
+      });
+      return { ym, consumo: cons, invest: inv, porCat: porCat, porSub: porSub };
     });
 
     /* por membro (período consolidado) */
@@ -9181,10 +9189,25 @@ window.relatorioElegante = {
     const escMes = this._coletaEscopo(cats, [ctx.ym]);
     const escPer = (ctx.periodo.months > 1) ? this._coletaEscopo(cats, ctx.yms) : null;
 
+    /* Fatia 5f.2 — quais subcategorias ganham painel proprio.
+       Deriva do PROPRIO historico (nao de outra agregacao), entao a soma
+       das colunas de um painel fecha com o total daquela subcategoria. */
+    const somaSub = {};
+    historico.forEach(h => {
+      for (const sc in h.porSub) somaSub[sc] = (somaSub[sc] || 0) + h.porSub[sc];
+    });
+    const corSub = {};
+    (escPer || escMes).subTop.forEach(b => { corSub[b.nome] = b.cor; });
+    const subsPainel = Object.keys(somaSub)
+      .filter(sc => somaSub[sc] > 0)
+      .sort((a, b) => somaSub[b] - somaSub[a])
+      .slice(0, 8)
+      .map(sc => ({ nome: sc, cor: corSub[sc] || '#A8462C' }));
+
     return {
       totalSaidas, consumo, investimento, historico, porMembro,
       subTop, subRestoVal, subRestoN, comp, topGastos, alertas, detalhePorCategoria, listaCronologica,
-      mes: escMes, periodo: escPer, cats: cats
+      mes: escMes, periodo: escPer, cats: cats, subsPainel: subsPainel
     };
   },
 
@@ -9499,9 +9522,12 @@ window.relatorioElegante = {
     let bloco2 = '';
     if (d.historico.length > 1) {
       bloco2 += this._secaoDivisor('\u25d0', 'A evolu\u00e7\u00e3o \u00b7 ' + periodoLabel);
-      bloco2 += this._secaoPainelCategorias(d.historico, d.cats);
+      /* 5f.2: o panorama da familia abre o bloco; so depois vem o detalhe
+         por membro e por grupo de gasto. */
       bloco2 += this._secao('\ud83d\udcc8', 'Sa\u00eddas da fam\u00edlia \u00b7 hist\u00f3rico mensal',
         '<div class="pdf-card no-break">' + this._chColunasMultiMes(d.historico, ctx.ym) + '</div>');
+      bloco2 += this._secaoPainelCategorias(d.historico, d.cats);
+      bloco2 += this._secaoPainelSubcategorias(d.historico, d.subsPainel);
     }
 
     /* ---------- bloco 3: consolidado do periodo ---------- */
@@ -9653,6 +9679,40 @@ window.relatorioElegante = {
       'da mesma categoria. A coluna tracejada e a media dos meses fechados; ' +
       'o mes em curso aparece hachurado e fica fora da media.';
     return this._secao('\ud83d\udcca', 'Cada categoria, mes a mes',
+      '<div class="pdf-card"><div class="pnl-nota">' + this._esc(nota) + '</div>' +
+      cards + '</div>');
+  },
+
+  /* Fatia 5f.2 — mesmo painel, agora por subcategoria (Moradia, Escola,
+     Saude, Diaristas, Transporte, Viagens...). Reusa o mesmo motor. */
+  _secaoPainelSubcategorias(historico, subs) {
+    if (!historico || historico.length < 2 || !subs || !subs.length) return '';
+    const pal = { soft: 'var(--pdf-ink-soft)', mute: 'var(--pdf-ink-mute)',
+                  faint: 'var(--pdf-ink-mute)', linha: 'var(--pdf-border)' };
+    const ymHoje = (typeof currentYM === 'function') ? currentYM() : '9999-99';
+
+    const cards = subs.map(sub => {
+      const serie = historico.map(h => ({
+        ym: h.ym, valor: (h.porSub && h.porSub[sub.nome]) || 0
+      }));
+      const d = _relPainelDados(serie, ymHoje);
+      if (!d.temDado) return '';
+      const med = (d.media !== null) ? 'media ' + this._fmt(d.media) : 'nenhum mes fechado';
+      return '<div class="pnl-card">' +
+        '<div class="pnl-head">' +
+          '<span class="pnl-nome" style="color:' + sub.cor + ';">' + this._esc(sub.nome) + '</span>' +
+          '<span class="pnl-med">' + this._esc(med) + '</span>' +
+        '</div>' +
+        _relPainelSvgHtml(d, 'sub', sub.cor, pal) +
+        '<div class="pnl-foot">total do periodo ' + this._fmt(d.total) +
+          (d.max >= 1000 ? ' &middot; colunas em mil' : '') + '</div>' +
+      '</div>';
+    }).join('');
+
+    if (!cards) return '';
+    const nota = 'As maiores subcategorias do periodo, cada uma com escala propria. ' +
+      'Mesma leitura dos paineis por membro: coluna tracejada e a media dos meses fechados.';
+    return this._secao('\ud83c\udff7\ufe0f', 'Cada grupo de gasto, mes a mes',
       '<div class="pdf-card"><div class="pnl-nota">' + this._esc(nota) + '</div>' +
       cards + '</div>');
   },
@@ -9827,6 +9887,16 @@ window.relatorioElegante = {
     const espaco = (W - 60) / dados.length;
     const larg = Math.min(64, espaco * 0.6);
 
+    /* Fatia 5f.2 — medias mensais. Mesma regra dos paineis por categoria:
+       so meses fechados entram no calculo, senao o mes em curso (parcial)
+       puxaria a media pra baixo e faria meses normais parecerem altos. */
+    const ymHoje = (typeof currentYM === 'function') ? currentYM() : '9999-99';
+    const fechados = dados.filter(d => d.ym < ymHoje);
+    const temMedia = fechados.length > 0;
+    const medC = temMedia ? fechados.reduce((a, d) => a + d.consumo, 0) / fechados.length : 0;
+    const medI = temMedia ? fechados.reduce((a, d) => a + d.invest, 0) / fechados.length : 0;
+    const medT = medC + medI;
+
     const grupos = dados.map((d, i) => {
       const cx = 50 + espaco * i + espaco / 2;
       const x = cx - larg / 2;
@@ -9834,12 +9904,13 @@ window.relatorioElegante = {
       const yC = yBase - hC, yI = yC - hI;
       const tot = d.consumo + d.invest;
       const atual = d.ym === ymAtual;
+      const parcial = !(d.ym < ymHoje);
       return `
         ${atual ? `<rect x="${(x - 1).toFixed(1)}" y="${(yI - 2).toFixed(1)}" width="${larg + 2}" height="${(hC + hI + 4).toFixed(1)}" rx="4" fill="none" stroke="#1E3A5F" stroke-width="1.5" opacity=".35"/>` : ''}
         <rect x="${x.toFixed(1)}" y="${yC.toFixed(1)}" width="${larg.toFixed(1)}" height="${hC.toFixed(1)}" rx="3" fill="#A8462C" opacity="${atual ? 1 : .82}"/>
         <rect x="${x.toFixed(1)}" y="${yI.toFixed(1)}" width="${larg.toFixed(1)}" height="${hI.toFixed(1)}" rx="3" fill="#1E3A5F" opacity="${atual ? 1 : .82}"/>
         <text x="${cx.toFixed(1)}" y="${(yI - 5).toFixed(1)}" text-anchor="middle" font-size="${atual ? 10 : 9}" font-weight="${atual ? 700 : 600}" fill="${atual ? '#14120E' : '#3D3A33'}">${this._fmtK(tot)}</text>
-        <text x="${cx.toFixed(1)}" y="${(yBase + 14).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="${atual ? 700 : 500}" fill="${atual ? '#14120E' : '#3D3A33'}">${this._mesAbbr(d.ym)}${atual ? ' ●' : ''}</text>`;
+        <text x="${cx.toFixed(1)}" y="${(yBase + 14).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="${atual ? 700 : 500}" fill="${atual ? '#14120E' : '#3D3A33'}">${this._mesAbbr(d.ym)}${parcial ? ' \u25cb' : ''}</text>`;
     }).join('');
 
     const grade = [0.25, 0.5, 0.75].map(f => {
@@ -9848,17 +9919,35 @@ window.relatorioElegante = {
         <text x="42" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="8" fill="#807A6E">${this._fmtK(maxVal * f)}</text>`;
     }).join('');
 
+    let linhasMedia = '';
+    if (temMedia) {
+      const yC = yBase - medC * escala;
+      const yT = yBase - medT * escala;
+      linhasMedia += `<line x1="45" y1="${yT.toFixed(1)}" x2="${W - 10}" y2="${yT.toFixed(1)}" stroke="#1E3A5F" stroke-width="1" stroke-dasharray="5,3" opacity=".75"/>
+        <text x="${W - 12}" y="${(yT - 4).toFixed(1)}" text-anchor="end" font-size="8" fill="#1E3A5F" font-weight="600">m\u00e9dia total ${this._fmtK(medT)}</text>`;
+      if (medI > 0) {
+        linhasMedia += `<line x1="45" y1="${yC.toFixed(1)}" x2="${W - 10}" y2="${yC.toFixed(1)}" stroke="#A8462C" stroke-width="1" stroke-dasharray="5,3" opacity=".75"/>
+          <text x="${W - 12}" y="${(yC - 4).toFixed(1)}" text-anchor="end" font-size="8" fill="#A8462C" font-weight="600">m\u00e9dia consumo ${this._fmtK(medC)}</text>`;
+      }
+    }
+
     const svgH = yBase + 32;
+    const legMedia = temMedia
+      ? `<text x="${W - 12}" y="${svgH - 6}" text-anchor="end" font-size="8.5" fill="#807A6E" font-weight="500">m\u00e9dia/m\u00eas \u00b7 consumo ${this._fmt(medC)} \u00b7 investimentos ${this._fmt(medI)}</text>`
+      : '';
     return `<svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">
       ${grade}
       <line x1="45" y1="${yBase}" x2="${W - 10}" y2="${yBase}" stroke="#DDD9CE" stroke-width="0.8"/>
+      ${linhasMedia}
       ${grupos}
       <rect x="50" y="${svgH - 11}" width="8" height="6" rx="1" fill="#A8462C" opacity=".85"/>
       <text x="62" y="${svgH - 6}" font-size="8.5" fill="#807A6E" font-weight="500">Consumo</text>
       <rect x="125" y="${svgH - 11}" width="8" height="6" rx="1" fill="#1E3A5F" opacity=".85"/>
       <text x="137" y="${svgH - 6}" font-size="8.5" fill="#807A6E" font-weight="500">Investimentos</text>
+      ${legMedia}
     </svg>`;
   },
+
 
   /* fluxo multi-mês: entradas (verde) vs saídas+invest (terracota+navy stacked) */
   _chFluxoMultiMes(dados, ymAtual) {
