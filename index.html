@@ -2669,6 +2669,25 @@ label {
 /* v0.27.0 (Fatia 5e) — Botão "Ver extrato do mês" (irmão do compromissos-btn,
    tonalidade navy de "ferramenta de conferência"). Margem inferior generosa
    pra não colar na bottom-nav nem ficar embaixo do FAB. */
+.extrato-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: 2px 0 12px; padding-bottom: 2px;
+}
+.extrato-chip {
+  flex: 0 0 auto; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink-soft);
+  border-radius: 999px; padding: 6px 12px;
+  font-size: 12.5px; font-weight: 600; font-family: inherit;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.extrato-chip.on {
+  background: var(--chip-cor, var(--ink));
+  border-color: var(--chip-cor, var(--ink));
+  color: #fff;
+}
+.extrato-chip.geral { font-weight: 700; }
+.extrato-chip.geral.on { background: var(--ink); border-color: var(--ink); }
 .extrato-btn {
   display: flex;
   align-items: center;
@@ -5097,7 +5116,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.55.0 · Fatia 5f.2 — histórico mensal da família abre o bloco de evolução e ganha linhas de média de consumo e de investimento; painéis mês a mês também por grupo de gasto (Moradia, Escola, Saúde, Diaristas, Transporte, Viagens); média calculada só sobre meses fechados em todo o documento
+  Finança · v0.56.0 · Fatia 5g — extrato por categoria: o botão da família abre o extrato da aba aberta (Casa, Marina, Heitor ou Juliana) e dentro da folha os chips trocam de membro ou abrem o extrato geral, preservando mês e busca
 </div>
 
   </section>
@@ -5807,7 +5826,14 @@ document.querySelectorAll('[data-compromissos]').forEach(btn => {
 
 /* v0.27.0 (Fatia 5e) — Bind dos botões "Ver extrato do mês" em Família e Tiago */
 document.querySelectorAll('[data-extrato]').forEach(btn => {
-  btn.addEventListener('click', () => openExtratoSheet(btn.dataset.extrato));
+  btn.addEventListener('click', () => {
+    /* Fatia 5g: na familia o botao abre a categoria ABERTA, nao o geral.
+       O geral segue a um toque, no chip "Todos" dentro da folha. */
+    const alvo = (btn.dataset.extrato === 'familia')
+      ? (activeFamiliaTab || 'familia')
+      : btn.dataset.extrato;
+    openExtratoSheet(alvo);
+  });
 });
 
 /* ====== Família — sub-tabs (Casa/Marina/Heitor/Juliana) ====== */
@@ -5918,6 +5944,16 @@ function renderFamiliaTotalConsolidado() {
   }
 }
 
+/* Fatia 5g — o rotulo do botao diz de quem e o extrato que vai abrir.
+   Sem isso o usuario nao teria como saber que o escopo mudou. */
+function _atualizaBotaoExtratoFamilia() {
+  const btn = document.querySelector('[data-extrato="familia"]');
+  if (!btn) return;
+  const m = (state.members || {})[activeFamiliaTab];
+  const nome = (m && m.nome) || 'fam\u00edlia';
+  btn.textContent = '\ud83e\uddfe Ver extrato de ' + nome + ' \u00b7 no m\u00eas';
+}
+
 function renderFamiliaSubtabs() {
   const host = document.getElementById('familiaSubtabs');
   const ordem = ['casa', 'marina', 'heitor', 'juliana'];
@@ -5938,6 +5974,7 @@ function renderFamiliaSubtabs() {
   /* Total consolidado da família (acima das tabs) e conteúdo da aba ativa */
   renderFamiliaTotalConsolidado();
   renderFamiliaContent();
+  _atualizaBotaoExtratoFamilia();
 }
 
 /* =========================================================================
@@ -13575,16 +13612,60 @@ function _rel4BindEvents() {
    ============================================================ */
 let extratoSheetState = null;
 
+const EXTRATO_CATS_FAMILIA = ['casa', 'marina', 'heitor', 'juliana'];
+
+/* Fatia 5g — escopo do extrato passa a aceitar TRES formas:
+     'tiago'   -> so a categoria isolada do Tiago
+     'familia' -> os quatro membros juntos (o extrato geral)
+     'casa' | 'marina' | 'heitor' | 'juliana' -> uma categoria so */
 function _extratoCats(escopo) {
-  return (escopo === 'tiago') ? ['tiago'] : ['casa', 'marina', 'heitor', 'juliana'];
+  if (escopo === 'tiago') return ['tiago'];
+  if (escopo === 'familia') return EXTRATO_CATS_FAMILIA.slice();
+  if (EXTRATO_CATS_FAMILIA.indexOf(escopo) >= 0) return [escopo];
+  return EXTRATO_CATS_FAMILIA.slice();
+}
+
+function _extratoTitulo(escopo) {
+  if (escopo === 'tiago') return 'Extrato \u00b7 Tiago';
+  if (escopo === 'familia') return 'Extrato geral \u00b7 Fam\u00edlia';
+  const m = (state.members || {})[escopo];
+  return 'Extrato \u00b7 ' + ((m && m.nome) || escopo);
 }
 
 function openExtratoSheet(escopo) {
   const ym = (escopo === 'tiago') ? tiagoCurrentYM : famCurrentYM;
   extratoSheetState = { escopo, ym, busca: '' };
-  const titulo = (escopo === 'tiago') ? 'Extrato · Tiago' : 'Extrato · Família';
-  sheet.open(titulo, _extratoBodyHtml());
+  sheet.open(_extratoTitulo(escopo), _extratoBodyHtml());
   _extratoBind();
+}
+
+/* Troca de escopo sem fechar a folha: preserva o mes e o texto da busca,
+   entao da pra procurar "padaria" e ir passando de membro em membro. */
+function _extratoTrocarEscopo(novo) {
+  if (!novo || novo === extratoSheetState.escopo) return;
+  extratoSheetState.escopo = novo;
+  if (sheet.body) sheet.body.innerHTML = _extratoBodyHtml();
+  const t = document.querySelector('.sheet-title');
+  if (t) t.textContent = _extratoTitulo(novo);
+  _extratoBind();
+}
+
+/* Chips de escopo — so na familia. O Tiago e isolado por definicao
+   e nunca soma com os outros, entao pivotar ali nao faria sentido. */
+function _extratoChipsHtml() {
+  const esc = extratoSheetState.escopo;
+  if (esc === 'tiago') return '';
+  const chips = EXTRATO_CATS_FAMILIA.map(k => {
+    const m = (state.members || {})[k];
+    if (!m) return '';
+    const on = (esc === k) ? ' on' : '';
+    return '<button class="extrato-chip' + on + '" data-extrato-esc="' + k + '"' +
+      ' style="--chip-cor:' + (m.cor || '#888') + ';">' + escapeHtml(m.nome) + '</button>';
+  }).join('');
+  const onGeral = (esc === 'familia') ? ' on' : '';
+  return '<div class="extrato-chips">' + chips +
+    '<button class="extrato-chip geral' + onGeral + '" data-extrato-esc="familia">' +
+    '\ud83c\udfe6 Todos</button></div>';
 }
 
 /* Todos os gastos do escopo+mês corrente do extrato (exclui só ajustes
@@ -13628,6 +13709,7 @@ function _extratoBodyHtml() {
       <div class="month-label">${escapeHtml(_extratoMesLabel())}</div>
       <button data-extrato-next aria-label="Próximo mês">›</button>
     </div>
+    ${_extratoChipsHtml()}
     <div class="extrato-sheet-head">
       <div class="extrato-sheet-total" id="extratoTotal">${_relFmtBR(total)}</div>
       <div class="extrato-sheet-count" id="extratoCount">${filtrados.length} de ${todos.length} lançamento${plural}</div>
@@ -13669,6 +13751,9 @@ function _extratoBind() {
   const next = document.querySelector('[data-extrato-next]');
   if (prev) prev.onclick = () => { extratoSheetState.ym = ymPrev(extratoSheetState.ym); sheet.body.innerHTML = _extratoBodyHtml(); _extratoBind(); };
   if (next) next.onclick = () => { extratoSheetState.ym = ymNext(extratoSheetState.ym); sheet.body.innerHTML = _extratoBodyHtml(); _extratoBind(); };
+  document.querySelectorAll('[data-extrato-esc]').forEach(c => {
+    c.onclick = () => _extratoTrocarEscopo(c.dataset.extratoEsc);
+  });
   const busca = document.getElementById('extratoBusca');
   if (busca) busca.oninput = () => { extratoSheetState.busca = busca.value; _extratoAtualizarLista(); };
   _extratoBindLinhas();
