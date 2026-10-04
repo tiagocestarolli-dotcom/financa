@@ -5116,7 +5116,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.56.0 · Fatia 5g — extrato por categoria: o botão da família abre o extrato da aba aberta (Casa, Marina, Heitor ou Juliana) e dentro da folha os chips trocam de membro ou abrem o extrato geral, preservando mês e busca
+  Finança · v0.56.1 · Patch fatura Itaú Master Black: leitura por colunas recupera lançamentos que dividiam linha com Limites/Encargos, vencimento lido do PDF e conferência com o total da fatura na revisão
 </div>
 
   </section>
@@ -17121,7 +17121,7 @@ function openImportarFaturaSheet(cardId) {
       statusEl.querySelector('.pl-status').innerHTML = `Identificando lançamentos…<br><span style="font-size:11px;color:var(--ink-faint);">Banco: ${escapeHtml(bancoLabel)}</span>`;
       await new Promise(r => setTimeout(r, 50));
 
-      const { lancs } = parseFatura(texto, banco, pdfItems);
+      const { lancs, meta } = parseFatura(texto, banco, pdfItems);
       console.log(`[Finança] Banco detectado: ${bancoLabel} · ${lancs.length} lançamentos`);
 
       if (lancs.length === 0) {
@@ -17136,7 +17136,7 @@ function openImportarFaturaSheet(cardId) {
       }
 
       sheet.close();
-      setTimeout(() => openRevisaoFaturaSheet(lancs, cardId), 250);
+      setTimeout(() => openRevisaoFaturaSheet(lancs, cardId, meta), 250);
 
     } catch (err) {
       console.error('Erro ao processar PDF:', err);
@@ -17253,7 +17253,13 @@ function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
      v0.13.0 (Fatia 3.3): BTG Pactual usa parser dedicado — layout 3-col em
      case-mista, com ordem "VALOR DESC DATA" no texto agrupado. */
   let lancs;
+  /* v0.56.1: debug zerado a cada importação (evita exibir o de uma fatura anterior) */
+  if (typeof window !== 'undefined') window.__faturaDebug = null;
+  const meta = String(banco).startsWith('itau') ? extrairMetaFaturaItau(textoBruto) : null;
   switch (banco) {
+    case 'itau-mc-black':
+      lancs = parserItauMCBlack(textoBruto, pdfItems, meta ? meta.lancamentosAtuais : null);
+      break;
     case 'itau-visa-infinite':
       lancs = parserItauVisaInfinite(textoBruto, pdfItems);
       break;
@@ -17263,14 +17269,14 @@ function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
     case 'btg':
       lancs = parserBTG(textoBruto, pdfItems);
       break;
-    case 'itau-mc-black':
     case 'itau-generico':
     case 'generico':
     default:
       lancs = parserGenericoFatura(textoBruto);
       break;
   }
-  return { banco, lancs };
+  if (meta && meta.vencimento) ajustarAnoPorVencimento(lancs, meta.vencimento);
+  return { banco, lancs, meta };
 }
 
 /* ============== Parser especializado: Itaú Visa Infinite (v0.10.1 — Fatia 3.1) ==============
@@ -17305,7 +17311,12 @@ function normalizarFragmentacaoPDFJS(linha) {
   return linha;
 }
 
-function reorganizarColunasItau(items) {
+function reorganizarColunasItau(items, opts) {
+  /* v0.56.1: opts.ancoraColuna (RegExp, opcional) — itens cujo texto casa
+     viram base de coluna além das datas. Necessário quando a coluna da
+     direita não tem datas (MC Black: quadros "Limites" e "Encargos").
+     Sem opts, comportamento idêntico ao anterior (Visa Infinite). */
+  const ANCORA_COL_RX = opts && opts.ancoraColuna ? opts.ancoraColuna : null;
   const DATA_RX = /^\d{1,2}\/\d{1,2}$/;
   /* Detecta a convenção de Y do PDF: o PDF.js entrega Y no sistema nativo do
      PDF (origem inferior esquerda, Y aumenta pra cima). Pra ordenar items
@@ -17375,8 +17386,13 @@ function reorganizarColunasItau(items) {
        aparecem em Xs únicos e ficam de fora */
     const candidatos = [...xsFreq.entries()]
       .filter(([, c]) => c >= 3)
-      .map(([x]) => x)
-      .sort((a, b) => a - b);
+      .map(([x]) => x);
+    if (ANCORA_COL_RX) {
+      for (const it of pageItems) {
+        if (ANCORA_COL_RX.test((it.text || '').trim())) candidatos.push(Math.round(it.x));
+      }
+    }
+    candidatos.sort((a, b) => a - b);
     let bases;
     if (candidatos.length === 0) {
       const minX = pageItems.reduce((m, i) => Math.min(m, i.x), Infinity);
@@ -17961,6 +17977,82 @@ function parserBTG(textoBruto, pdfItems) {
    Detecta parcelas X/Y no final da descrição.
    Detecta seção "Compras parceladas - próximas faturas" e PARA a captura
    ali (caso contrário, faturas Itaú trazem parcelas futuras infladas). */
+/* ============== Parser Itaú Mastercard Black (v0.56.1) ==============
+   Bug (fatura set/2026, com cartão adicional): lançamentos da coluna da
+   esquerda caíam na mesma linha (Y) dos quadros "Limites de crédito" e
+   "Encargos cobrados" da coluna da direita. O genérico lia a linha inteira
+   e o filtro de palavras-chave ("limite", "juros", "IOF", "encargos")
+   descartava o lançamento junto — 4 perdidos, R$ 189,89.
+   Dual-mode:
+     A = reorganiza por coluna (âncora: cabeçalhos "Lançamentos: compras e
+         saques", um em cada coluna) + genérico
+     B = genérico sobre o texto bruto (comportamento até v0.56.0)
+   Vence o modo cuja soma fica mais perto de "Lançamentos atuais" do PDF;
+   empate ou sem referência → A. */
+function parserItauMCBlack(textoBruto, pdfItems, refTotal) {
+  const ANCORA = /^Lan\s*[çc]\s*amentos:\s*compras\s+e\s+saques/i;
+  const soma = ls => Math.round(ls.reduce((s, l) => s + (l.valor || 0), 0) * 100) / 100;
+  const lancsB = parserGenericoFatura(textoBruto);
+  const temAncora = (pdfItems || []).some(it => ANCORA.test((it.text || '').trim()));
+  let lancsA = null;
+  if (temAncora) {
+    try { lancsA = parserGenericoFatura(reorganizarColunasItau(pdfItems, { ancoraColuna: ANCORA })); }
+    catch (e) { lancsA = null; }
+  }
+  let modo = 'B', lancs = lancsB;
+  if (lancsA && lancsA.length) {
+    if (refTotal == null || Math.abs(soma(lancsA) - refTotal) <= Math.abs(soma(lancsB) - refTotal)) {
+      modo = 'A'; lancs = lancsA;
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.__faturaDebug = {
+      parser: 'itau-mc-black',
+      modo: 'modo ' + modo + (lancsA ? ` (A ${lancsA.length}/R$ ${soma(lancsA).toFixed(2)} · B ${lancsB.length}/R$ ${soma(lancsB).toFixed(2)})` : ' (sem âncora)'),
+      items: (pdfItems || []).length,
+      capturados: lancs.length,
+      somaTotal: soma(lancs)
+    };
+  }
+  return lancs;
+}
+
+/* v0.56.1: dados do cabeçalho da fatura Itaú (texto bruto PDF.js).
+   vencimento → pré-preenche a tela de revisão (antes: dia do cartão + mês de hoje).
+   lancamentosAtuais → referência de conferência ("L Lançamentos atuais"). */
+function extrairMetaFaturaItau(textoBruto) {
+  const t = textoBruto || '';
+  const meta = { vencimento: null, lancamentosAtuais: null, totalFatura: null };
+  const mv = t.match(/Vencimento:\s*(\d{2})\/(\d{2})\/(\d{4})/i)
+          || t.match(/Com\s+vencimento\s+em:[\s\S]{0,160}?(\d{2})\/(\d{2})\/(\d{4})/i);
+  if (mv) {
+    const d = +mv[1], m = +mv[2], y = +mv[3];
+    if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000 && y <= 2100) {
+      meta.vencimento = `${mv[3]}-${mv[2]}-${mv[1]}`;
+    }
+  }
+  const ml = t.match(/Lan\s*[çc]\s*amentos\s+atuais\s+([\d.]+,\d{2})/i);
+  if (ml) meta.lancamentosAtuais = parseValor(ml[1]);
+  const mt = t.match(/Total\s+desta\s+fatura\s+([\d.]+,\d{2})/i);
+  if (mt) meta.totalFatura = parseValor(mt[1]);
+  return meta;
+}
+
+/* v0.56.1: ano da compra derivado do vencimento da fatura, não do relógio.
+   Compra com mês > mês do vencimento é do ano anterior (ex.: compra 28/12
+   numa fatura que vence 04/01 → ano anterior). */
+function ajustarAnoPorVencimento(lancs, vencISO) {
+  const [vY, vM] = vencISO.split('-').map(Number);
+  if (!vY || !vM) return;
+  for (const l of lancs) {
+    const [, mm, dd] = (l.data || '').split('-');
+    if (!mm || !dd) continue;
+    const ano = Number(mm) > vM ? vY - 1 : vY;
+    l.data = `${ano}-${mm}-${dd}`;
+    l.ym = `${ano}-${mm}`;
+  }
+}
+
 function parserGenericoFatura(textoBruto) {
   const linhas = textoBruto.split('\n').map(l => l.trim()).filter(Boolean);
   const MESES = {
@@ -18082,7 +18174,7 @@ function parserGenericoFatura(textoBruto) {
 }
 
 /* Tela de revisão dos lançamentos extraídos. */
-function openRevisaoFaturaSheet(lancs, cardId) {
+function openRevisaoFaturaSheet(lancs, cardId, meta = null) {
   const card = state.cards.find(c => c.id === cardId);
   if (!card) return;
 
@@ -18108,7 +18200,9 @@ function openRevisaoFaturaSheet(lancs, cardId) {
 
   /* Data de vencimento default = próxima data com base no dia de vencimento cadastrado no cartão.
      O usuário pode ajustar manualmente na tela de revisão. */
-  const dataVencimento = calcularProximoVencimento(card.vencimento, todayISO());
+  /* v0.56.1: vencimento lido do PDF tem prioridade; heurística só como fallback */
+  const vencPDF = meta && meta.vencimento ? meta.vencimento : null;
+  const dataVencimento = vencPDF || calcularProximoVencimento(card.vencimento, todayISO());
 
   revisaoState = {
     lancs,
@@ -18117,7 +18211,9 @@ function openRevisaoFaturaSheet(lancs, cardId) {
     cardName: card.nome,
     mostrarSomentePendentes: true,
     autoAplicados,
-    dataVencimento
+    dataVencimento,
+    vencimentoOrigem: vencPDF ? 'pdf' : 'estimado',
+    metaPDF: meta || null
   };
 
   renderRevisao();
@@ -18151,6 +18247,16 @@ function renderRevisao() {
       <div style="font-size:13px;line-height:1.55;">
         <strong>${escapeHtml(cardName)}</strong> · ${ativos.length} ${ativos.length === 1 ? 'lançamento' : 'lançamentos'} · total ${fmtBRL(totalValor)}<br>
         <span class="muted">${atribuidos.length} identificados${autoAplicados > 0 ? ` (${autoAplicados} via alias)` : ''} · ${pendentes.length} pendentes</span>
+        ${(() => {
+          /* v0.56.1: conferência contra "Lançamentos atuais" do PDF */
+          const ref = revisaoState.metaPDF ? revisaoState.metaPDF.lancamentosAtuais : null;
+          if (ref == null) return '';
+          const diff = Math.round((totalValor - ref) * 100) / 100;
+          if (Math.abs(diff) < 0.01) {
+            return `<br><span style="color:var(--flow-in);font-weight:600;">✓ confere com o PDF (lançamentos atuais ${fmtBRL(ref)})</span>`;
+          }
+          return `<br><span style="color:var(--flow-out);font-weight:600;">⚠ PDF: lançamentos atuais ${fmtBRL(ref)} · diferença ${diff > 0 ? '+' : '−'}${fmtBRL(Math.abs(diff))}</span>`;
+        })()}
         <br><span class="muted" style="font-size:10.5px;font-family:var(--font-mono);">${(() => {
           try {
             const d = window.__faturaDebug;
@@ -18173,7 +18279,7 @@ function renderRevisao() {
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <label style="font-size:11.5px;color:var(--ink-soft);font-weight:600;letter-spacing:0.02em;text-transform:uppercase;margin:0;">Vencimento</label>
         <input type="date" id="dataVencimentoInput" value="${dataVencimento}" style="padding:6px 10px;border:1.5px solid ${corCard};border-radius:8px;font-size:13px;font-family:var(--font-mono);background:var(--bg);color:var(--ink);">
-        <span style="font-size:11px;color:var(--ink-mute);font-family:var(--font-display);font-style:italic;flex:1;min-width:140px;">→ todos os gastos entram em ${vencMesLabel}</span>
+        <span style="font-size:11px;color:var(--ink-mute);font-family:var(--font-display);font-style:italic;flex:1;min-width:140px;">→ todos os gastos entram em ${vencMesLabel}${revisaoState.vencimentoOrigem === 'pdf' ? ' · lido do PDF' : revisaoState.vencimentoOrigem === 'estimado' ? ' · estimado, confira' : ''}</span>
       </div>
     </div>
 
@@ -18210,6 +18316,7 @@ function renderRevisao() {
       const novo = ev.target.value;
       if (!novo) { ev.target.value = revisaoState.dataVencimento; return; }
       revisaoState.dataVencimento = novo;
+      revisaoState.vencimentoOrigem = 'manual';
       renderRevisao();
     };
   }
