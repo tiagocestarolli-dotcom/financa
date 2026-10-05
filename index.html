@@ -5116,7 +5116,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.56.1 · Patch fatura Itaú Master Black: leitura por colunas recupera lançamentos que dividiam linha com Limites/Encargos, vencimento lido do PDF e conferência com o total da fatura na revisão
+  Finança · v0.56.2 · Patch fatura Itaú Visa Infinite: colunas reconhecidas pelos títulos de seção, corte de parcelas futuras só na própria coluna, parcela colada no nome, estorno anula a compra da mesma fatura e IOF internacional entra como lançamento
 </div>
 
   </section>
@@ -17261,7 +17261,7 @@ function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
       lancs = parserItauMCBlack(textoBruto, pdfItems, meta ? meta.lancamentosAtuais : null);
       break;
     case 'itau-visa-infinite':
-      lancs = parserItauVisaInfinite(textoBruto, pdfItems);
+      lancs = parserItauVisaInfinite(textoBruto, pdfItems, meta ? meta.lancamentosAtuais : null);
       break;
     case 'sicoob':
       lancs = parserSicoob(textoBruto, pdfItems);
@@ -17275,6 +17275,7 @@ function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
       lancs = parserGenericoFatura(textoBruto);
       break;
   }
+  if (meta) meta.notas = (lancs && lancs.notasImport) ? lancs.notasImport.slice() : [];
   if (meta && meta.vencimento) ajustarAnoPorVencimento(lancs, meta.vencimento);
   return { banco, lancs, meta };
 }
@@ -17317,6 +17318,11 @@ function reorganizarColunasItau(items, opts) {
      direita não tem datas (MC Black: quadros "Limites" e "Encargos").
      Sem opts, comportamento idêntico ao anterior (Visa Infinite). */
   const ANCORA_COL_RX = opts && opts.ancoraColuna ? opts.ancoraColuna : null;
+  /* v0.56.2: opts.cortePorColuna — o marcador "Compras parceladas - próximas
+     faturas" só corta a COLUNA onde ele está. Antes o corte valia pra página
+     inteira: com o marcador no meio da coluna direita, os lançamentos da
+     coluna esquerda abaixo dele sumiam (Visa Infinite set/26: 5 perdidos). */
+  const CORTE_POR_COLUNA = !!(opts && opts.cortePorColuna);
   const DATA_RX = /^\d{1,2}\/\d{1,2}$/;
   /* Detecta a convenção de Y do PDF: o PDF.js entrega Y no sistema nativo do
      PDF (origem inferior esquerda, Y aumenta pra cima). Pra ordenar items
@@ -17359,7 +17365,7 @@ function reorganizarColunasItau(items, opts) {
     const marker = candidatos.reduce((acc, it) =>
       sentidoY === 'desc' ? (it.y > acc.y ? it : acc) : (it.y < acc.y ? it : acc)
     );
-    return { y: marker.y, sentido: sentidoY };
+    return { y: marker.y, x: marker.x, sentido: sentidoY };
   }
 
   let textoFinal = '';
@@ -17368,7 +17374,7 @@ function reorganizarColunasItau(items, opts) {
     const allPageItems = paginas.get(pageNum);
     /* Aplica corte de parcelas futuras */
     const corte = corteParcelas(allPageItems);
-    const pageItems = corte
+    const pageItems = (corte && !CORTE_POR_COLUNA)
       ? allPageItems.filter(it =>
           corte.sentido === 'desc' ? it.y >= corte.y : it.y <= corte.y
         )
@@ -17412,6 +17418,15 @@ function reorganizarColunasItau(items, opts) {
       }
       cols[colIdx].push(it);
     }
+    if (corte && CORTE_POR_COLUNA) {
+      let ci = 0;
+      for (let i = bases.length - 1; i >= 0; i--) {
+        if (corte.x >= bases[i] - 20) { ci = i; break; }
+      }
+      cols[ci] = cols[ci].filter(it =>
+        corte.sentido === 'desc' ? it.y >= corte.y : it.y <= corte.y
+      );
+    }
     /* Gerar texto de cada coluna: agrupar por Y (tol 2), ordenar X dentro,
        ordenar linhas com cmpY (descendente em PDF.js, ascendente em screen-Y) */
     for (const colItems of cols) {
@@ -17434,11 +17449,83 @@ function reorganizarColunasItau(items, opts) {
   return textoFinal;
 }
 
-function parserItauVisaInfinite(textoBruto, pdfItems) {
+/* v0.56.2: cabeçalhos de seção que abrem coluna nas faturas Itaú (MC Black e
+   Visa Infinite). Viram base de coluna além das datas — necessário quando uma
+   coluna tem menos de 3 datas (ex.: só uma compra internacional). */
+const ITAU_OPTS_COLUNAS = {
+  ancoraColuna: /^(Lan\s*[çc]\s*amentos:\s*compras\s+e\s+saques|Lan\s*[çc]\s*amentos\s+internacionais|Outros\s+lan\s*[çc]\s*amentos|Compras\s+parceladas)/i,
+  cortePorColuna: true
+};
+
+/* v0.56.2 — regras decididas pelo Tiago (out/2026):
+   (a) ESTORNO com compra correspondente NA MESMA FATURA → o par se anula
+       (nenhum dos dois entra). Estorno sem par continua ignorado.
+   (b) "Repasse de IOF em R$" das compras internacionais → entra como
+       lançamento "IOF COMPRA INTERNACIONAL" na data da 1ª compra internacional.
+   Roda sobre o texto já reorganizado em colunas. Devolve as notas pra tela
+   de revisão explicar o que foi ajustado. */
+function posProcessarItau(lancs, texto) {
+  const norm = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+  const notas = [];
+  let out = lancs.slice();
+  const linhas = (texto || '').split('\n');
+  for (const linha of linhas) {
+    const m = linha.trim().match(/^\d{1,2}\/\d{1,2}\s+ESTORNO\s+(.+?)\s+-\s*([\d.]+,\d{2})(?:\s|$)/i);
+    if (!m) continue;
+    const descE = norm(m[1]);
+    const valorE = parseValor(m[2]);
+    if (!descE || !valorE) continue;
+    const idx = out.findIndex(l => Math.abs(l.valor - valorE) < 0.005 &&
+      (norm(l.descricao).startsWith(descE) || descE.startsWith(norm(l.descricao))));
+    if (idx >= 0) {
+      notas.push({ tipo: 'estorno', descricao: out[idx].descricao, valor: valorE });
+      out.splice(idx, 1);
+    }
+  }
+  const inter = out.filter(l => l.internacional).sort((a, b) => a.data.localeCompare(b.data));
+  const dataIOF = inter.length ? inter[0].data : (out.length ? out[out.length - 1].data : null);
+  for (const m of (texto || '').matchAll(/Repasse\s+de\s+IOF\s+em\s+R\$\s*([\d.]+,\d{2})/gi)) {
+    const v = parseValor(m[1]);
+    if (!v || v <= 0 || !dataIOF) continue;
+    out.push({
+      id: uid(),
+      data: dataIOF,
+      ym: dataIOF.slice(0, 7),
+      descricao: 'IOF COMPRA INTERNACIONAL',
+      descricaoBruta: 'IOF COMPRA INTERNACIONAL',
+      valor: v,
+      parcela: null,
+      internacional: true,
+      atribuido: { categoria: null, subcategoria: null, grupoId: null },
+      excluido: false
+    });
+    notas.push({ tipo: 'iof', descricao: 'IOF COMPRA INTERNACIONAL', valor: v });
+  }
+  out.notasImport = notas;
+  return out;
+}
+
+function parserItauVisaInfinite(textoBruto, pdfItems, refTotal = null) {
   /* Se temos items com coordenadas, reorganiza por coluna; senão usa o texto
      bruto direto (cai na heurística do genérico, mais frágil). */
-  const texto = (pdfItems && pdfItems.length) ? reorganizarColunasItau(pdfItems) : textoBruto;
-  const lancs = parserGenericoFatura(texto);
+  /* v0.56.2: dual-mode. N = colunas por âncora de cabeçalho + corte por coluna;
+     L = reorganização legada (até v0.56.1). Vence quem chegar mais perto de
+     "Lançamentos atuais" do PDF; empate ou sem referência → N. */
+  const temItems = !!(pdfItems && pdfItems.length);
+  const somaL = ls => Math.round(ls.reduce((s, l) => s + (l.valor || 0), 0) * 100) / 100;
+  const textoL = temItems ? reorganizarColunasItau(pdfItems) : textoBruto;
+  const lancsL = posProcessarItau(parserGenericoFatura(textoL), textoL);
+  let texto = textoL, lancs = lancsL, modoVI = 'L';
+  if (temItems) {
+    try {
+      const textoN = reorganizarColunasItau(pdfItems, ITAU_OPTS_COLUNAS);
+      const lancsN = posProcessarItau(parserGenericoFatura(textoN), textoN);
+      if (lancsN.length && (refTotal == null ||
+          Math.abs(somaL(lancsN) - refTotal) <= Math.abs(somaL(lancsL) - refTotal))) {
+        texto = textoN; lancs = lancsN; modoVI = 'N';
+      }
+    } catch (e) { /* mantém legado */ }
+  }
 
   /* Marcar como internacional: encontrar a seção "Lançamentos internacionais"
      no texto reorganizado e flagar lançamentos cuja descricaoBruta aparece lá. */
@@ -17469,6 +17556,8 @@ function parserItauVisaInfinite(textoBruto, pdfItems) {
     const internacReorg = linhasReorg.filter(l => /Lan[çc]amentos\s+internacionais/i.test(l)).length;
     if (typeof window !== 'undefined') {
       window.__faturaDebug = {
+        parser: 'itau-visa-infinite',
+        modo: 'modo ' + modoVI + ` (legado ${lancsL.length}/R$ ${somaL(lancsL).toFixed(2)})`,
         items: totalItems,
         matchesRelax,
         matchesAncora,
@@ -17992,11 +18081,14 @@ function parserBTG(textoBruto, pdfItems) {
 function parserItauMCBlack(textoBruto, pdfItems, refTotal) {
   const ANCORA = /^Lan\s*[çc]\s*amentos:\s*compras\s+e\s+saques/i;
   const soma = ls => Math.round(ls.reduce((s, l) => s + (l.valor || 0), 0) * 100) / 100;
-  const lancsB = parserGenericoFatura(textoBruto);
+  const lancsB = posProcessarItau(parserGenericoFatura(textoBruto), textoBruto);
   const temAncora = (pdfItems || []).some(it => ANCORA.test((it.text || '').trim()));
   let lancsA = null;
   if (temAncora) {
-    try { lancsA = parserGenericoFatura(reorganizarColunasItau(pdfItems, { ancoraColuna: ANCORA })); }
+    try {
+      const textoA = reorganizarColunasItau(pdfItems, ITAU_OPTS_COLUNAS);
+      lancsA = posProcessarItau(parserGenericoFatura(textoA), textoA);
+    }
     catch (e) { lancsA = null; }
   }
   let modo = 'B', lancs = lancsB;
@@ -18149,6 +18241,21 @@ function parserGenericoFatura(textoBruto) {
         descricao = descricao.replace(/\s\d{1,2}\/\d{1,2}\s*$/, '').trim();
       }
     }
+    /* v0.56.2: Itaú trunca o nome e cola a parcela sem espaço quando o nome
+       ocupa a largura toda ("ARAMIS PARK SHOPPI03/03"). Só formato NN/NN
+       precedido de letra — sem isso a parcela 3/3 não reconcilia com a
+       projeção e entra duplicada. */
+    if (!parcela) {
+      const pg = descricao.match(/([A-Za-zÀ-ÿ*.])(\d{2})\/(\d{2})\s*$/);
+      if (pg) {
+        const atual = parseInt(pg[2], 10);
+        const total = parseInt(pg[3], 10);
+        if (total > 1 && total <= 99 && atual >= 1 && atual <= total) {
+          parcela = { atual, total };
+          descricao = descricao.slice(0, descricao.length - pg[0].length + 1).trim();
+        }
+      }
+    }
 
     descricao = descricao.replace(/\s+R\$\s*$/i, '').trim();
     if (!descricao || descricao.length < 2) continue;
@@ -18256,6 +18363,15 @@ function renderRevisao() {
             return `<br><span style="color:var(--flow-in);font-weight:600;">✓ confere com o PDF (lançamentos atuais ${fmtBRL(ref)})</span>`;
           }
           return `<br><span style="color:var(--flow-out);font-weight:600;">⚠ PDF: lançamentos atuais ${fmtBRL(ref)} · diferença ${diff > 0 ? '+' : '−'}${fmtBRL(Math.abs(diff))}</span>`;
+        })()}
+        ${(() => {
+          /* v0.56.2: ajustes automáticos feitos na leitura (estorno anulado, IOF incluído) */
+          const notas = revisaoState.metaPDF && revisaoState.metaPDF.notas;
+          if (!notas || !notas.length) return '';
+          const txt = notas.map(n => n.tipo === 'estorno'
+            ? `↺ estorno anulado com a compra: ${escapeHtml(n.descricao)} ${fmtBRL(n.valor)}`
+            : `+ ${escapeHtml(n.descricao)} ${fmtBRL(n.valor)} incluído`).join(' · ');
+          return `<br><span class="muted" style="font-size:11.5px;">${txt}</span>`;
         })()}
         <br><span class="muted" style="font-size:10.5px;font-family:var(--font-mono);">${(() => {
           try {
