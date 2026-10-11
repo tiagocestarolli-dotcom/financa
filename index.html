@@ -5116,7 +5116,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.56.4 · Revisão de extrato: editar abre na pré-classificação automática (categoria, subcategoria, grupo, nome e fixo) e a linha mostra o grupo; conta pendente reconhecida por engano pode ser desvinculada
+  Finança · v0.56.5 · Revisão de extrato: débito já registrado e pago não é mais confundido com outra conta pendente; editar abre na pré-classificação e mostra o grupo; baixa reconhecida por engano pode ser desvinculada
 </div>
 
   </section>
@@ -19920,9 +19920,21 @@ function detectarBaixasPendentes(lancs, contaId) {
        (≥4 letras) entre a descrição do extrato e o nome do gasto. Pega
        reajuste de convênio, juros de boleto etc. Comparação sem acentos:
        o extrato vem "CONVENIO", o app guarda "Convênio". */
+    /* v0.56.5: antes de arriscar o Tier 2 (valor diferente), confere se o
+       débito já está registrado e PAGO no app com o valor exato. Se está,
+       a linha é duplicata — fica para o dedup, que a ignora por padrão.
+       Evidência exata vence evidência aproximada. */
+    let jaRegistrado = false;
     if (!alvo) {
+      const dup = _detectarPotencialMatch(l, contaId);
+      jaRegistrado = !!(dup && dup.kind === 'gasto' && dup.confianca !== 'baixa' && dup.gasto.pago !== false);
+    }
+    if (!alvo && !jaRegistrado) {
       const _semAcento = (s) => (s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const palavras = _semAcento(descUpper).split(/\s+/).filter(p => p.length >= 4);
+      /* v0.56.5: jargão bancário não identifica conta nenhuma — "BOLETO" em
+         comum não prova que o débito é daquele gasto. */
+      const _genericas = new Set(['BOLETO','BOLETOS','UNICO','PAGAMENTO','PAGTO','TRANSF','TRANSFERENCIA','DEBITO','CREDITO','CONTA','CONTAS','COMPRA','CARTAO','TITULO','TITULOS','COBRANCA','BANCO','SISPAG','ELETRON','ELETRONICO','AUTOMATICO','MENSAL','MENSALIDADE','PARCELA','FATURA']);
+      const palavras = _semAcento(descUpper).split(/\s+/).filter(p => p.length >= 4 && !_genericas.has(p));
       alvo = pendentes.find(g => {
         if (usados.has(g.id) || !naJanela(g)) return false;
         const vG = Number(g.valor) || 0;
