@@ -5116,7 +5116,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.56.5 · Revisão de extrato: débito já registrado e pago não é mais confundido com outra conta pendente; editar abre na pré-classificação e mostra o grupo; baixa reconhecida por engano pode ser desvinculada
+  Finança · v0.57.0 · Memória de classificação por valor: mesmo estabelecimento com serviços diferentes (ex.: APPLE.COM/BILL) é lembrado separadamente; inclui ajustes da revisão de extrato das v0.56.3 a v0.56.5
 </div>
 
   </section>
@@ -15288,7 +15288,8 @@ function openGastoForm(id, defaultCategoria, opts) {
           state_grupoId || null,
           parcelaTotal,
           identificacao,
-          isFixo
+          isFixo,
+          valor
         );
       }
       if (aplicarNovoPadrao) {
@@ -16984,7 +16985,11 @@ function extrairChaveAlias(descricao) {
 
 /* Busca um alias que matche essa descrição. Retorna o alias mais específico
    (chave mais longa) ou mais recente em caso de empate. */
-function buscarAliasParaDescricao(descricaoBruta, parcelaTotal) {
+function buscarAliasParaDescricao(descricaoBruta, parcelaTotal, valor) {
+  /* v0.57.0: memória por VALOR. Um alias com `valor` só casa com lançamento
+     desse valor exato (±R$ 0,01) e vence o alias genérico da mesma chave.
+     Resolve estabelecimento único com vários serviços (APPLE.COM/BILL). */
+  const valorNum = (valor !== null && valor !== undefined && isFinite(Number(valor))) ? Number(valor) : null;
   if (!Array.isArray(state.aliasItems) || state.aliasItems.length === 0) return null;
   const descUpper = (descricaoBruta || '').toUpperCase();
   const isParc = (parcelaTotal !== null && parcelaTotal !== undefined);
@@ -17002,6 +17007,9 @@ function buscarAliasParaDescricao(descricaoBruta, parcelaTotal) {
        alias-comum só matche gasto-comum. */
     if (aliasIsParc !== isParc) return false;
     if (aliasIsParc && a.parcelaTotal !== parcelaTotal) return false;
+    if (a.valor !== null && a.valor !== undefined) {
+      if (valorNum === null || Math.abs(Number(a.valor) - valorNum) > 0.01) return false;
+    }
     return true;
   });
 
@@ -17009,6 +17017,9 @@ function buscarAliasParaDescricao(descricaoBruta, parcelaTotal) {
 
   candidatos.sort((a, b) => {
     if (b.chave.length !== a.chave.length) return b.chave.length - a.chave.length;
+    const aEsp = (a.valor !== null && a.valor !== undefined) ? 1 : 0;
+    const bEsp = (b.valor !== null && b.valor !== undefined) ? 1 : 0;
+    if (aEsp !== bEsp) return bEsp - aEsp;
     return (b.ultimoUsoEm || '').localeCompare(a.ultimoUsoEm || '');
   });
 
@@ -17016,7 +17027,7 @@ function buscarAliasParaDescricao(descricaoBruta, parcelaTotal) {
 }
 
 /* Aprende ou reforça um alias quando o usuário aplica uma classificação. */
-function aprenderAlias(descricaoBruta, categoria, subcategoria, grupoId, parcelaTotal, identificacao, isFixoFlag) {
+function aprenderAlias(descricaoBruta, categoria, subcategoria, grupoId, parcelaTotal, identificacao, isFixoFlag, valor) {
   if (!Array.isArray(state.aliasItems)) state.aliasItems = [];
   const chave = extrairChaveAlias(descricaoBruta);
   if (!chave || chave.length < 3) return null;
@@ -17025,37 +17036,75 @@ function aprenderAlias(descricaoBruta, categoria, subcategoria, grupoId, parcela
   const parcTotal = (parcelaTotal !== null && parcelaTotal !== undefined) ? parcelaTotal : null;
   const identNorm = (identificacao || '').trim() || null;
   const isFixoNorm = isFixoFlag === true;
+  const valorNum = (valor !== null && valor !== undefined && isFinite(Number(valor)) && Number(valor) > 0) ? Number(valor) : null;
 
-  const existente = state.aliasItems.find(a =>
-    a.chave === chave && (a.parcelaTotal || null) === parcTotal
-  );
+  /* v0.57.0: memória por VALOR.
+     - alias GENÉRICO (sem `valor`): um por chave, vale o último ensinado —
+       é o fallback quando o valor é inédito. Guarda `valorRef`, o valor do
+       lançamento que o definiu.
+     - alias ESPECÍFICO (com `valor`): nasce só quando a mesma chave recebe
+       classificações DIFERENTES (ex.: APPLE.COM/BILL de R$ 104,90 e de
+       R$ 99,90). Estabelecimento de classificação única não gera específicos,
+       então a memória não incha com cada compra de mercado. */
+  const daChave = state.aliasItems.filter(a => a.chave === chave && (a.parcelaTotal || null) === parcTotal);
+  const temValor = (a) => a.valor !== null && a.valor !== undefined;
+  const generico = daChave.find(a => !temValor(a));
+  const especificoDe = (v) => daChave.find(a => temValor(a) && Math.abs(Number(a.valor) - v) <= 0.01);
+  const gravar = (a) => {
+    a.categoria = categoria;
+    a.subcategoria = subcategoria;
+    a.grupoId = grupoId || null;
+    a.identificacao = identNorm;
+    a.isFixo = isFixoNorm;
+    a.contagemUso = (a.contagemUso || 0) + 1;
+    a.ultimoUsoEm = hoje;
+  };
+  const criar = (extra) => {
+    const n = Object.assign({
+      id: uid(), chave, categoria, subcategoria,
+      grupoId: grupoId || null, identificacao: identNorm, isFixo: isFixoNorm,
+      parcelaTotal: parcTotal, contagemUso: 1, criadoEm: hoje, ultimoUsoEm: hoje
+    }, extra || {});
+    state.aliasItems.push(n);
+    return n;
+  };
 
-  if (existente) {
-    existente.categoria = categoria;
-    existente.subcategoria = subcategoria;
-    existente.grupoId = grupoId || null;
-    existente.identificacao = identNorm;
-    existente.isFixo = isFixoNorm;
-    existente.contagemUso = (existente.contagemUso || 0) + 1;
-    existente.ultimoUsoEm = hoje;
-    return existente;
+  if (!generico) {
+    const esp0 = (valorNum !== null) ? especificoDe(valorNum) : null;
+    if (esp0) gravar(esp0);
+    return criar(valorNum !== null ? { valorRef: valorNum } : {});
   }
 
-  const novo = {
-    id: uid(),
-    chave,
-    categoria,
-    subcategoria,
-    grupoId: grupoId || null,
-    identificacao: identNorm,
-    isFixo: isFixoNorm,
-    parcelaTotal: parcTotal,
-    contagemUso: 1,
-    criadoEm: hoje,
-    ultimoUsoEm: hoje
-  };
-  state.aliasItems.push(novo);
-  return novo;
+  const mesmaClassif =
+    generico.categoria === categoria &&
+    generico.subcategoria === subcategoria &&
+    (generico.grupoId || null) === (grupoId || null) &&
+    (generico.identificacao || null) === identNorm &&
+    (generico.isFixo === true) === isFixoNorm;
+
+  if (valorNum !== null) {
+    const esp = especificoDe(valorNum);
+    if (esp) {
+      gravar(esp);
+    } else if (!mesmaClassif) {
+      /* Conflito: a chave passa a ter classificações por valor. Antes de
+         sobrescrever o genérico, preserva o que ele representava. */
+      const vRef = (generico.valorRef !== null && generico.valorRef !== undefined) ? Number(generico.valorRef) : null;
+      if (vRef !== null && Math.abs(vRef - valorNum) > 0.01 && !especificoDe(vRef)) {
+        state.aliasItems.push({
+          id: uid(), chave,
+          categoria: generico.categoria, subcategoria: generico.subcategoria,
+          grupoId: generico.grupoId || null, identificacao: generico.identificacao || null,
+          isFixo: generico.isFixo === true, parcelaTotal: parcTotal, valor: vRef,
+          contagemUso: generico.contagemUso || 1, criadoEm: hoje, ultimoUsoEm: generico.ultimoUsoEm || hoje
+        });
+      }
+      criar({ valor: valorNum });
+    }
+    generico.valorRef = valorNum;
+  }
+  gravar(generico);
+  return generico;
 }
 
 /* =========================================================================
@@ -18291,7 +18340,7 @@ function openRevisaoFaturaSheet(lancs, cardId, meta = null) {
   let autoAplicados = 0;
   lancs.forEach(l => {
     const parcelaTotal = l.parcela ? l.parcela.total : null;
-    const alias = buscarAliasParaDescricao(l.descricao, parcelaTotal);
+    const alias = buscarAliasParaDescricao(l.descricao, parcelaTotal, l.valor);
     if (alias) {
       l.atribuido = {
         categoria: alias.categoria,
@@ -19040,7 +19089,7 @@ function aplicarLancamentosImportados(lancs, cardId) {
 
     if (!isPendente) {
       const parcelaTotal = l.parcela ? l.parcela.total : null;
-      const result = aprenderAlias(l.descricaoBruta || l.descricao, cat, subc, grupoId, parcelaTotal, identificacao, isFixoFlag);
+      const result = aprenderAlias(l.descricaoBruta || l.descricao, cat, subc, grupoId, parcelaTotal, identificacao, isFixoFlag, l.valor);
       if (result) aliasesAprendidos++;
     }
 
@@ -19865,7 +19914,7 @@ function aplicarAliasesExtrato(lancs) {
     if (l.classifManual) continue;
     if (l.baixaFixo) continue; /* v0.52.0: baixa não precisa de classificação — o gasto já existe */
     const alias = (typeof buscarAliasParaDescricao === 'function')
-      ? buscarAliasParaDescricao(l.descricaoOriginal, null) : null;
+      ? buscarAliasParaDescricao(l.descricaoOriginal, null, l.valor) : null;
     if (alias && alias.categoria) {
       l.aliasSugerido = {
         aliasId: alias.id,
@@ -20718,7 +20767,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
         if (typeof aprenderAlias === 'function') {
           const ident = (l.classifManualNome && l.classifManualNome.trim() && l.classifManualNome.trim() !== l.descricaoOriginal)
             ? l.classifManualNome.trim() : null;
-          try { aprenderAlias(l.descricaoOriginal, categoria, subcategoria, grupoId, null, ident, isFixo); } catch (e) {}
+          try { aprenderAlias(l.descricaoOriginal, categoria, subcategoria, grupoId, null, ident, isFixo, l.valor); } catch (e) {}
         }
       } else if (l.aliasSugerido && l.aliasSugerido.categoria) {
         /* v0.51.0 (Fatia B): usa a sugestão que o Tiago VIU na tela de revisão —
@@ -20736,7 +20785,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
           aliasObj.ultimoUsoEm = todayISO();
         }
       } else if (typeof buscarAliasParaDescricao === 'function') {
-        const alias = buscarAliasParaDescricao(l.descricaoOriginal, null);
+        const alias = buscarAliasParaDescricao(l.descricaoOriginal, null, l.valor);
         if (alias && alias.categoria) {
           categoria = alias.categoria;
           subcategoria = alias.subcategoria || subcategoria;
