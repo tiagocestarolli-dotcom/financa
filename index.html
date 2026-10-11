@@ -5116,7 +5116,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.56.2 · Patch fatura Itaú Visa Infinite: colunas reconhecidas pelos títulos de seção, corte de parcelas futuras só na própria coluna, parcela colada no nome, estorno anula a compra da mesma fatura e IOF internacional entra como lançamento
+  Finança · v0.56.4 · Revisão de extrato: editar abre na pré-classificação automática (categoria, subcategoria, grupo, nome e fixo) e a linha mostra o grupo; conta pendente reconhecida por engano pode ser desvinculada
 </div>
 
   </section>
@@ -20136,6 +20136,51 @@ function _rexRenderList() {
       _rexAbrirPickerClassificacao(idx);
     };
   });
+  _rexBindBaixaHooks(host);
+}
+
+/* v0.56.3: a baixa reconhecida deixa de ser tudo-ou-nada. O Tiago pode
+   recusar o vínculo (valor igual por coincidência) e a linha volta a ser
+   um gasto novo, classificável como qualquer outro. A conta pendente
+   continua pendente. O vínculo recusado fica guardado pra poder voltar. */
+function _rexDesvincularBaixa(idx) {
+  const l = revisaoExtratoState.lancs[idx];
+  if (!l || !l.baixaFixo) return;
+  l.baixaRecusada = l.baixaFixo;
+  delete l.baixaFixo;
+  l.excluir = false;
+  try { aplicarAliasesExtrato([l]); } catch (e) {}
+  salvarRascunhoRevisao();
+  _rexAtualizarBotaoAplicar();
+  _rexAtualizarRow(idx);
+}
+function _rexRevincularBaixa(idx) {
+  const l = revisaoExtratoState.lancs[idx];
+  if (!l || !l.baixaRecusada) return;
+  const gid = l.baixaRecusada.gastoId;
+  const alvo = (state.gastos || []).find(g => g.id === gid);
+  const emUso = revisaoExtratoState.lancs.some(o => o !== l && o.baixaFixo && o.baixaFixo.gastoId === gid);
+  if (!alvo || alvo.pago !== false || emUso) {
+    toast('Essa conta não está mais pendente', 'info');
+    delete l.baixaRecusada;
+  } else {
+    l.baixaFixo = l.baixaRecusada;
+    delete l.baixaRecusada;
+    delete l.aliasSugerido;
+    l.excluir = false;
+  }
+  salvarRascunhoRevisao();
+  _rexAtualizarBotaoAplicar();
+  _rexAtualizarRow(idx);
+}
+function _rexBindBaixaHooks(root) {
+  if (!root) return;
+  root.querySelectorAll('[data-rex-desvincular]').forEach(b => {
+    b.onclick = () => _rexDesvincularBaixa(Number(b.dataset.rexDesvincular));
+  });
+  root.querySelectorAll('[data-rex-revincular]').forEach(b => {
+    b.onclick = () => _rexRevincularBaixa(Number(b.dataset.rexRevincular));
+  });
 }
 
 /* Renderiza uma linha da lista. Separado pra que _rexAtualizarRow possa
@@ -20161,6 +20206,7 @@ function _rexRenderRow(l, idxGlobal) {
           <strong>${escapeHtml(b.nome)}</strong> · ${fmtBRL(b.valorPrevisto)} — ao aplicar, será <strong>marcada como paga</strong> nesta data e conta.
           ${divergHtml}
         </div>
+        <button type="button" data-rex-desvincular="${idxGlobal}" style="margin-top:8px;background:none;border:1px solid var(--line,rgba(0,0,0,0.18));border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;color:var(--ink,#222);cursor:pointer;">✕ não é esta conta — lançar como gasto avulso</button>
       </div>
     `;
   } else if (l.potencialMatch) {
@@ -20191,17 +20237,22 @@ function _rexRenderRow(l, idxGlobal) {
     const cat = l.classifManualCategoria || (sug && sug.categoria) || 'tiago';
     const sub = l.classifManualSubcategoria || (sug && sug.subcategoria) || (l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar');
     const classificado = !!l.classifManual;
+    /* v0.56.4: grupo visível na linha, sem precisar abrir o picker */
+    const grupoIdRow = l.classifManual ? (l.classifManualGrupoId || null) : ((sug && sug.grupoId) || null);
+    const grupoObjRow = grupoIdRow ? ((state.grupos && state.grupos[cat]) || []).find(g => g.id === grupoIdRow) : null;
+    const grupoTxt = grupoObjRow ? ` <span style="font-weight:400;opacity:0.7;">· ${escapeHtml(grupoObjRow.nome)}</span>` : '';
     let badge = '';
     if (classificado) badge = '<span class="rex-tag rex-tag-classif">✓ classificado</span>';
     else if (sug) badge = '<span class="rex-tag rex-tag-classif" style="background:color-mix(in srgb,var(--accent,#4A6741) 14%,transparent);color:var(--accent,#4A6741);">✦ auto</span>';
     classifLinha = `
       <div class="rex-row-classif">
         <button class="rex-classif-btn" data-rex-classif="${idxGlobal}">
-          <span class="rex-classif-cat">${escapeHtml(_capitalizar(cat))} › ${escapeHtml(sub)}</span>
+          <span class="rex-classif-cat">${escapeHtml(_capitalizar(cat))} › ${escapeHtml(sub)}${grupoTxt}</span>
           <span class="rex-classif-edit">✎ editar</span>
         </button>
         ${badge}
       </div>
+      ${l.baixaRecusada ? `<div class="rex-row-classif"><button type="button" data-rex-revincular="${idxGlobal}" style="background:none;border:none;padding:0;font:inherit;font-size:12px;color:var(--ink-mute);text-decoration:underline;cursor:pointer;">↩ voltar a dar baixa em ${escapeHtml(l.baixaRecusada.nome)}</button></div>` : ''}
     `;
   } else if (l.tipo === 'PAGAMENTO_FATURA') {
     const msg = l.matchPagamentoFaturaId
@@ -20248,6 +20299,7 @@ function _rexAtualizarRow(idx) {
     };
     const btnCls = novoRow.querySelector('[data-rex-classif]');
     if (btnCls) btnCls.onclick = () => _rexAbrirPickerClassificacao(idx);
+    _rexBindBaixaHooks(novoRow);
   }
 }
 
@@ -20260,18 +20312,21 @@ function _rexAtualizarBotaoAplicar() {
 /* v0.23.2: picker compacto pra escolher categoria + subcategoria + grupo */
 function _rexAbrirPickerClassificacao(idx) {
   const l = revisaoExtratoState.lancs[idx];
-  const catAtual = l.classifManualCategoria || 'tiago';
-  const subAtual = l.classifManualSubcategoria || (l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar');
-  const grupoAtual = l.classifManualGrupoId || null;
+  /* v0.56.4: sem classificação manual, o picker parte da sugestão da memória
+     (a mesma que a linha mostra com a tag "auto") — não mais do zero. */
+  const sugP = (!l.classifManual && l.aliasSugerido) ? l.aliasSugerido : null;
+  const catAtual = l.classifManualCategoria || (sugP && sugP.categoria) || 'tiago';
+  const subAtual = l.classifManualSubcategoria || (sugP && sugP.subcategoria) || (l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar');
+  const grupoAtual = l.classifManual ? (l.classifManualGrupoId || null) : ((sugP && sugP.grupoId) || null);
 
   /* Estado temporário do picker */
   let pickerCat = catAtual;
   let pickerSub = subAtual;
   let pickerGrupo = grupoAtual;
   /* v0.27.0 (Fatia 5e): nome editável (default = descrição crua do extrato) */
-  let pickerNome = l.classifManualNome || l.descricaoOriginal || '';
+  let pickerNome = l.classifManualNome || (sugP && sugP.identificacao) || l.descricaoOriginal || '';
   /* v0.28.0 (Fatia 5e.1): marcar como fixo (paridade com o picker da fatura) */
-  let pickerFixo = l.classifManualFixo === true;
+  let pickerFixo = l.classifManual ? (l.classifManualFixo === true) : !!(sugP && sugP.isFixo === true);
   /* modo "criar subcategoria nova" inline (evita modal empilhado sobre o picker) */
   let criandoSub = false;
   /* v0.28.0 (Fatia 5e.1): modo "criar grupo novo" inline (mesmo motivo) */
