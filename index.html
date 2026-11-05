@@ -2444,6 +2444,20 @@ label {
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
+/* v0.57.1 — informe por grupo: divisão entre parênteses + barra de proporção do mês */
+.source-row .sr-split {
+  font-size: 11.5px; color: var(--ink-mute); margin: -2px 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+.source-row .sr-track {
+  height: 6px; border-radius: 3px; background: var(--bg-sunken);
+  overflow: hidden; margin: 2px 0 6px;
+}
+.source-row .sr-fill {
+  height: 100%; display: flex; border-radius: 3px; overflow: hidden;
+  transition: width .4s cubic-bezier(.32,.72,0,1);
+}
+.source-row .sr-fill > span { display: block; height: 100%; }
 .source-row .sr-meta {
   display: flex;
   justify-content: space-between;
@@ -3390,6 +3404,20 @@ label {
 .hist-btn-undo {
   flex: 0 0 auto;
 }
+
+/* v0.58.0 (Fatia A) — fila do extrato: ações por lançamento */
+.rex-acts { display: flex; gap: 6px; margin-top: 9px; }
+.rex-act {
+  flex: 1; background: none; border: 1px solid var(--line-strong); border-radius: 999px;
+  padding: 7px 8px; font: inherit; font-size: 12.5px; color: var(--ink-soft); cursor: pointer;
+}
+.rex-act.ok { border-color: var(--flow-in); color: var(--flow-in); font-weight: 600; background: var(--flow-in-soft); }
+.rex-act.duv.on { border-color: #C18C2D; color: #8A5A1F; background: color-mix(in srgb, #C18C2D 12%, transparent); }
+.rex-act.ign { color: var(--ink-mute); }
+.rex-tag-sug { background: color-mix(in srgb, #C18C2D 14%, transparent); color: #8A5A1F; }
+.rex-tag-duv { background: color-mix(in srgb, #C18C2D 14%, transparent); color: #8A5A1F; }
+.rex-duv-nota { margin-top: 6px; font-size: 12px; color: #8A5A1F; }
+.rex-duv-nota button { background: none; border: none; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
 
 /* Revisão de extrato — componentes v0.23.2 */
 .rex-row-head {
@@ -5116,8 +5144,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.57.0 · Memória de classificação por valor: mesmo estabelecimento com serviços diferentes (ex.: APPLE.COM/BILL) é lembrado separadamente; inclui ajustes da revisão de extrato das v0.56.3 a v0.56.5
-</div>
+  Finança · v0.58.0 · Fila do extrato: incluir, dúvida ou ignorar um a um (salva na nuvem, sem duplicar extratos sobrepostos) e fonte da entrada pela contraparte, não mais pela primeira fonte cadastrada</div>
 
   </section>
 
@@ -5260,6 +5287,11 @@ function defaultState() {
     transferencias: [], /* {id, contaOrigemId, contaDestinoId, valor, data, ym, observacao} */
     /* v0.23.1: histórico de lotes de importação (para undo) */
     lotesImportacao: [], /* {id, tipo, contaId, dataImport, descricao, gastoIds[], entradaIds[]} */
+    /* v0.58.0 (Fatia A): fila de pendentes do extrato (por conta), memória de
+       fonte por contraparte e impressões digitais de lançamentos ignorados */
+    filasExtrato: {},        /* { [contaId]: {contaId, banco, metaPeriodo, loteId, salvoEm, lancs[]} } */
+    memoriaEntradas: [],     /* {id, chave, contaId, fonteId, confirmacoes, divergencias, criadoEm, ultimoUsoEm} */
+    extratoFpIgnorados: [],  /* {fp, data} */
     /* Preferências de UI persistidas */
     uiPrefs: {
       revealFamiliaTotal: false,           /* total no topo da Família */
@@ -7253,17 +7285,11 @@ function renderEntradas() {
     return;
   }
 
-  /* Agrupa por fonte */
-  const porFonte = {};
-  entradasMes.forEach(e => {
-    if (!porFonte[e.fonteId]) porFonte[e.fonteId] = { total: 0, count: 0 };
-    porFonte[e.fonteId].total += Number(e.valor) || 0;
-    porFonte[e.fonteId].count += 1;
-  });
-  const fontesOrdenadas = Object.entries(porFonte)
-    .sort((a, b) => b[1].total - a[1].total);
-
-  const maxFonte = Math.max(...fontesOrdenadas.map(([, v]) => v.total), 1);
+  /* v0.57.1: agrupa por GRUPO de fontes (SAITG = SAITG + AAB), com o mesmo
+     agregador do relatório — o total de um grupo é idêntico em qualquer tela. */
+  const gruposMes = window.relatorioElegante._coletaEntradasViz([entrCurrentYM])
+    .filter(g => g.total > 0).sort((a, b) => b.total - a.total);
+  const contaDe = (ids) => entradasMes.filter(e => ids.indexOf(e.fonteId) >= 0).length;
 
   /* HTML */
   host.innerHTML = `
@@ -7271,24 +7297,30 @@ function renderEntradas() {
 
     <div class="view-section-h">
       <div class="vh-title">por fonte</div>
-      <div class="vh-action">${fontesOrdenadas.length} ${fontesOrdenadas.length === 1 ? 'fonte' : 'fontes'}</div>
+      <div class="vh-action">${gruposMes.length} ${gruposMes.length === 1 ? 'fonte' : 'fontes'}</div>
     </div>
     <div>
-      ${fontesOrdenadas.map(([fid, v]) => {
-        const f = state.fontesRenda.find(x => x.id === fid) || { nome: '(fonte removida)' };
-        const pct = (v.total / totalMes) * 100;
-        const barPct = (v.total / maxFonte) * 100;
+      ${gruposMes.map(g => {
+        const pct = totalMes > 0 ? (g.total / totalMes) * 100 : 0;
+        const n = contaDe(g.partes.map(p => p.id));
+        const partesV = g.partes.filter(p => p.total > 0);
+        const segs = partesV.map(p =>
+          '<span style="width:' + ((p.total / g.total) * 100).toFixed(2) + '%;background:' + p.cor + ';"></span>').join('');
+        const split = partesV.length > 1
+          ? '<div class="sr-split">(' + partesV.map(p => escapeHtml(p.nome) + ' ' + fmtBRL(p.total)).join(' · ') + ')</div>'
+          : '';
         return `
-          <div class="source-row">
+          <div class="source-row grp">
             <div class="sr-head">
-              <div class="sr-name">${escapeHtml(f.nome)}</div>
-              <div class="sr-value">${fmtBRL(v.total)}</div>
+              <div class="sr-name">${escapeHtml(g.nome)}</div>
+              <div class="sr-value">${fmtBRL(g.total)}</div>
             </div>
+            ${split}
+            <div class="sr-track"><div class="sr-fill" style="width:${pct.toFixed(2)}%;">${segs}</div></div>
             <div class="sr-meta">
-              <span>${v.count} ${v.count === 1 ? 'lançamento' : 'lançamentos'}</span>
+              <span>${n} ${n === 1 ? 'lançamento' : 'lançamentos'}</span>
               <span>${pct.toFixed(1)}% do mês</span>
             </div>
-            <div class="sr-bar" style="width:${barPct}%;"></div>
           </div>
         `;
       }).join('')}
@@ -8889,7 +8921,7 @@ window.relatorioElegante = {
         gMap.set(g, { grupo: g, nome: f.viz.grupoNome, _auto: f.viz.auto, partes: [], total: 0,
                       serie: ymsB.map(() => 0), serieLucro: ymsB.map(() => 0), totalLucro: 0 });
       const o = gMap.get(g);
-      o.partes.push({ key: f.viz.key, nome: f.nome, cor: f.viz.cor, ordem: f.viz.ordem,
+      o.partes.push({ id: f.id, key: f.viz.key, nome: f.nome, cor: f.viz.cor, ordem: f.viz.ordem,
                       ehLucro: f.viz.ehLucro, porYm: f.porYm, total: f.total });
       o.total += f.total;
       ymsB.forEach((ym, i) => {
@@ -9317,7 +9349,9 @@ window.relatorioElegante = {
     const alertas = [];
     if (saldo < 0) alertas.push({ tipo: 'warn', texto: 'Saldo negativo no período: ' + this._fmt(saldo) + '.' });
     else alertas.push({ tipo: 'ok', texto: 'Saldo positivo no período: ' + this._fmt(saldo) + '.' });
-    if (porFonte.length) alertas.push({ tipo: 'info', texto: 'Principal fonte de entrada: ' + porFonte[0].nome + ' (' + this._fmt(porFonte[0].valor) + ').' });
+    /* v0.57.1: a principal fonte é o GRUPO (SAITG = SAITG + AAB), mesma resposta do informe */
+    const _gPrinc = this._coletaEntradasViz(ctx.yms).filter(g => g.total > 0).sort((a, b) => b.total - a.total)[0];
+    if (_gPrinc) alertas.push({ tipo: 'info', texto: 'Principal fonte de entrada: ' + _gPrinc.nome + ' (' + this._fmt(_gPrinc.total) + ').' });
     if (invest > 0) alertas.push({ tipo: 'info', texto: 'Investido no período: ' + this._fmt(invest) + '.' });
 
     /* Fatia 5c.2 — lista cronológica item-a-item do fluxo de caixa.
@@ -10200,6 +10234,80 @@ window.relatorioElegante = {
     return `<svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">${out}</svg>`;
   },
 
+  /* v0.57.1 — estatística de uma série mensal de entradas (função pura).
+     Regra canônica: a média usa SÓ meses fechados; o mês corrente (ymAtual)
+     é parcial e fica fora. Tendência = último mês fechado vs média dos fechados:
+     ±5% = estável. Retorna { media, nFechados, ultimo, variacao, tendencia, parcial[] }. */
+  _estatSerieEntrada(serie, ymsB, ymAtual) {
+    const parcial = ymsB.map(ym => !!ymAtual && ym >= ymAtual);
+    const fech = serie.filter((v, i) => !parcial[i]);
+    const nFechados = fech.length;
+    const media = nFechados ? fech.reduce((a, b) => a + b, 0) / nFechados : 0;
+    let iUlt = -1;
+    for (let i = serie.length - 1; i >= 0; i--) { if (!parcial[i]) { iUlt = i; break; } }
+    const ultimo = iUlt >= 0 ? serie[iUlt] : 0;
+    let variacao = null, tendencia = null;
+    if (nFechados >= 2 && media > 0) {
+      variacao = (ultimo - media) / media;
+      tendencia = Math.abs(variacao) <= 0.05 ? 'flat' : (variacao > 0 ? 'up' : 'down');
+    }
+    return { media, nFechados, ultimo, variacao, tendencia, parcial };
+  },
+
+  /* v0.57.1 — 4b: UM PAINEL POR FONTE, cada um com sua própria escala (a fonte
+     maior não achata as menores). Colunas mensais com o TOTAL do mês em cima;
+     grupos com mais de uma fonte (SAITG = SAITG + AAB) empilham em dois tons da
+     mesma cor. Linha tracejada = média dos meses fechados. Mês corrente esmaecido
+     e marcado com ○. Último painel: total de todas as fontes. */
+  _paineisEntradasEvolucao(grupos, ymsB) {
+    const gs = grupos.filter(g => g.total > 0).sort((a, b) => b.total - a.total);
+    if (!gs.length) return '<div class="rel-empty">Sem entradas no período.</div>';
+    const ymAtual = (typeof currentYM === 'function') ? currentYM() : null;
+    const totalSerie = ymsB.map((ym, i) => gs.reduce((s, g) => s + (g.serie[i] || 0), 0));
+    const paineis = gs.map(g => ({ nome: g.nome, cor: g.cor, serie: g.serie, partes: g.partes }))
+      .concat([{ nome: 'Total de entradas', cor: FONTE_VIZ_TOTAL, serie: totalSerie, isTotal: true,
+                 partes: [{ nome: 'Total', cor: FONTE_VIZ_TOTAL,
+                            porYm: Object.fromEntries(ymsB.map((ym, i) => [ym, totalSerie[i]])) }] }]);
+    const seta = { up: '▲', down: '▼', flat: '●' };
+    const html = paineis.map(p => {
+      const st = this._estatSerieEntrada(p.serie, ymsB, ymAtual);
+      const W = 260, padL = 6, padR = 6, padT = 14, hMax = 84, yBase = padT + hMax, svgH = yBase + 16;
+      const maxVal = Math.max(1, ...p.serie) * 1.18, esc = hMax / maxVal;
+      const slot = (W - padL - padR) / ymsB.length, bw = Math.min(26, slot * 0.62);
+      let out = '';
+      /* média por trás das colunas: os rótulos de valor ficam sempre legíveis */
+      if (st.nFechados >= 1 && st.media > 0) {
+        const ya = yBase - st.media * esc;
+        out += `<line x1="${padL}" y1="${ya.toFixed(1)}" x2="${W - padR}" y2="${ya.toFixed(1)}" stroke="${p.cor}" stroke-width="1.1" stroke-dasharray="4,3" opacity="0.85"/>`;
+      }
+      ymsB.forEach((ym, mi) => {
+        const cx = padL + slot * mi + slot / 2; let yTop = yBase;
+        const op = st.parcial[mi] ? ' opacity="0.42"' : '';
+        p.partes.forEach(pt => {
+          const v = (pt.porYm && pt.porYm[ym]) || 0; if (v <= 0) return;
+          const h = v * esc; yTop -= h;
+          out += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${pt.cor}"${op}/>`;
+        });
+        const tot = p.serie[mi] || 0;
+        if (tot > 0) out += `<text x="${cx.toFixed(1)}" y="${(yTop - 3).toFixed(1)}" text-anchor="middle" font-size="7" fill="${REL_LK.soft}" font-family="Fraunces,serif" stroke="#FFFFFF" stroke-width="2.4" paint-order="stroke">${this._fmtK(tot)}</text>`;
+        out += `<text x="${cx.toFixed(1)}" y="${(yBase + 11).toFixed(1)}" text-anchor="middle" font-size="7" fill="${REL_LK.mute}">${this._esc(this._mesAbbr(ym))}${st.parcial[mi] ? ' ○' : ''}</text>`;
+      });
+      out += `<line x1="${padL}" y1="${yBase}" x2="${W - padR}" y2="${yBase}" stroke="${REL_LK.line}" stroke-width="1"/>`;
+      const tend = st.tendencia
+        ? `<span class="evo-tend ${st.tendencia}">${seta[st.tendencia]} ${st.tendencia === 'flat' ? 'estável' : ((st.variacao > 0 ? '+' : '−') + Math.abs(st.variacao * 100).toFixed(0) + '% vs média')}</span>`
+        : '';
+      const leg = (!p.isTotal && p.partes.length > 1)
+        ? '<div class="evo-leg">' + p.partes.map(pt => `<span><i style="background:${pt.cor};"></i>${this._esc(pt.nome)}</span>`).join('') + '</div>'
+        : '';
+      return `<div class="evo-panel no-break${p.isTotal ? ' evo-total' : ''}">
+        <div class="evo-ph"><span class="evo-nome" style="color:${p.cor};">${this._esc(p.nome)}</span>${tend}</div>
+        <div class="evo-media">${st.media > 0 ? 'média ' + this._fmt(st.media) + (st.nFechados < ymsB.length ? ' · meses fechados' : '') : 'sem mês fechado no período'}</div>
+        <svg viewBox="0 0 ${W} ${svgH}" xmlns="http://www.w3.org/2000/svg" class="pdf-svg">${out}</svg>${leg}
+      </div>`;
+    }).join('');
+    return `<div class="evo-grid">${html}</div>`;
+  },
+
   /* 4b — evolução: meses de cada grupo lado a lado, com sub-fontes (AAB/particular)
      empilhadas em tom mais claro; média (tracejada) + tendência (cheia) sobre o total. */
   _chEntradasEvolucao(grupos, ymsB) {
@@ -10446,8 +10554,8 @@ window.relatorioElegante = {
     if (multi) {
       html += this._secao('📈', 'Entradas · evolução por fonte',
         `<div class="pdf-card no-break ent-block">
-          <div class="ent-desc">Meses de cada fonte lado a lado, com as sub-fontes empilhadas em tom mais claro. Linha tracejada: média do período · linha cheia: tendência. A tabela abaixo abre os valores de cada fonte, mês a mês.</div>
-          ${this._chEntradasEvolucao(grupos, ctx.yms)}
+          <div class="ent-desc">Um painel por fonte, cada um na sua escala, para ver se ela sobe, cai ou se mantém. O número em cima da coluna é o total do mês; fontes divididas (ex.: SAITG = SAITG + AAB) empilham em dois tons. Linha tracejada: média dos meses fechados · ▲▼● compara o último mês fechado com a média (±5% = estável) · ○ mês em curso, fora da média. A tabela abaixo abre os valores de cada fonte, mês a mês.</div>
+          ${this._paineisEntradasEvolucao(grupos, ctx.yms)}
           ${this._tabelaEntradasPorMes(grupos, ctx.yms)}${lg}</div>`);
     }
 
@@ -10788,6 +10896,19 @@ text{font-family:'Montserrat',sans-serif;}
 .ent-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;padding-top:11px;border-top:1px solid var(--pdf-border);}
 .ent-lg{display:flex;align-items:center;gap:5px;font-size:9.5px;color:var(--pdf-ink-soft);}
 .ent-dot{width:9px;height:9px;border-radius:2px;flex:none;}
+/* v0.57.1 — painéis de evolução por fonte */
+.evo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px;}
+@media (max-width:440px){.evo-grid{grid-template-columns:1fr;}}
+.evo-panel{border:1px solid var(--pdf-border);border-radius:8px;padding:9px 10px 7px;}
+.evo-panel.evo-total{background:rgba(168,136,63,0.06);}
+.evo-ph{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
+.evo-nome{font-weight:700;font-size:10.5px;letter-spacing:0.04em;text-transform:uppercase;}
+.evo-tend{font-size:9px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.evo-tend.up{color:var(--pdf-in);}.evo-tend.down{color:var(--pdf-out);}.evo-tend.flat{color:var(--pdf-ink-mute);}
+.evo-media{font-size:9px;color:var(--pdf-ink-mute);margin:1px 0 4px;font-variant-numeric:tabular-nums;}
+.evo-leg{display:flex;gap:10px;font-size:8.5px;color:var(--pdf-ink-soft);margin-top:3px;}
+.evo-leg span{display:flex;align-items:center;gap:4px;}
+.evo-leg i{width:8px;height:8px;border-radius:2px;display:inline-block;}
 .rel-empty{text-align:center;padding:18px 0;font-size:11px;color:var(--pdf-ink-mute);}
 
 /* callout de reserva de imposto */
@@ -19814,7 +19935,8 @@ let revisaoExtratoState = {
   lancs: [],
   banco: null,
   metaPeriodo: null,
-  filtroTipo: 'todos'  /* 'todos' | 'entradas' | 'saidas' | 'tarifas' | 'pagfat' | 'aclassificar' | 'duplicatas' | 'ignorados' */
+  filtroTipo: 'pendentes', /* v0.58.0: 'pendentes' | 'prontos' | 'aclassificar' | 'duvidas' | 'entradas' | 'saidas' | 'tarifas' | 'pagfat' | 'duplicatas' | 'ignorados' | 'todos' */
+  loteId: null              /* v0.58.0: um lote de histórico por fila (inclusões parciais somam nele) */
 };
 
 /* v0.23.2: chave do rascunho no localStorage. Permite fechar a sheet
@@ -19822,33 +19944,215 @@ let revisaoExtratoState = {
 const REVISAO_EXTRATO_DRAFT_KEY = 'financa.revisaoExtratoDraft';
 
 function salvarRascunhoRevisao() {
-  if (!revisaoExtratoState.lancs || revisaoExtratoState.lancs.length === 0) return;
-  try {
-    localStorage.setItem(REVISAO_EXTRATO_DRAFT_KEY, JSON.stringify({
-      ...revisaoExtratoState,
-      salvoEm: new Date().toISOString()
-    }));
-  } catch (e) {
-    console.warn('Não foi possível salvar rascunho:', e);
+  /* v0.58.0: a fila vive no state (nuvem), uma por conta — sobrevive a fechar
+     o app e a trocar de aparelho. Fila sem nada vivo (só ignorados) encerra e
+     guarda as impressões digitais dos ignorados, pra não voltarem. */
+  const st = revisaoExtratoState;
+  if (!st || !st.contaId) return;
+  if (!state.filasExtrato || typeof state.filasExtrato !== 'object') state.filasExtrato = {};
+  const lancs = st.lancs || [];
+  const vivos = lancs.filter(l => !l.excluir);
+  if (vivos.length === 0) {
+    _registrarFpsIgnorados(lancs);
+    delete state.filasExtrato[st.contaId];
+  } else {
+    state.filasExtrato[st.contaId] = {
+      contaId: st.contaId, banco: st.banco || null, metaPeriodo: st.metaPeriodo || null,
+      loteId: st.loteId || null, salvoEm: new Date().toISOString(),
+      /* ida e volta em JSON: o Firestore recusa campos com valor undefined */
+      lancs: JSON.parse(JSON.stringify(lancs.map(l => { const c = Object.assign({}, l); delete c.detalhe; return c; })))
+    };
   }
+  saveState(state);
 }
 
-function carregarRascunhoRevisao() {
+function _registrarFpsIgnorados(lancs) {
+  if (!Array.isArray(state.extratoFpIgnorados)) state.extratoFpIgnorados = [];
+  const ja = new Set(state.extratoFpIgnorados.map(x => x.fp));
+  (lancs || []).forEach(l => {
+    if (l.excluir && l.fp && !ja.has(l.fp)) { state.extratoFpIgnorados.push({ fp: l.fp, data: l.dataISO || null }); ja.add(l.fp); }
+  });
+  /* poda: guarda ~13 meses (extratos mais antigos que isso não são reimportados) */
+  const lim = new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 10);
+  state.extratoFpIgnorados = state.extratoFpIgnorados.filter(x => !x.data || x.data >= lim);
+}
+
+/* migra o rascunho antigo (localStorage, v0.23.2–v0.57) para a fila na nuvem */
+function _migrarRascunhoLocalExtrato() {
   try {
     const raw = localStorage.getItem(REVISAO_EXTRATO_DRAFT_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (e) {
-    return null;
-  }
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d && d.contaId && Array.isArray(d.lancs) && d.lancs.length) {
+      if (!state.filasExtrato || typeof state.filasExtrato !== 'object') state.filasExtrato = {};
+      if (!state.filasExtrato[d.contaId]) {
+        if (d.lancs.some(l => !l.fp)) atribuirFpExtrato(d.lancs, d.contaId);
+        state.filasExtrato[d.contaId] = {
+          contaId: d.contaId, banco: d.banco || null, metaPeriodo: d.metaPeriodo || null,
+          loteId: null, salvoEm: d.salvoEm || new Date().toISOString(),
+          lancs: JSON.parse(JSON.stringify(d.lancs.map(l => { const c = Object.assign({}, l); delete c.detalhe; return c; })))
+        };
+        saveState(state);
+      }
+    }
+    localStorage.removeItem(REVISAO_EXTRATO_DRAFT_KEY);
+  } catch (e) {}
 }
 
-function limparRascunhoRevisao() {
+function carregarRascunhoRevisao(contaId) {
+  _migrarRascunhoLocalExtrato();
+  const m = (state.filasExtrato && typeof state.filasExtrato === 'object') ? state.filasExtrato : {};
+  if (contaId) return m[contaId] || null;
+  const k = Object.keys(m)[0];
+  return k ? m[k] : null;
+}
+
+function limparRascunhoRevisao(contaId) {
+  const id = contaId || (revisaoExtratoState && revisaoExtratoState.contaId);
+  if (state.filasExtrato && id) { delete state.filasExtrato[id]; saveState(state); }
   try { localStorage.removeItem(REVISAO_EXTRATO_DRAFT_KEY); } catch (e) {}
 }
 
-function temRascunhoRevisao() {
-  return !!carregarRascunhoRevisao();
+function temRascunhoRevisao(contaId) {
+  return !!carregarRascunhoRevisao(contaId);
+}
+
+
+/* =====================================================================
+   v0.58.0 (Fatia A) — FILA DE PENDENTES DO EXTRATO + MEMÓRIA POR CONTRAPARTE
+   - Cada lançamento ganha uma impressão digital (fp): conta|data|valor|sinal|
+     descrição normalizada|nº da ocorrência. Extratos sobrepostos não duplicam.
+   - Entradas: a fonte vem da memória por CONTRAPARTE (quem pagou), nunca mais
+     da "primeira fonte cadastrada". Automática só após 3 confirmações iguais.
+   - Saídas por transferência (PIX/TED/DOC) para pessoa: memória vira SUGESTÃO
+     até 3 usos sem correção — o app não assume que todo PIX para fulano é igual.
+   ===================================================================== */
+const EXTRATO_TOKENS_GENERICOS = new Set([
+  'PIX','TED','DOC','TEV','TRANSF','TRANSFERENCIA','TRANSFER','RECEBIDO','RECEBIDA','RECEB',
+  'RECEBIMENTO','REC','CRED','CREDITO','CR','DEB','DEBITO','ENVIADO','ENVIADA','ENVIO','OUTRA',
+  'OUTRO','IF','INST','INSTITUICAO','BANCO','CONTA','CC','CORRENTE','PAGAMENTO','PAGTO','PAG',
+  'QRS','QR','CODIGO','COD','MESMA','TITULARIDADE','DE','DA','DO','DOS','DAS','E','EM','PARA',
+  'SISPAG','ELETRONICA','ELETRONICO','AUTOMATICO','INTERNET','APP','MOBILE','VIA','REMETENTE',
+  'FAVORECIDO','ORIGEM','DESTINO','LTDA','ME','EIRELI','SA','CPF','CNPJ'
+]);
+const EXTRATO_RE_TRANSFERENCIA = /\b(PIX|TED|DOC|TEV|TRANSF)/i;
+
+/* quem pagou / quem recebeu, a partir da descrição do extrato.
+   Retorna null quando só sobra jargão bancário (aí nada é aprendido). */
+function extrairContraparteExtrato(desc) {
+  if (!desc) return null;
+  let t = String(desc).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  t = t.replace(/\d{2}\/\d{2}(\/\d{2,4})?/g, ' ').replace(/[^A-Z ]+/g, ' ');
+  const stop = (typeof ALIAS_STOPWORDS_EXTRATO !== 'undefined') ? ALIAS_STOPWORDS_EXTRATO : new Set();
+  const toks = t.split(/\s+/).filter(x => x.length >= 2 && !EXTRATO_TOKENS_GENERICOS.has(x) && !stop.has(x));
+  const chave = toks.slice(0, 3).join(' ');
+  return chave.length >= 3 ? chave : null;
+}
+
+function _extratoFpBase(l, contaId) {
+  const d = String(l.descricaoOriginal || '').toUpperCase().normalize('NFD')
+    .replace(/[̀-ͯ]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim();
+  return [contaId || '', l.dataISO || '', (Number(l.valor) || 0).toFixed(2), l.sinal || '', d].join('|');
+}
+/* impressão digital com nº da ocorrência: duas compras iguais no mesmo dia
+   viram #1 e #2 — e ganham o mesmo número em qualquer extrato que as contenha */
+function atribuirFpExtrato(lancs, contaId) {
+  const vistos = {};
+  (lancs || []).forEach(l => {
+    const b = _extratoFpBase(l, contaId);
+    vistos[b] = (vistos[b] || 0) + 1;
+    l.fp = b + '#' + vistos[b];
+  });
+  return lancs;
+}
+/* tudo o que já foi registrado (gasto/entrada) ou ignorado em fila encerrada */
+function extratoFpsConhecidos() {
+  const set = new Set();
+  (state.gastos || []).forEach(g => { if (g.extratoFp) set.add(g.extratoFp); });
+  (state.entradas || []).forEach(e => { if (e.extratoFp) set.add(e.extratoFp); });
+  (state.extratoFpIgnorados || []).forEach(x => { if (x && x.fp) set.add(x.fp); });
+  return set;
+}
+
+/* ---- memória de fonte por contraparte (entradas) ---- */
+function buscarMemoriaEntrada(contraparte, contaId) {
+  if (!contraparte || !Array.isArray(state.memoriaEntradas)) return null;
+  const m = state.memoriaEntradas.find(x => x.chave === contraparte && (x.contaId || null) === (contaId || null));
+  if (!m || !m.fonteId) return null;
+  const fonte = (state.fontesRenda || []).find(f => f.id === m.fonteId && !f.arquivado);
+  if (!fonte) return null;
+  return { fonteId: m.fonteId, nivel: (m.confirmacoes || 0) >= 3 ? 'auto' : 'sugestao', confirmacoes: m.confirmacoes || 0 };
+}
+function aprenderMemoriaEntrada(contraparte, contaId, fonteId) {
+  if (!contraparte || !fonteId) return null;
+  if (!Array.isArray(state.memoriaEntradas)) state.memoriaEntradas = [];
+  const hoje = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  let m = state.memoriaEntradas.find(x => x.chave === contraparte && (x.contaId || null) === (contaId || null));
+  if (!m) {
+    m = { id: uid(), chave: contraparte, contaId: contaId || null, fonteId, confirmacoes: 1, divergencias: 0, criadoEm: hoje, ultimoUsoEm: hoje };
+    state.memoriaEntradas.push(m);
+    return m;
+  }
+  if (m.fonteId === fonteId) {
+    m.confirmacoes = (m.confirmacoes || 0) + 1;
+  } else {
+    /* correção: a memória troca de fonte e volta a ser só sugestão */
+    m.fonteId = fonteId;
+    m.confirmacoes = 1;
+    m.divergencias = (m.divergencias || 0) + 1;
+  }
+  m.ultimoUsoEm = hoje;
+  return m;
+}
+function aplicarMemoriaEntradasExtrato(lancs, contaId) {
+  let n = 0;
+  (lancs || []).forEach(l => {
+    if (l.tipo !== 'ENTRADA_RENDA' && l.tipo !== 'ENTRADA_RENDIMENTO') return;
+    if (!l.contraparte) l.contraparte = extrairContraparteExtrato(l.descricaoOriginal);
+    if (l.fonteManualId) return;
+    const mem = buscarMemoriaEntrada(l.contraparte, contaId);
+    if (mem) { l.fonteSugerida = { fonteId: mem.fonteId, nivel: mem.nivel }; n++; }
+    else delete l.fonteSugerida;
+  });
+  return n;
+}
+/* saída por transferência só é automática depois de 3 usos sem correção */
+function nivelAliasSaida(l, alias) {
+  if (!alias) return null;
+  const transf = EXTRATO_RE_TRANSFERENCIA.test(l.descricaoOriginal || '') || EXTRATO_RE_TRANSFERENCIA.test(l.historico || '');
+  if (!transf) return 'auto';
+  return (alias.contagemUso || 0) >= 3 ? 'auto' : 'sugestao';
+}
+/* pronto = pode entrar no "incluir prontos" sem o Tiago olhar de novo */
+function rexItemPronto(l) {
+  if (!l || l.excluir || l.duvida) return false;
+  if (l.baixaFixo) return true;
+  if (l.tipo === 'PAGAMENTO_FATURA') return true;
+  if (l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO')
+    return !!(l.fonteManualId || (l.fonteSugerida && l.fonteSugerida.nivel === 'auto'));
+  if (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA') {
+    if (l.classifManual) return true;
+    if (l.aliasSugerido && l.aliasSugerido.categoria && l.aliasSugerido.nivel !== 'sugestao') return true;
+    return l.tipo === 'SAIDA_TARIFA';
+  }
+  return false;
+}
+/* fonte de reserva quando uma entrada é incluída sem fonte escolhida */
+function _fonteAIdentificar() {
+  if (!Array.isArray(state.fontesRenda)) state.fontesRenda = [];
+  let f = state.fontesRenda.find(x => (x.nome || '').toLowerCase() === 'a identificar');
+  if (!f) {
+    f = { id: uid(), nome: 'A identificar', tipo: 'variavel', arquivado: false,
+          ehLucro: false, grupoViz: 'A identificar', cor: '#928A79', vizVer: 1 };
+    state.fontesRenda.push(f);
+  }
+  return f;
+}
+function _unirPeriodosExtrato(a, b) {
+  if (!a) return b || null; if (!b) return a;
+  const ini = [a.dataInicio, b.dataInicio].filter(Boolean).sort()[0] || null;
+  const fim = [a.dataFim, b.dataFim].filter(Boolean).sort().slice(-1)[0] || null;
+  return { dataInicio: ini, dataFim: fim };
 }
 
 /* --- Pipeline completo de importação do extrato ----------------------- */
@@ -19891,8 +20195,31 @@ async function importarExtratoBancario(file, contaId) {
     dedupExtrato(lancs, contaId);
     aplicarAliasesExtrato(lancs);
 
-    revisaoExtratoState = { contaId, lancs, banco, metaPeriodo, filtroTipo: 'todos' };
+    /* v0.58.0 (Fatia A): impressão digital + memória de fonte + fusão com a fila */
+    atribuirFpExtrato(lancs, contaId);
+    aplicarMemoriaEntradasExtrato(lancs, contaId);
+    const conhecidos = extratoFpsConhecidos();
+    const fila = carregarRascunhoRevisao(contaId);
+    const naFila = new Set(((fila && fila.lancs) || []).map(l => l.fp).filter(Boolean));
+    const novos = lancs.filter(l => !conhecidos.has(l.fp) && !naFila.has(l.fp));
+    const pulados = lancs.length - novos.length;
+    if (novos.length === 0 && !fila) {
+      toast('Todos os lançamentos deste extrato já foram registrados (ou ignorados) antes.', 'info');
+      return;
+    }
+    revisaoExtratoState = {
+      contaId,
+      lancs: ((fila && fila.lancs) || []).concat(novos),
+      banco,
+      metaPeriodo: _unirPeriodosExtrato(fila && fila.metaPeriodo, metaPeriodo),
+      filtroTipo: 'pendentes',
+      loteId: (fila && fila.loteId) || null
+    };
     salvarRascunhoRevisao();
+    if (pulados > 0 || fila) {
+      toast(`${novos.length} novo${novos.length !== 1 ? 's' : ''} na fila` +
+            (pulados > 0 ? ` · ${pulados} já registrado${pulados !== 1 ? 's' : ''} ou na fila foram pulados` : ''), 'info');
+    }
 
     setTimeout(() => openRevisaoExtratoSheet(), 250);
 
@@ -19922,7 +20249,8 @@ function aplicarAliasesExtrato(lancs) {
         subcategoria: alias.subcategoria || 'a classificar',
         grupoId: alias.grupoId || null,
         isFixo: alias.isFixo === true,
-        identificacao: alias.identificacao || null
+        identificacao: alias.identificacao || null,
+        nivel: nivelAliasSaida(l, alias) /* v0.58.0: 'auto' | 'sugestao' */
       };
       n++;
     }
@@ -20011,8 +20339,8 @@ function detectarBaixasPendentes(lancs, contaId) {
 }
 
 /* v0.23.2: retomar revisão a partir do rascunho */
-function retomarRascunhoRevisao() {
-  const draft = carregarRascunhoRevisao();
+function retomarRascunhoRevisao(contaId) {
+  const draft = carregarRascunhoRevisao(contaId);
   if (!draft) {
     toast('Nenhum rascunho encontrado', 'info');
     return;
@@ -20022,126 +20350,205 @@ function retomarRascunhoRevisao() {
     lancs: draft.lancs,
     banco: draft.banco,
     metaPeriodo: draft.metaPeriodo,
-    filtroTipo: draft.filtroTipo || 'todos'
+    filtroTipo: 'pendentes',
+    loteId: draft.loteId || null
   };
   openRevisaoExtratoSheet();
 }
 
 /* --- Tela de revisão do extrato --------------------------------------- */
 function openRevisaoExtratoSheet() {
-  const { contaId, lancs, banco, metaPeriodo } = revisaoExtratoState;
+  /* v0.58.0 (Fatia A): a revisão virou FILA. Cada lançamento tem incluir /
+     dúvida / ignorar; incluir grava na hora e tira da fila. Nada de tudo-ou-nada. */
+  const { contaId, banco } = revisaoExtratoState;
   const conta = (state.contas || []).find(c => c.id === contaId);
   if (!conta) return;
-
-  const bancoLabel = { itau: 'Itaú', sicoob: 'Sicoob', btg: 'BTG' }[banco] || banco;
-
-  /* Contadores por tipo */
-  const cont = {
-    todos: lancs.length,
-    entradas: lancs.filter(l => l.tipo === 'ENTRADA_RENDA').length,
-    saidas: lancs.filter(l => l.tipo === 'SAIDA_CONSUMO').length,
-    tarifas: lancs.filter(l => l.tipo === 'SAIDA_TARIFA').length,
-    pagfat: lancs.filter(l => l.tipo === 'PAGAMENTO_FATURA').length,
-    ignorados: lancs.filter(l => l.excluir).length,
-    aclassificar: lancs.filter(l => !l.excluir && !l.classifManual && !l.aliasSugerido && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA')).length,
-    duplicatas: lancs.filter(l => l.potencialMatch).length,
-    rendimento: lancs.filter(l => l.tipo === 'ENTRADA_RENDIMENTO').length
-  };
-  const naoExcluidos = lancs.filter(l => !l.excluir).length;
+  if (!revisaoExtratoState.filtroTipo) revisaoExtratoState.filtroTipo = 'pendentes';
+  const bancoLabel = { itau: 'Itaú', sicoob: 'Sicoob', btg: 'BTG' }[banco] || banco || 'banco';
 
   const html = `
-    <div class="rex-summary">
-      <div class="rex-sum-line">
-        <span class="rex-sum-label">Extrato ${bancoLabel}</span>
-        <span class="rex-sum-meta">${metaPeriodo && metaPeriodo.dataInicio ? _fmtDataBR(metaPeriodo.dataInicio) + ' → ' + _fmtDataBR(metaPeriodo.dataFim) : ''}</span>
-      </div>
-      <div class="rex-sum-line">
-        <span class="rex-sum-label">Conta</span>
-        <span class="rex-sum-meta" style="color:${conta.cor};">${conta.icone || '🏦'} ${escapeHtml(conta.nome)}</span>
-      </div>
-      <div class="rex-sum-line">
-        <span class="rex-sum-label">Lançamentos detectados</span>
-        <span class="rex-sum-meta"><strong>${cont.todos}</strong> · ${naoExcluidos} pra importar</span>
-      </div>
-    </div>
-
+    <div id="rexResumo"></div>
     <div class="rex-microcopy">
-      <em>Lançamentos com banner colorido provavelmente já existem no app. Toque na classificação
-      para escolher categoria/subcategoria antes de aplicar. Você pode fechar essa tela e voltar
-      depois — o rascunho fica salvo.</em>
+      <em>Faça aos poucos: <strong>incluir</strong> grava no app na hora e tira da fila; <strong>dúvida</strong> guarda para pesquisar depois; <strong>ignorar</strong> tira da fila sem registrar. A fila fica salva na nuvem — feche e volte quando quiser, de qualquer aparelho.</em>
     </div>
-
-    <div class="rex-filtros">
-      ${_rexFiltroChip('todos', `todos (${cont.todos})`)}
-      ${cont.duplicatas > 0 ? _rexFiltroChip('duplicatas', `⚠ possíveis duplicatas (${cont.duplicatas})`) : ''}
-      ${cont.aclassificar > 0 ? _rexFiltroChip('aclassificar', `❓ a classificar (${cont.aclassificar})`) : ''}
-      ${_rexFiltroChip('saidas', `saídas (${cont.saidas})`, 'var(--flow-out)')}
-      ${_rexFiltroChip('entradas', `entradas (${cont.entradas})`, 'var(--flow-in)')}
-      ${cont.tarifas > 0 ? _rexFiltroChip('tarifas', `tarifas (${cont.tarifas})`) : ''}
-      ${cont.pagfat > 0 ? _rexFiltroChip('pagfat', `🔄 fatura (${cont.pagfat})`) : ''}
-      ${_rexFiltroChip('ignorados', `ignorados (${cont.ignorados})`)}
-    </div>
-
+    <div id="rexFiltros" class="rex-filtros"></div>
     <div id="rexList" class="rex-list"></div>
   `;
-
   const footer = `
-    <button class="btn btn-secondary" id="rexDraft">salvar e voltar depois</button>
-    <button class="btn btn-primary" id="rexApply">aplicar ${naoExcluidos} lançamento${naoExcluidos !== 1 ? 's' : ''}</button>
+    <button class="btn btn-secondary" id="rexDraft">fechar · continuar depois</button>
+    <button class="btn btn-primary" id="rexApply">incluir prontos</button>
   `;
+  sheet.open(`Fila · Extrato ${bancoLabel}`, html, footer);
+  _rexRefresh();
 
-  sheet.open(`Revisão · Extrato ${bancoLabel}`, html, footer);
-  _rexRenderList();
-
-  /* Hooks de filtro */
-  document.querySelectorAll('[data-rex-filtro]').forEach(el => {
-    el.onclick = () => {
-      revisaoExtratoState.filtroTipo = el.dataset.rexFiltro;
-      document.querySelectorAll('[data-rex-filtro]').forEach(c => c.classList.remove('selected'));
-      el.classList.add('selected');
-      _rexRenderList();
-    };
-  });
-
-  /* v0.23.2: botão "salvar rascunho" */
   document.getElementById('rexDraft').onclick = () => {
     salvarRascunhoRevisao();
-    toast('Rascunho salvo. Retome em qualquer conta tocando em "Importar extrato".', 'info');
     sheet.close();
   };
 
   document.getElementById('rexApply').onclick = async () => {
-    const naoExcluidos = revisaoExtratoState.lancs.filter(l => !l.excluir);
-    if (naoExcluidos.length === 0) {
-      toast('Nada pra importar — todos foram ignorados', 'info');
+    const prontos = revisaoExtratoState.lancs.filter(rexItemPronto);
+    if (prontos.length === 0) {
+      toast('Nenhum pronto ainda — classifique ou toque em "incluir" no lançamento.', 'info');
       return;
     }
-
-    /* Confirmação antes de aplicar */
-    /* v0.52.0 (Fatia 3): baixas contam separado — não são gastos novos */
-    const nBaixasRev = naoExcluidos.filter(l => l.baixaFixo).length;
-    const nSaidas = naoExcluidos.filter(l => !l.baixaFixo && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA' || l.tipo === 'PAGAMENTO_FATURA')).length;
-    const nEntradas = naoExcluidos.filter(l => l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO').length;
+    const nE = prontos.filter(l => l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO').length;
+    const nB = prontos.filter(l => l.baixaFixo).length;
+    const nS = prontos.length - nE - nB;
     const partes = [];
-    if (nSaidas > 0) partes.push(`${nSaidas} saída${nSaidas !== 1 ? 's' : ''} nova${nSaidas !== 1 ? 's' : ''}`);
-    if (nEntradas > 0) partes.push(`${nEntradas} entrada${nEntradas !== 1 ? 's' : ''}`);
-    if (nBaixasRev > 0) partes.push(`${nBaixasRev} baixa${nBaixasRev !== 1 ? 's' : ''} de conta${nBaixasRev !== 1 ? 's' : ''} pendente${nBaixasRev !== 1 ? 's' : ''}`);
-
-    const nAClassif = naoExcluidos.filter(l => !l.classifManual && !l.aliasSugerido && !l.baixaFixo && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA')).length;
-    const aviso = nAClassif > 0 ? ` ${nAClassif} ficarão como "a classificar" — você pode editar depois.` : '';
-
-    const confirmado = await askConfirm({
-      title: 'Aplicar importação?',
-      message: `Vou aplicar ${partes.join(' + ')} no app.${aviso} Você pode desfazer essa importação em Config → Histórico de importações.`,
-      confirmLabel: 'Aplicar',
-      cancelLabel: 'Voltar à revisão'
+    if (nS > 0) partes.push(`${nS} saída${nS !== 1 ? 's' : ''}`);
+    if (nE > 0) partes.push(`${nE} entrada${nE !== 1 ? 's' : ''}`);
+    if (nB > 0) partes.push(`${nB} baixa${nB !== 1 ? 's' : ''} de conta pendente`);
+    const ok = await askConfirm({
+      title: 'Incluir os prontos?',
+      message: `Vou gravar ${partes.join(' + ')} já classificados. Sugestões, dúvidas e os não classificados continuam na fila. Dá para desfazer em Config → Histórico de importações.`,
+      confirmLabel: 'Incluir',
+      cancelLabel: 'Voltar à fila'
     });
-    if (!confirmado) return;
-
-    aplicarLancamentosExtratoImportados(naoExcluidos, revisaoExtratoState.contaId);
-    limparRascunhoRevisao();
-    sheet.close();
+    if (!ok) return;
+    _rexIncluir(prontos);
   };
+}
+
+/* contadores, chips de filtro, lista e rótulo do botão — tudo a partir do estado */
+function _rexRefresh() {
+  const st = revisaoExtratoState;
+  const L = st.lancs || [];
+  const conta = (state.contas || []).find(c => c.id === st.contaId) || {};
+  const cont = {
+    pendentes: L.filter(l => !l.excluir && !l.duvida).length,
+    prontos: L.filter(rexItemPronto).length,
+    aclassificar: L.filter(l => !l.excluir && !l.duvida && !rexItemPronto(l)).length,
+    duvidas: L.filter(l => !l.excluir && l.duvida).length,
+    entradas: L.filter(l => !l.excluir && (l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO')).length,
+    saidas: L.filter(l => !l.excluir && l.tipo === 'SAIDA_CONSUMO').length,
+    tarifas: L.filter(l => !l.excluir && l.tipo === 'SAIDA_TARIFA').length,
+    pagfat: L.filter(l => l.tipo === 'PAGAMENTO_FATURA').length,
+    duplicatas: L.filter(l => l.potencialMatch).length,
+    ignorados: L.filter(l => l.excluir).length,
+    todos: L.length
+  };
+  const mp = st.metaPeriodo;
+  const resumo = document.getElementById('rexResumo');
+  if (resumo) resumo.innerHTML = `
+    <div class="rex-summary">
+      <div class="rex-sum-line">
+        <span class="rex-sum-label">Conta</span>
+        <span class="rex-sum-meta" style="color:${conta.cor || 'inherit'};">${conta.icone || '🏦'} ${escapeHtml(conta.nome || '')}${mp && mp.dataInicio ? ' · ' + _fmtDataBR(mp.dataInicio) + ' → ' + _fmtDataBR(mp.dataFim) : ''}</span>
+      </div>
+      <div class="rex-sum-line">
+        <span class="rex-sum-label">Na fila</span>
+        <span class="rex-sum-meta"><strong>${cont.pendentes + cont.duvidas}</strong> · ${cont.prontos} pronto${cont.prontos !== 1 ? 's' : ''} · ${cont.duvidas} dúvida${cont.duvidas !== 1 ? 's' : ''}</span>
+      </div>
+    </div>`;
+  const filtros = document.getElementById('rexFiltros');
+  if (filtros) {
+    filtros.innerHTML = [
+      _rexFiltroChip('pendentes', `na fila (${cont.pendentes})`),
+      cont.prontos > 0 ? _rexFiltroChip('prontos', `✓ prontos (${cont.prontos})`, 'var(--flow-in)') : '',
+      cont.aclassificar > 0 ? _rexFiltroChip('aclassificar', `❓ a classificar (${cont.aclassificar})`) : '',
+      cont.duvidas > 0 ? _rexFiltroChip('duvidas', `? dúvidas (${cont.duvidas})`, '#C18C2D') : '',
+      _rexFiltroChip('saidas', `saídas (${cont.saidas})`, 'var(--flow-out)'),
+      _rexFiltroChip('entradas', `entradas (${cont.entradas})`, 'var(--flow-in)'),
+      cont.tarifas > 0 ? _rexFiltroChip('tarifas', `tarifas (${cont.tarifas})`) : '',
+      cont.pagfat > 0 ? _rexFiltroChip('pagfat', `🔄 fatura (${cont.pagfat})`) : '',
+      cont.duplicatas > 0 ? _rexFiltroChip('duplicatas', `⚠ possíveis duplicatas (${cont.duplicatas})`) : '',
+      cont.ignorados > 0 ? _rexFiltroChip('ignorados', `ignorados (${cont.ignorados})`) : '',
+      _rexFiltroChip('todos', `todos (${cont.todos})`)
+    ].join('');
+    filtros.querySelectorAll('[data-rex-filtro]').forEach(el => {
+      el.onclick = () => { revisaoExtratoState.filtroTipo = el.dataset.rexFiltro; _rexRefresh(); };
+    });
+  }
+  const btn = document.getElementById('rexApply');
+  if (btn) btn.textContent = cont.prontos > 0 ? `incluir ${cont.prontos} pronto${cont.prontos !== 1 ? 's' : ''}` : 'incluir prontos';
+  _rexRenderList();
+}
+
+/* grava os itens no app (um lote por fila) e tira da fila */
+function _rexIncluir(itens) {
+  const st = revisaoExtratoState;
+  if (!itens || !itens.length) return;
+  if (!st.loteId) st.loteId = 'lote_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+  itens.forEach(l => { l.excluir = false; l.duvida = false; });
+  aplicarLancamentosExtratoImportados(itens, st.contaId, { loteId: st.loteId, silencioso: true });
+  const set = new Set(itens);
+  st.lancs = (st.lancs || []).filter(l => !set.has(l));
+  salvarRascunhoRevisao();
+  const restam = st.lancs.filter(l => !l.excluir).length;
+  if (restam === 0) {
+    toast(`${itens.length} incluído${itens.length !== 1 ? 's' : ''} · fila do extrato concluída ✓`, 'success');
+    sheet.close();
+    return;
+  }
+  toast(`${itens.length} incluído${itens.length !== 1 ? 's' : ''} · ${restam} na fila`, 'success');
+  _rexRefresh();
+}
+
+async function _rexIncluirUm(idx) {
+  const l = revisaoExtratoState.lancs[idx];
+  if (!l) return;
+  if (l.tipo === 'PAGAMENTO_FATURA' && l.matchPagamentoFaturaId) {
+    toast('Esse pagamento já está registrado no app — use ignorar.', 'info');
+    return;
+  }
+  const ehEntrada = (l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO');
+  if (ehEntrada && !l.fonteManualId && !l.fonteSugerida) {
+    const ok = await _rexEscolherFonte(idx);
+    if (!ok) return;
+  }
+  _rexIncluir([l]);
+}
+
+/* escolha da fonte de uma entrada (lista as fontes ativas, agrupadas) */
+async function _rexEscolherFonte(idx) {
+  const l = revisaoExtratoState.lancs[idx];
+  if (!l) return false;
+  const ativas = (state.fontesRenda || []).filter(f => !f.arquivado)
+    .slice().sort((a, b) => String(a.grupoViz || a.nome).localeCompare(String(b.grupoViz || b.nome)) || String(a.nome).localeCompare(String(b.nome)));
+  if (!ativas.length) { toast('Cadastre uma fonte de renda em Config', 'error'); return false; }
+  const atual = l.fonteManualId || (l.fonteSugerida && l.fonteSugerida.fonteId) || null;
+  const escolha = await askChoice({
+    title: 'De qual fonte é esta entrada?',
+    message: `${l.descricaoOriginal} · ${fmtBRL(l.valor)}` + (l.contraparte ? ` — o app vai lembrar de "${l.contraparte}" para as próximas` : ''),
+    options: ativas.map(f => ({
+      value: f.id,
+      label: f.nome + (f.id === atual ? '  ✓' : ''),
+      desc: (f.grupoViz && f.grupoViz !== f.nome) ? 'grupo ' + f.grupoViz : '',
+      primary: f.id === atual
+    }))
+  });
+  if (!escolha) return false;
+  l.fonteManualId = escolha;
+  salvarRascunhoRevisao();
+  _rexRefresh();
+  return true;
+}
+
+function _rexMarcarDuvida(idx) {
+  const l = revisaoExtratoState.lancs[idx];
+  if (!l) return;
+  l.duvida = !l.duvida;
+  salvarRascunhoRevisao();
+  _rexRefresh();
+}
+async function _rexAnotarDuvida(idx) {
+  const l = revisaoExtratoState.lancs[idx];
+  if (!l) return;
+  const nota = await askText({ title: 'Anotação da dúvida', label: 'O que falta saber?', placeholder: 'ex.: perguntar à Juliana', defaultValue: l.duvidaNota || '', confirmLabel: 'Salvar', maxLength: 120 });
+  if (nota === null) return;
+  l.duvidaNota = nota;
+  l.duvida = true;
+  salvarRascunhoRevisao();
+  _rexRefresh();
+}
+function _rexIgnorar(idx, ignorar) {
+  const l = revisaoExtratoState.lancs[idx];
+  if (!l) return;
+  l.excluir = !!ignorar;
+  if (ignorar) l.duvida = false;
+  salvarRascunhoRevisao();
+  _rexRefresh();
 }
 
 function _rexFiltroChip(key, label, cor) {
@@ -20154,17 +20561,21 @@ function _rexRenderList() {
   const host = document.getElementById('rexList');
   if (!host) return;
 
-  const f = revisaoExtratoState.filtroTipo;
-  const todos = revisaoExtratoState.lancs;
+  const f = revisaoExtratoState.filtroTipo || 'pendentes';
+  const todos = revisaoExtratoState.lancs || [];
+  const ehEnt = (l) => l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO';
 
   const filtrados = todos.filter(l => {
     if (f === 'todos') return true;
-    if (f === 'saidas') return l.tipo === 'SAIDA_CONSUMO';
-    if (f === 'entradas') return l.tipo === 'ENTRADA_RENDA';
-    if (f === 'tarifas') return l.tipo === 'SAIDA_TARIFA';
+    if (f === 'pendentes') return !l.excluir && !l.duvida;
+    if (f === 'prontos') return rexItemPronto(l);
+    if (f === 'aclassificar') return !l.excluir && !l.duvida && !rexItemPronto(l);
+    if (f === 'duvidas') return !l.excluir && !!l.duvida;
+    if (f === 'saidas') return !l.excluir && l.tipo === 'SAIDA_CONSUMO';
+    if (f === 'entradas') return !l.excluir && ehEnt(l);
+    if (f === 'tarifas') return !l.excluir && l.tipo === 'SAIDA_TARIFA';
     if (f === 'pagfat') return l.tipo === 'PAGAMENTO_FATURA';
     if (f === 'duplicatas') return !!l.potencialMatch;
-    if (f === 'aclassificar') return !l.excluir && !l.classifManual && !l.aliasSugerido && (l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA');
     if (f === 'ignorados') return l.excluir;
     return true;
   });
@@ -20174,28 +20585,17 @@ function _rexRenderList() {
     return;
   }
 
-  host.innerHTML = filtrados.map((l) => {
-    const idxGlobal = todos.indexOf(l);
-    return _rexRenderRow(l, idxGlobal);
-  }).join('');
+  host.innerHTML = filtrados.map((l) => _rexRenderRow(l, todos.indexOf(l))).join('');
 
-  /* Hooks das checkboxes */
-  host.querySelectorAll('[data-rex-incluir]').forEach(cb => {
-    cb.onchange = (ev) => {
-      const idx = Number(cb.dataset.rexIncluir);
-      revisaoExtratoState.lancs[idx].excluir = !cb.checked;
-      salvarRascunhoRevisao();
-      _rexAtualizarBotaoAplicar();
-      _rexAtualizarRow(idx);
-    };
-  });
-
-  /* Hooks dos botões de classificar */
+  const num = (el, k) => Number(el.dataset[k]);
+  host.querySelectorAll('[data-rex-incluir1]').forEach(b => { b.onclick = () => _rexIncluirUm(num(b, 'rexIncluir1')); });
+  host.querySelectorAll('[data-rex-duvida]').forEach(b => { b.onclick = () => _rexMarcarDuvida(num(b, 'rexDuvida')); });
+  host.querySelectorAll('[data-rex-nota]').forEach(b => { b.onclick = () => _rexAnotarDuvida(num(b, 'rexNota')); });
+  host.querySelectorAll('[data-rex-ignorar]').forEach(b => { b.onclick = () => _rexIgnorar(num(b, 'rexIgnorar'), true); });
+  host.querySelectorAll('[data-rex-restaurar]').forEach(b => { b.onclick = () => _rexIgnorar(num(b, 'rexRestaurar'), false); });
+  host.querySelectorAll('[data-rex-fonte]').forEach(b => { b.onclick = () => _rexEscolherFonte(num(b, 'rexFonte')); });
   host.querySelectorAll('[data-rex-classif]').forEach(btn => {
-    btn.onclick = () => {
-      const idx = Number(btn.dataset.rexClassif);
-      _rexAbrirPickerClassificacao(idx);
-    };
+    btn.onclick = () => _rexAbrirPickerClassificacao(num(btn, 'rexClassif'));
   });
   _rexBindBaixaHooks(host);
 }
@@ -20304,6 +20704,7 @@ function _rexRenderRow(l, idxGlobal) {
     const grupoTxt = grupoObjRow ? ` <span style="font-weight:400;opacity:0.7;">· ${escapeHtml(grupoObjRow.nome)}</span>` : '';
     let badge = '';
     if (classificado) badge = '<span class="rex-tag rex-tag-classif">✓ classificado</span>';
+    else if (sug && sug.nivel === 'sugestao') badge = '<span class="rex-tag rex-tag-sug" title="memória ainda não confirmada 3 vezes — confira antes de incluir">◐ sugestão · confira</span>';
     else if (sug) badge = '<span class="rex-tag rex-tag-classif" style="background:color-mix(in srgb,var(--accent,#4A6741) 14%,transparent);color:var(--accent,#4A6741);">✦ auto</span>';
     classifLinha = `
       <div class="rex-row-classif">
@@ -20315,6 +20716,23 @@ function _rexRenderRow(l, idxGlobal) {
       </div>
       ${l.baixaRecusada ? `<div class="rex-row-classif"><button type="button" data-rex-revincular="${idxGlobal}" style="background:none;border:none;padding:0;font:inherit;font-size:12px;color:var(--ink-mute);text-decoration:underline;cursor:pointer;">↩ voltar a dar baixa em ${escapeHtml(l.baixaRecusada.nome)}</button></div>` : ''}
     `;
+  } else if (l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO') {
+    /* v0.58.0 (Fatia A): fonte explícita por lançamento — escolhida, auto
+       (3+ confirmações da mesma contraparte) ou sugestão a confirmar */
+    const fid = l.fonteManualId || (l.fonteSugerida && l.fonteSugerida.fonteId) || null;
+    const fo = fid ? (state.fontesRenda || []).find(x => x.id === fid) : null;
+    let badgeF = '';
+    if (l.fonteManualId) badgeF = '<span class="rex-tag rex-tag-classif">✓ escolhida</span>';
+    else if (l.fonteSugerida && l.fonteSugerida.nivel === 'auto') badgeF = '<span class="rex-tag rex-tag-classif" style="background:color-mix(in srgb,var(--flow-in) 14%,transparent);color:var(--flow-in);">✦ auto</span>';
+    else if (l.fonteSugerida) badgeF = '<span class="rex-tag rex-tag-sug">◐ sugestão · confira</span>';
+    classifLinha = `
+      <div class="rex-row-classif">
+        <button class="rex-classif-btn" data-rex-fonte="${idxGlobal}">
+          <span class="rex-classif-cat">${fo ? 'Fonte: ' + escapeHtml(fo.nome) : '❓ escolher a fonte'}</span>
+          <span class="rex-classif-edit">✎ ${fo ? 'trocar' : 'escolher'}</span>
+        </button>
+        ${badgeF}
+      </div>`;
   } else if (l.tipo === 'PAGAMENTO_FATURA') {
     const msg = l.matchPagamentoFaturaId
       ? '🔄 já registrado no app — ignorado'
@@ -20331,43 +20749,32 @@ function _rexRenderRow(l, idxGlobal) {
         </div>
         <div class="rex-row-right">
           <div class="rex-row-valor" style="color:${corValor};">${sinal} ${fmtBRL(l.valor)}</div>
-          <label class="rex-row-toggle">
-            <input type="checkbox" data-rex-incluir="${idxGlobal}" ${!l.excluir ? 'checked' : ''}>
-            <span class="rex-toggle-text">${!l.excluir ? 'incluir' : 'ignorar'}</span>
-          </label>
+          ${l.duvida && !l.excluir ? '<span class="rex-tag rex-tag-duv">? dúvida</span>' : ''}
         </div>
       </div>
       ${bannerDup}
       ${classifLinha}
+      ${l.duvida && !l.excluir ? `<div class="rex-duv-nota">${l.duvidaNota ? '📝 ' + escapeHtml(l.duvidaNota) + ' · ' : ''}<button type="button" data-rex-nota="${idxGlobal}">${l.duvidaNota ? 'editar nota' : '📝 anotar o que falta saber'}</button></div>` : ''}
+      <div class="rex-acts">
+        ${l.excluir
+          ? `<button type="button" class="rex-act" data-rex-restaurar="${idxGlobal}">↩ voltar para a fila</button>`
+          : `<button type="button" class="rex-act ok" data-rex-incluir1="${idxGlobal}">✓ incluir</button>
+             <button type="button" class="rex-act duv${l.duvida ? ' on' : ''}" data-rex-duvida="${idxGlobal}">${l.duvida ? '✓ dúvida' : '? dúvida'}</button>
+             <button type="button" class="rex-act ign" data-rex-ignorar="${idxGlobal}">✕ ignorar</button>`}
+      </div>
     </div>
   `;
 }
 
 function _rexAtualizarRow(idx) {
-  const row = document.querySelector(`[data-rex-idx="${idx}"]`);
-  if (!row) return;
-  const l = revisaoExtratoState.lancs[idx];
-  row.outerHTML = _rexRenderRow(l, idx);
-  /* Re-bindar hooks */
-  const novoRow = document.querySelector(`[data-rex-idx="${idx}"]`);
-  if (novoRow) {
-    const cb = novoRow.querySelector('[data-rex-incluir]');
-    if (cb) cb.onchange = (ev) => {
-      revisaoExtratoState.lancs[idx].excluir = !cb.checked;
-      salvarRascunhoRevisao();
-      _rexAtualizarBotaoAplicar();
-      _rexAtualizarRow(idx);
-    };
-    const btnCls = novoRow.querySelector('[data-rex-classif]');
-    if (btnCls) btnCls.onclick = () => _rexAbrirPickerClassificacao(idx);
-    _rexBindBaixaHooks(novoRow);
-  }
+  /* v0.58.0: a fila muda contadores, filtros e o botão — re-render único */
+  _rexRefresh();
 }
 
 function _rexAtualizarBotaoAplicar() {
-  const naoExcluidos = revisaoExtratoState.lancs.filter(l => !l.excluir).length;
+  const n = (revisaoExtratoState.lancs || []).filter(rexItemPronto).length;
   const btnApply = document.getElementById('rexApply');
-  if (btnApply) btnApply.textContent = `aplicar ${naoExcluidos} lançamento${naoExcluidos !== 1 ? 's' : ''}`;
+  if (btnApply) btnApply.textContent = n > 0 ? `incluir ${n} pronto${n !== 1 ? 's' : ''}` : 'incluir prontos';
 }
 
 /* v0.23.2: picker compacto pra escolher categoria + subcategoria + grupo */
@@ -20629,7 +21036,8 @@ function _fmtDataBR(iso) {
 /* --- Aplicar lançamentos do extrato ao state -------------------------- */
 /* v0.23.1: cria um lote de importação (para undo posterior), pré-classifica
    via state.aliasItems, e tagga cada registro com loteImportacaoId. */
-function aplicarLancamentosExtratoImportados(lancs, contaId) {
+function aplicarLancamentosExtratoImportados(lancs, contaId, opts) {
+  opts = opts || {}; /* v0.58.0: { loteId, silencioso } — inclusões parciais somam no mesmo lote */
   const conta = (state.contas || []).find(c => c.id === contaId);
   if (!conta) {
     toast('Conta não encontrada', 'error');
@@ -20638,8 +21046,13 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
 
   /* Cria o lote ANTES de aplicar os lançamentos */
   if (!Array.isArray(state.lotesImportacao)) state.lotesImportacao = [];
-  const lote = {
-    id: 'lote_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7),
+  const loteExistente = opts.loteId ? state.lotesImportacao.find(x => x.id === opts.loteId) : null;
+  if (loteExistente) {
+    ['gastoIds', 'entradaIds', 'baixaGastoIds'].forEach(k => { if (!Array.isArray(loteExistente[k])) loteExistente[k] = []; });
+    loteExistente.dataImport = new Date().toISOString();
+  }
+  const lote = loteExistente || {
+    id: opts.loteId || ('lote_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7)),
     tipo: 'extrato_' + (revisaoExtratoState.banco || 'desconhecido'),
     contaId,
     contaNome: conta.nome,
@@ -20652,8 +21065,9 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
     baixaGastoIds: [] /* v0.52.0: gastos que receberam baixa (não são removidos no undo — são revertidos a pendente) */
   };
 
-  /* Procura uma fonte de renda padrão pra entradas (a primeira ativa) */
-  const fontePadrao = (state.fontesRenda || []).find(f => !f.arquivada) || (state.fontesRenda || [])[0];
+  /* v0.58.0 (Fatia A): acabou a "fonte padrão" — antes TODA entrada do extrato
+     caía na primeira fonte cadastrada (Sec. de Saúde), daí a SES inflada.
+     Agora: fonte escolhida › memória da contraparte › "A identificar". */
 
   let nGastos = 0;
   let nEntradas = 0;
@@ -20689,6 +21103,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
         pago: true,
         dataPagamento: l.dataISO,
         origem: 'extrato',
+        extratoFp: l.fp || null,
         loteImportacaoId: lote.id
       });
       lote.gastoIds.push(id);
@@ -20701,15 +21116,23 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
       const obs = l.tipo === 'ENTRADA_RENDIMENTO'
         ? 'rendimento de aplicação · ' + l.descricaoOriginal
         : l.descricaoOriginal;
+      let fonteIdEntrada = l.fonteManualId || (l.fonteSugerida && l.fonteSugerida.fonteId) || null;
+      if (fonteIdEntrada && !(state.fontesRenda || []).some(f => f.id === fonteIdEntrada)) fonteIdEntrada = null;
+      if (fonteIdEntrada) {
+        try { aprenderMemoriaEntrada(l.contraparte || extrairContraparteExtrato(l.descricaoOriginal), contaId, fonteIdEntrada); } catch (e) {}
+      } else {
+        fonteIdEntrada = _fonteAIdentificar().id;
+      }
       state.entradas.push({
         id,
-        fonteId: fontePadrao ? fontePadrao.id : null,
+        fonteId: fonteIdEntrada,
         contaId,
         valor: l.valor,
         data: l.dataISO,
         ym: l.dataISO.slice(0, 7),
         observacao: obs,
         origem: 'extrato',
+        extratoFp: l.fp || null,
         loteImportacaoId: lote.id
       });
       lote.entradaIds.push(id);
@@ -20729,6 +21152,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
           alvo.pago = true;
           alvo.dataPagamento = l.dataISO;
           alvo.contaId = contaId;
+          if (l.fp && !alvo.extratoFp) alvo.extratoFp = l.fp; /* v0.58.0 */
           if (l.baixaFixo.divergente && Math.abs(previsto - l.valor) > 0.005) {
             alvo.valor = l.valor;
             alvo.observacao = ((alvo.observacao || '') + ' · baixa via extrato ⚠ previsto ' + fmtBRL(previsto) + ', debitado ' + fmtBRL(l.valor)).trim();
@@ -20767,7 +21191,18 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
         if (typeof aprenderAlias === 'function') {
           const ident = (l.classifManualNome && l.classifManualNome.trim() && l.classifManualNome.trim() !== l.descricaoOriginal)
             ? l.classifManualNome.trim() : null;
+          /* v0.58.0: se a memória dizia outra coisa, a correção zera a confiança
+             (ela volta a ser só sugestão até 3 usos iguais) */
+          let anterior = null;
+          try { anterior = buscarAliasParaDescricao(l.descricaoOriginal, null, l.valor); } catch (e) {}
+          const antCat = anterior ? anterior.categoria : null, antSub = anterior ? anterior.subcategoria : null;
           try { aprenderAlias(l.descricaoOriginal, categoria, subcategoria, grupoId, null, ident, isFixo, l.valor); } catch (e) {}
+          if (anterior && (antCat !== categoria || antSub !== subcategoria)) {
+            try {
+              const atual = buscarAliasParaDescricao(l.descricaoOriginal, null, l.valor);
+              if (atual) { atual.contagemUso = 1; atual.divergencias = (atual.divergencias || 0) + 1; }
+            } catch (e) {}
+          }
         }
       } else if (l.aliasSugerido && l.aliasSugerido.categoria) {
         /* v0.51.0 (Fatia B): usa a sugestão que o Tiago VIU na tela de revisão —
@@ -20821,6 +21256,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
         pago: true,
         dataPagamento: l.dataISO,
         origem: 'extrato',
+        extratoFp: l.fp || null,
         loteImportacaoId: lote.id
       });
       lote.gastoIds.push(id);
@@ -20834,7 +21270,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
   /* Salva o lote SÓ se houve registros */
   if (lote.gastoIds.length > 0 || lote.entradaIds.length > 0 || lote.baixaGastoIds.length > 0) {
     lote.quantidade = lote.gastoIds.length + lote.entradaIds.length + lote.baixaGastoIds.length;
-    state.lotesImportacao.push(lote);
+    if (!loteExistente) state.lotesImportacao.push(lote);
   }
 
   saveState(state);
@@ -20851,7 +21287,8 @@ function aplicarLancamentosExtratoImportados(lancs, contaId) {
   const msg = parts.length > 0
     ? `Importado: ${parts.join(' + ')}${sufAlias} · toque em Config → Histórico de importações pra desfazer`
     : 'Nada foi importado';
-  toast(msg, 'success');
+  if (!opts.silencioso) toast(msg, 'success');
+  return { loteId: state.lotesImportacao.indexOf(lote) >= 0 ? lote.id : null, nGastos, nEntradas, nBaixas };
 }
 
 function _identificarCartaoPorDescricao(desc) {
@@ -20877,23 +21314,30 @@ function _identificarCartaoPorDescricao(desc) {
 
 /* --- Trigger UI: chamado pelo botão "Importar extrato" --------------- */
 async function abrirSeletorExtrato(contaId) {
-  /* v0.23.2: se houver rascunho pendente, pergunta se quer retomar antes de abrir o seletor */
-  if (temRascunhoRevisao()) {
-    const draft = carregarRascunhoRevisao();
-    const contaDraft = (state.contas || []).find(c => c.id === draft.contaId);
-    const dataDraft = _fmtDataHora(draft.salvoEm);
+  /* v0.58.0 (Fatia A): fila por conta, salva na nuvem. Extrato novo SOMA à
+     fila (sem duplicar o que já está nela ou já foi registrado). */
+  const fila = carregarRascunhoRevisao(contaId);
+  if (fila) {
+    const vivos = (fila.lancs || []).filter(l => !l.excluir);
+    const nDuv = vivos.filter(l => l.duvida).length;
     const escolha = await askChoice({
-      title: 'Tem uma revisão em rascunho',
-      message: `Você tem uma importação não finalizada do ${contaDraft ? contaDraft.nome : 'banco'}, salva em ${dataDraft}. O que você quer fazer?`,
+      title: 'Fila do extrato em andamento',
+      message: `Há ${vivos.length} lançamento${vivos.length !== 1 ? 's' : ''} na fila desta conta` + (nDuv ? ` (${nDuv} em dúvida)` : '') + ` · atualizada em ${_fmtDataHora(fila.salvoEm)}.`,
       options: [
-        { value: 'retomar', label: 'Retomar revisão', desc: 'Continua de onde parou', primary: true },
-        { value: 'descartar', label: 'Descartar e importar novo', desc: 'Apaga o rascunho e abre o seletor', danger: true },
-        { value: 'cancelar', label: 'Cancelar', desc: 'Não faz nada agora' }
+        { value: 'retomar', label: 'Continuar a fila', desc: 'Volta de onde parou', primary: true },
+        { value: 'novo', label: 'Importar outro extrato', desc: 'Os lançamentos novos entram na mesma fila; o que já está nela ou já foi registrado não se repete' },
+        { value: 'descartar', label: 'Descartar a fila', desc: 'Apaga os pendentes (o que já foi incluído continua no app)', danger: true }
       ]
     });
-    if (escolha === 'retomar') { retomarRascunhoRevisao(); return; }
-    if (escolha === 'descartar') { limparRascunhoRevisao(); }
-    else { return; }
+    if (escolha === 'retomar') { retomarRascunhoRevisao(contaId); return; }
+    if (escolha === 'descartar') {
+      const ok = await askConfirm({ title: 'Descartar a fila?', message: 'Os pendentes e as dúvidas desta conta serão apagados. O que já foi incluído continua no app.', confirmLabel: 'Descartar', danger: true });
+      if (!ok) return;
+      limparRascunhoRevisao(contaId);
+      toast('Fila descartada', 'info');
+      return;
+    }
+    if (escolha !== 'novo') return;
   }
 
   /* Cria input file invisível e dispara */
@@ -20981,6 +21425,7 @@ function desfazerLoteImportacao(loteId) {
       if (!idsBaixas.has(g.id)) return;
       g.pago = false;
       g.dataPagamento = null;
+      delete g.extratoFp; /* v0.58.0 */
       g.observacao = (g.observacao || '')
         .replace(/\s*·\s*baixa via extrato(\s*⚠[^·]*)?/g, '')
         .trim();
