@@ -50,7 +50,7 @@
     setPersistence
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp,
+    getFirestore, doc, setDoc, getDoc, getDocFromServer, onSnapshot, serverTimestamp,
     enableIndexedDbPersistence
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
@@ -83,7 +83,7 @@
     app: fbApp, auth: fbAuth, db: fbDb,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
     signOut, onAuthStateChanged,
-    doc, setDoc, getDoc, onSnapshot, serverTimestamp
+    doc, setDoc, getDoc, getDocFromServer, onSnapshot, serverTimestamp
   };
 
   /* Sinaliza que Firebase está pronto */
@@ -5144,7 +5144,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.58.0 · Fila do extrato: incluir, dúvida ou ignorar um a um (salva na nuvem, sem duplicar extratos sobrepostos) e fonte da entrada pela contraparte, não mais pela primeira fonte cadastrada</div>
+  Finança · v0.58.1 · Sincronização segura: aparelhos mesclam os dados item a item em vez de um sobrescrever o outro (corrige a perda da importação de outubro em 05/11)</div>
 
   </section>
 
@@ -5306,6 +5306,159 @@ function defaultState() {
   };
 }
 
+/* =====================================================================
+   v0.58.1 — SyncGuard: FIM DO "ÚLTIMO APARELHO SOBRESCREVE TUDO"
+   Incidente 05/11/2026: o celular, com uma cópia de antes da importação de
+   outubro, gravou 3 lançamentos e substituiu o documento inteiro na nuvem —
+   ~120 lançamentos importados no computador sumiram de todos os aparelhos.
+   Agora toda chegada de dados (abrir o app, mudança vinda de outro aparelho,
+   antes de gravar) faz MERGE DE 3 VIAS item a item, usando como referência
+   a última versão confirmada da nuvem ("base"):
+     · item novo de qualquer lado → fica
+     · item apagado de um lado e intocado do outro → sai
+     · item editado de um lado só → vale a edição
+     · editado dos dois lados → vale o deste aparelho
+   Se a cópia que chega foi escrita por um aparelho que NÃO tinha visto a
+   nossa base (cópia atrasada), nada é apagado: só soma.
+   ===================================================================== */
+const SyncGuard = {
+  _skip(k) { return k === '_updatedAt' || k === '_syncBaseTs'; },
+  _hash(v) {
+    const str = JSON.stringify(v === undefined ? null : v);
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return (h >>> 0).toString(36) + ':' + str.length;
+  },
+  _isColl(arr) {
+    return Array.isArray(arr) && arr.length > 0 &&
+      arr.every(x => x && typeof x === 'object' && !Array.isArray(x) && x.id != null);
+  },
+  snapshot(st) {
+    const keys = {}, items = {};
+    for (const k in (st || {})) {
+      if (this._skip(k)) continue;
+      const v = st[k];
+      if (this._isColl(v)) { const m = {}; v.forEach(x => { m[x.id] = this._hash(x); }); items[k] = m; }
+      else keys[k] = this._hash(v);
+    }
+    return { keys, items, ts: Number(st && st._updatedAt) || 0 };
+  },
+  _baseKey(uid) { return `financa.v1.user.${uid}.syncBase`; },
+  loadBase(uid) {
+    try { const r = localStorage.getItem(this._baseKey(uid)); return r ? JSON.parse(r) : null; } catch (e) { return null; }
+  },
+  setBaseSnap(uid, snap) { try { localStorage.setItem(this._baseKey(uid), JSON.stringify(snap)); } catch (e) {} },
+  setBase(uid, st) { this.setBaseSnap(uid, this.snapshot(st)); },
+  /* guarda a cópia do aparelho antes de uma troca que tirou itens dela (1 vaga) */
+  backup(uid, st, motivo) {
+    try {
+      localStorage.setItem(`financa.v1.user.${uid}.backup`,
+        JSON.stringify({ em: new Date().toISOString(), motivo, state: st }));
+    } catch (e) { console.warn('[sync] backup não coube no armazenamento local', e); }
+  },
+  /* chave natural dos registros que o app GERA sozinho ao abrir — evita que
+     dois aparelhos criem o mesmo fixo/parcela/pagamento com ids diferentes */
+  _chaveNatural(g) {
+    if (!g) return null;
+    if (g.isPagamentoFatura === true && g.faturaCardId && g.faturaYm) return 'pf|' + g.faturaCardId + '|' + g.faturaYm;
+    if (g.parentFixoId && g.ym) return 'fx|' + g.parentFixoId + '|' + g.ym;
+    if (g.parcelaChave && g.parcela && g.parcela.atual != null) return 'pc|' + g.parcelaChave + '|' + g.parcela.atual;
+    return null;
+  },
+  /* merge de 3 vias. base: snapshot da última versão confirmada da nuvem (ou null) */
+  merge(base, local, remote) {
+    local = local || {}; remote = remote || {};
+    const tsL = Number(local._updatedAt) || 0, tsR = Number(remote._updatedAt) || 0;
+    /* a cópia remota só pode APAGAR itens se quem a escreveu já tinha visto a nossa base */
+    const confiavel = !!base && (Number(remote._syncBaseTs) || 0) >= (base.ts || 0);
+    const out = {};
+    const stats = { addRemoto: 0, addLocal: 0, apagadosRemoto: 0, apagadosLocal: 0, conflitos: 0, dedup: 0, tiradosDoLocal: 0 };
+    const novosLocais = new Set();
+    const keys = new Set(Object.keys(local).concat(Object.keys(remote)));
+    keys.forEach(k => {
+      if (this._skip(k)) return;
+      const L = local[k], R = remote[k];
+      const ehColl = this._isColl(L) || this._isColl(R) || !!(base && base.items && base.items[k]);
+      if (ehColl && (L === undefined || Array.isArray(L)) && (R === undefined || Array.isArray(R))) {
+        const B = (base && base.items && base.items[k]) || null;
+        const arrL = L || [], arrR = R || [];
+        const mR = new Map(arrR.map(x => [x.id, x]));
+        const mL = new Map(arrL.map(x => [x.id, x]));
+        const res = [];
+        const decide = (id) => {
+          const l = mL.get(id), r = mR.get(id);
+          const b = B ? B[id] : undefined;
+          if (l && r) {
+            const hl = this._hash(l), hr = this._hash(r);
+            if (hl === hr) return l;
+            if (b !== undefined && b === hl) return r;
+            if (b !== undefined && b === hr) return l;
+            stats.conflitos++;
+            return (!base && tsR > tsL) ? r : l;
+          }
+          if (l) {
+            if (b !== undefined && confiavel) {
+              if (this._hash(l) === b) { stats.apagadosRemoto++; stats.tiradosDoLocal++; return null; }
+              return l;
+            }
+            if (b === undefined) { stats.addLocal++; novosLocais.add(id); }
+            return l;
+          }
+          if (r) {
+            if (b !== undefined) {
+              if (this._hash(r) === b) { stats.apagadosLocal++; return null; }
+              return r;
+            }
+            stats.addRemoto++;
+            return r;
+          }
+          return null;
+        };
+        arrL.forEach(x => { const v = decide(x.id); if (v) res.push(v); });
+        arrR.forEach(x => { if (!mL.has(x.id)) { const v = decide(x.id); if (v) res.push(v); } });
+        out[k] = res;
+      } else {
+        const hl = this._hash(L), hr = this._hash(R);
+        const b = base && base.keys ? base.keys[k] : undefined;
+        if (L === undefined) out[k] = R;
+        else if (R === undefined) out[k] = L;
+        else if (hl === hr) out[k] = L;
+        else if (b !== undefined && b === hl) out[k] = R;
+        else if (b !== undefined && b === hr) out[k] = L;
+        else out[k] = (!base && tsR > tsL) ? R : L;
+      }
+    });
+    /* dedup dos gerados: se um registro novo DESTE aparelho repete a chave
+       natural de um que já veio da nuvem, fica o da nuvem (ou o que está pago) */
+    if (Array.isArray(out.gastos) && novosLocais.size) {
+      const porChave = new Map();
+      out.gastos.forEach(g => {
+        const c = this._chaveNatural(g); if (!c) return;
+        if (!porChave.has(c)) porChave.set(c, []);
+        porChave.get(c).push(g);
+      });
+      const tirar = new Set();
+      porChave.forEach(grupo => {
+        if (grupo.length < 2) return;
+        const locais = grupo.filter(g => novosLocais.has(g.id));
+        const outros = grupo.filter(g => !novosLocais.has(g.id));
+        if (!locais.length || !outros.length) return;
+        locais.forEach(g => {
+          if (g.pago && !outros.some(o => o.pago)) { outros.forEach(o => { if (!o.pago) tirar.add(o.id); }); }
+          else tirar.add(g.id);
+        });
+      });
+      if (tirar.size) { stats.dedup = tirar.size; out.gastos = out.gastos.filter(g => !tirar.has(g.id)); }
+    }
+    out._updatedAt = Math.max(tsL, tsR);
+    if (remote._syncBaseTs != null) out._syncBaseTs = remote._syncBaseTs;
+    const semTs = (o) => { const c = Object.assign({}, o); delete c._updatedAt; delete c._syncBaseTs; return JSON.stringify(c); };
+    const igualRemoto = semTs(out) === semTs(remote);
+    const igualLocal = semTs(out) === semTs(local);
+    return { state: out, igualRemoto, igualLocal, stats };
+  }
+};
+
 /* ===== Storage Adapter ============================================
    Camada que abstrai onde os dados vivem.
    - Modo 'local': usa apenas localStorage (sem login)
@@ -5327,6 +5480,8 @@ const StorageAdapter = {
   saveTimer: null,
   unsubscribeListener: null,
   lastStateString: null,   /* última versão enviada com sucesso pra nuvem */
+  serverFresh: false,      /* v0.58.1: já vimos a versão do servidor desde que o app abriu/voltou do segundo plano? */
+  inflightTs: null,        /* v0.58.1: carimbo da escrita em andamento (para reconhecer o próprio eco) */
 
   /* Lê o estado, aplicando migrações */
   load() {
@@ -5413,14 +5568,41 @@ const StorageAdapter = {
     this._setStatus('saving');
     try {
       const ref = window.FB.doc(window.FB.db, 'users', this.userId);
+      /* v0.58.1: se ainda não vimos o servidor desde que o app abriu ou voltou
+         do segundo plano, LÊ a nuvem antes de gravar e mescla — um aparelho
+         com cópia velha nunca mais apaga o que outro registrou. */
+      if (!this.serverFresh && window.FB.getDocFromServer) {
+        let snapSrv;
+        try { snapSrv = await window.FB.getDocFromServer(ref); }
+        catch (eSrv) {
+          /* sem como confirmar o servidor: não grava às cegas, fica pendente */
+          this.pendingChanges = Math.max(this.pendingChanges, 1);
+          this._setStatus('offline');
+          return;
+        }
+        this.serverFresh = true;
+        if (snapSrv.exists() && snapSrv.data().state) {
+          const remoto = this._migrate(snapSrv.data().state);
+          const r = this.mesclarRemoto(remoto, { origem: 'antes de gravar', semPush: true });
+          s = r.state;
+        }
+      }
+      const base = SyncGuard.loadBase(this.userId);
+      s._syncBaseTs = base ? (base.ts || 0) : 0;
+      const snapEscrito = SyncGuard.snapshot(s);
+      this.inflightTs = Number(s._updatedAt) || 0;
+      /* sem { merge: true }: o merge raso do Firestore ressuscitava chaves
+         apagadas dentro de mapas (ex.: fila do extrato já concluída) */
       await window.FB.setDoc(ref, {
         state: s,
         meta: {
           email: this.userEmail || null,
           updatedAt: window.FB.serverTimestamp(),
-          appVersion: 'v0.5'
+          appVersion: 'v0.58.1'
         }
-      }, { merge: true });
+      });
+      SyncGuard.setBaseSnap(this.userId, snapEscrito);
+      this.inflightTs = null;
       this.pendingWrite = false;
       this.pendingChanges = 0;
       this.lastSyncAt = Date.now();
@@ -5438,6 +5620,7 @@ const StorageAdapter = {
       }
       this._setStatus('idle');
     } catch (e) {
+      this.inflightTs = null;
       console.error('Falha sync nuvem:', e);
       const isOffline = (typeof navigator !== 'undefined' && navigator.onLine === false);
       this.pendingChanges = Math.max(this.pendingChanges, 1);
@@ -5478,13 +5661,40 @@ const StorageAdapter = {
     }
   },
 
+  /* v0.58.1: incorpora uma versão vinda da nuvem com merge de 3 vias.
+     Atualiza o state global, o armazenamento local e a base. Se o resultado
+     tiver algo que a nuvem não tem, agenda gravação (exceto semPush). */
+  mesclarRemoto(remoto, opts) {
+    opts = opts || {};
+    const uid = this.userId;
+    const base = SyncGuard.loadBase(uid);
+    const atual = (typeof state !== 'undefined' && state) ? state : {};
+    const r = SyncGuard.merge(base, atual, remoto);
+    if (r.stats.tiradosDoLocal > 0) SyncGuard.backup(uid, atual, 'merge (' + (opts.origem || '') + ') tirou ' + r.stats.tiradosDoLocal + ' itens');
+    SyncGuard.setBase(uid, remoto);
+    if (!r.igualLocal) {
+      try { state = r.state; } catch (e) {}
+      try { localStorage.setItem(this._localKey(), JSON.stringify(r.state)); } catch (e) {}
+    }
+    if (!r.igualRemoto && !opts.semPush) this.save(r.state);
+    if (r.stats.addLocal || r.stats.conflitos || r.stats.dedup) console.info('[sync] merge', opts.origem || '', r.stats);
+    return r;
+  },
+
   /* Quando logado, faz pull do estado da nuvem na primeira vez.
      Retorna o estado mais "recente" entre nuvem e local. */
   async pullFromCloud() {
     if (!window.FB || !this.userId) return null;
     try {
       const ref = window.FB.doc(window.FB.db, 'users', this.userId);
-      const snap = await window.FB.getDoc(ref);
+      /* v0.58.1: servidor primeiro (o cache local pode estar atrasado) */
+      let snap;
+      try {
+        snap = await window.FB.getDocFromServer(ref);
+        this.serverFresh = true;
+      } catch (eSrv) {
+        snap = await window.FB.getDoc(ref);
+      }
       if (snap.exists() && snap.data().state) {
         return this._migrate(snap.data().state);
       }
@@ -21639,12 +21849,15 @@ if ('serviceWorker' in navigator) {
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') StorageAdapter.flushNow();
+    /* v0.58.1: ao voltar, a cópia pode estar atrasada — a próxima gravação
+       confere o servidor antes (o listener libera assim que chegar) */
+    else StorageAdapter.serverFresh = false;
   });
 }
 if (typeof window !== 'undefined') {
   window.addEventListener('pagehide', () => StorageAdapter.flushNow());
   /* Voltou a conexão: tenta reenviar o que ficou pendente offline */
-  window.addEventListener('online', () => StorageAdapter.retrySync());
+  window.addEventListener('online', () => { StorageAdapter.serverFresh = false; StorageAdapter.retrySync(); });
 }
 
 /* Detecta se está rodando como PWA instalado (standalone) */
@@ -21781,34 +21994,42 @@ async function initFirebaseAuth() {
         const rawPrev = localStorage.getItem(_localKey);
         if (rawPrev) localPrev = JSON.parse(rawPrev);
       } catch (e) { localPrev = null; }
-      const tsCloud = (cloudState && Number(cloudState._updatedAt)) || 0;
-      const tsLocal = (localPrev && Number(localPrev._updatedAt)) || 0;
-
-      if (cloudState && tsCloud >= tsLocal) {
+      /* v0.58.1: em vez de "o mais novo vence" (que apagou a importação de
+         outubro em 05/11/2026), mescla nuvem + aparelho item a item. */
+      let _pushAposBoot = false;
+      if (cloudState && localPrev) {
+        const _base = SyncGuard.loadBase(user.uid);
+        const _r = SyncGuard.merge(_base, StorageAdapter._migrate(localPrev), cloudState);
+        if (_r.stats.tiradosDoLocal > 0 || (!_base && !_r.igualLocal)) {
+          SyncGuard.backup(user.uid, localPrev, 'boot: cópia do aparelho antes do merge');
+        }
+        localStorage.setItem(_localKey, JSON.stringify(_r.state));
+        SyncGuard.setBase(user.uid, cloudState);
+        _pushAposBoot = !_r.igualRemoto;
+        if (_r.stats.addLocal || _r.stats.conflitos || _r.stats.dedup) console.info('[boot] merge', _r.stats);
+      } else if (cloudState) {
         localStorage.setItem(_localKey, JSON.stringify(cloudState));
-      } else if (localPrev && tsLocal > tsCloud) {
-        /* Local mais novo que a nuvem: mantém o local e sobe pra nuvem */
-        console.info('[boot] estado local mais recente que a nuvem — enviando local');
+        SyncGuard.setBase(user.uid, cloudState);
+      } else if (localPrev) {
+        /* nuvem vazia: o aparelho sobe a cópia dele */
         StorageAdapter.save(localPrev);
-      } else if (!cloudState && !localPrev) {
+      } else {
         const fresh = defaultState();
         localStorage.setItem(_localKey, JSON.stringify(fresh));
         StorageAdapter.save(fresh);
       }
 
       bootApp();
+      if (_pushAposBoot) StorageAdapter.save(state);
 
       StorageAdapter.startRealtimeSync((remoteState) => {
-        /* v0.50.0 (Fatia A): nunca aceitar estado remoto mais VELHO que o
-           local — protege contra eco de escrita atrasada de outro aparelho. */
+        /* v0.58.1: toda versão do servidor é MESCLADA (3 vias), nunca
+           substitui às cegas — e o eco da própria escrita só atualiza a base. */
+        StorageAdapter.serverFresh = true;
         const tsRemote = Number(remoteState._updatedAt) || 0;
-        const tsLocalNow = Number(state && state._updatedAt) || 0;
-        if (tsRemote && tsLocalNow && tsRemote < tsLocalNow) return;
-        const oldStr = JSON.stringify(state);
-        const newStr = JSON.stringify(remoteState);
-        if (oldStr === newStr) return;
-        state = remoteState;
-        try { localStorage.setItem(`financa.v1.user.${user.uid}`, newStr); } catch (e) {}
+        if (StorageAdapter.inflightTs && tsRemote === StorageAdapter.inflightTs) return;
+        const r = StorageAdapter.mesclarRemoto(remoteState, { origem: 'outro aparelho' });
+        if (r.igualLocal) return;
         if (typeof activeView !== 'undefined') {
           if (activeView === 'familia' && typeof renderFamiliaSubtabs === 'function') renderFamiliaSubtabs();
           else if (activeView === 'tiago' && typeof renderTiagoView === 'function') renderTiagoView();
