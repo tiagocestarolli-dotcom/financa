@@ -3405,6 +3405,16 @@ label {
   flex: 0 0 auto;
 }
 
+/* v0.59.0 — reorganização das categorias */
+.reorg-item { display: flex; gap: 10px; align-items: flex-start; padding: 12px; margin: 8px 0; background: var(--bg-elevated); border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; }
+.reorg-item.vazio { opacity: 0.55; }
+.reorg-item input { margin-top: 3px; flex: none; }
+.reorg-body { flex: 1; min-width: 0; }
+.reorg-tit { font-weight: 600; font-size: 14px; color: var(--ink); }
+.reorg-desc { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; line-height: 1.4; }
+.reorg-num { font-size: 12px; color: var(--flow-invest); font-weight: 600; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.reorg-ex { font-size: 11px; color: var(--ink-mute); margin-top: 4px; line-height: 1.45; word-break: break-word; }
+
 /* v0.58.2 — memórias de classificação */
 .mem-busca { width: 100%; box-sizing: border-box; margin: 12px 0 6px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--bg-elevated); font: inherit; font-size: 14px; color: var(--ink); }
 .mem-cont { font-size: 11.5px; color: var(--ink-mute); margin-bottom: 6px; }
@@ -4109,6 +4119,21 @@ label {
    RELATÓRIOS · Fatia 5.2-ajustes (v0.18.0)
    ============================================================ */
 
+.rtg-leg { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--ink-soft); margin: 2px 4px 8px; }
+.rtg-leg span { display: inline-flex; align-items: center; gap: 5px; }
+.rtg-leg i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.rtg-row { padding: 10px 12px; background: var(--bg-elevated); border: 1px solid var(--line); border-radius: var(--r); margin-bottom: 6px; cursor: pointer; }
+.rtg-row:active { opacity: 0.75; }
+.rtg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.rtg-nome { font-size: 14px; font-weight: 600; color: var(--ink); }
+.rtg-val { font-family: var(--font-display); font-size: 17px; color: var(--flow-out); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.rtg-split { font-size: 11.5px; color: var(--ink-mute); margin-top: 1px; font-variant-numeric: tabular-nums; }
+.rtg-track { height: 6px; border-radius: 3px; background: var(--bg-sunken); overflow: hidden; margin: 7px 0 5px; }
+.rtg-fill { height: 100%; display: flex; border-radius: 3px; overflow: hidden; }
+.rtg-fill > span { display: block; height: 100%; }
+.rtg-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+.rtg-tend { font-weight: 600; white-space: nowrap; }
+.rtg-tend.up { color: var(--flow-out); } .rtg-tend.down { color: var(--flow-in); } .rtg-tend.flat { color: var(--ink-mute); }
 /* Gráfico de subcategorias consolidadas (Rel 1) — top N subcats
    somando todas as categorias incluídas. Layout horizontal scrollable
    pra suportar nomes longos sem rotacionar. */
@@ -5077,6 +5102,14 @@ label {
 </button>
 
 <div class="section-title">Outros</div>
+<button class="menu-item" data-cfg="reorg">
+  <div class="mi-ico">🗂️</div>
+  <div class="mi-body">
+    <div class="mi-title">Reorganizar categorias</div>
+    <div class="mi-sub">Assinaturas, tarifas, investimentos, educação, Bud, trabalho e grupos</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 <button class="menu-item" data-cfg="memorias">
   <div class="mi-ico">🧠</div>
   <div class="mi-body">
@@ -5163,7 +5196,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.58.2 · Modo conferência na fila do extrato (nada entra sem o seu toque) e tela Memórias de classificação para apagar sugestões erradas · inclui a sincronização segura da v0.58.1</div>
+  Finança · v0.59.1 · Por tipo de gasto, quem gastou: total de cada subgrupo da família (sem o Tiago) dividido por pessoa, com média e tendência · inclui a reorganização das categorias</div>
 
   </section>
 
@@ -6370,6 +6403,7 @@ function onConfigClick(btn) {
     case 'invest':    openInvestSheet(); break;
     case 'aliases':   openAliasesSheet(); break;
     case 'memorias':  openMemoriasSheet(); break;
+    case 'reorg':     openReorgSheet(); break;
     case 'fixed':     openFixedSheet(); break;
     case 'reminders': openRemindersSheet(); break;
     case 'historicoImportacoes': openHistoricoImportacoesSheet(); break;
@@ -7216,6 +7250,284 @@ function openInvestSheet() {
     });
   }
   render();
+}
+
+/* =====================================================================
+   v0.59.0 — REORGANIZAÇÃO DAS CATEGORIAS (nov/2026)
+   Regra nova: o SUBGRUPO diz O QUE é o gasto e é igual para todos; o GRUPO é
+   detalhe opcional e nunca repete o subgrupo. Sete mudanças aprovadas pelo
+   Tiago em 06/11/2026. Funções puras sobre um estado (testáveis): o plano só
+   conta e lista; aplicar muda gastos, memórias, fixos, listas e grupos.
+   ===================================================================== */
+const REORG_SUB = { assin: 'Assinaturas', tarifas: 'Tarifas e seguros', invest: 'Investimentos', educ: 'Educação', bud: 'BUD', trabalho: 'Trabalho' };
+const REORG_ITENS = [
+  { id: 'assin',    titulo: 'Assinaturas num lugar só',
+    desc: 'Novo subgrupo "Assinaturas" para todos. Recebe os streamings e apps (Apple, Amazon Prime, Netflix, Google One, ChatGPT, Anthropic…) que estavam em "Assinaturas IA/Produtividade", Contas/Serviços, Lazer, Educação e Outros. O que não é assinatura sai de lá: telefonia (TIM) vai para Contas/Serviços do Tiago; compras (Amazon, peças) ficam em "a classificar" para você decidir. Saem os grupos "Assinaturas" e "IA".' },
+  { id: 'tarifas',  titulo: 'Tarifas e seguros num lugar só',
+    desc: 'Novo subgrupo "Tarifas e seguros" para todos. Junta "tarifa bancária", anuidade, IOF, seguros, prestamista, pacote de serviços, acelerador de pontos e custo do cartão. Saem os grupos "Taxas bancárias" e "Custo cartão de crédito".' },
+  { id: 'invest',   titulo: 'Investimento e previdência num lugar só',
+    desc: 'Previdência (Sicoob, Previ), consórcios e Hansard vão para "Investimentos" e ficam marcados como investimento — fora do consumo.' },
+  { id: 'educ',     titulo: 'Educação única',
+    desc: '"Escola" (Marina, Heitor) e "Escola/Cursos" (Juliana) viram "Educação", com o grupo "Escola" (ou "Cursos" para a Juliana). Lanche e almoço da escola vão para Alimentação.' },
+  { id: 'bud',      titulo: 'Bud só em Casa › BUD',
+    desc: 'Ração, veterinário, banho e o que for do Bud vai para Casa › BUD, inclusive o que estava na Marina e em Moradia. Saem os grupos "Bud".' },
+  { id: 'trabalho', titulo: 'Novo subgrupo "Trabalho" (Tiago)',
+    desc: 'Despesas profissionais — começa pela secretária (Sthefane), que estava em Outros. Café e almoço no HRL continuam em Alimentação. Ajuda a separar o que é do consultório no imposto de renda.' },
+  { id: 'grupos',   titulo: 'Grupos duplicados e redundantes',
+    desc: 'Une "Psicologo" em "Psicóloga" (Heitor), corrige "Farmacia" → "Farmácia" (Casa), tira grupos com o mesmo nome do subgrupo (ex.: Marina › Alimentação › grupo Alimentação) e referências a grupos que já foram apagados.' }
+];
+const REORG_RE = {
+  trabalho: /SECRET[ÁA]RIA/,
+  telecom:  /\bTIM\b|MODEM|MODEN|CELU|\bVIVO\b|\bCLARO\b|INTERNET/,
+  invest:   /PREVID|\bPREVI\b|CONS[ÓO]RC|HANSARD/,
+  tarifas:  /ANUIDADE|\bIOF\b|SEGURO|\bSEG[ .]|PRESTAMISTA|TARIFA|PACOTE SERV|SEG TRANSAC|JUROS|ENCARGO|ACELERADOR DE PONTOS/,
+  assin:    /APPLE\.COM|AMAZON PRIME|PRIME VIDEO|NETFLIX|GOOGLE ONE|CHATGPT|OPENAI|ANTHROPIC|\bCLAUDE\b|SPOTIFY|DISNEY|HBO|MAX\.COM|YOUTUBE|KINDLE|DEEZER|GLOBOPLAY|PARAMOUNT|ICLOUD|ADOBE|CANVA/,
+  bud:      /\bBUD\b|RA[ÇC][ÃA]O|VETERIN|COBASI|PETZ|PET ?SHOP/,
+  comidaEscola: /LANCHE|ALMO[ÇC]O|ALIMENTA/
+};
+const REORG_GRUPOS_SAEM = {
+  assin: [['casa', 'Assinaturas'], ['marina', 'IA'], ['tiago', 'IA']],
+  tarifas: [['casa', 'Taxas bancárias'], ['tiago', 'Custo cartao de credito'], ['tiago', 'Custo cartão de crédito']],
+  bud: [['casa', 'Bud'], ['marina', 'Bud']],
+  grupos: [['heitor', 'Psicologo']]
+};
+function _reorgNomeGrupo(st, cat, gid) {
+  if (!gid) return '';
+  const g = ((st.grupos || {})[cat] || []).find(x => x.id === gid);
+  return g ? g.nome : null; /* null = id órfão */
+}
+function _reorgGrupoId(st, cat, nome, criar) {
+  if (!st.grupos) st.grupos = {};
+  if (!st.grupos[cat]) st.grupos[cat] = [];
+  const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  let g = st.grupos[cat].find(x => norm(x.nome) === norm(nome));
+  if (!g && criar) { g = { id: uid(), nome, arquivado: false }; st.grupos[cat].push(g); }
+  return g ? g.id : null;
+}
+/* decide o destino de UM registro (gasto, memória ou fixo). Retorna null se não muda. */
+function _reorgDestino(st, r, texto, aprov) {
+  const T = String(texto || '').toUpperCase();
+  const cat = r.categoria, sub = r.subcategoria || '';
+  const gNome = _reorgNomeGrupo(st, cat, r.grupoId);
+  const ok = (id) => !aprov || aprov.has(id);
+  if (ok('trabalho') && cat === 'tiago' && sub !== REORG_SUB.trabalho && REORG_RE.trabalho.test(T))
+    return { item: 'trabalho', categoria: 'tiago', subcategoria: REORG_SUB.trabalho, grupo: null };
+  if (ok('invest') && sub !== REORG_SUB.invest && REORG_RE.invest.test(T) && !/SEGURO/.test(T))
+    return { item: 'invest', categoria: (cat === 'casa' || cat === 'tiago') ? cat : 'casa', subcategoria: REORG_SUB.invest,
+             grupo: (cat === 'casa' || cat === 'tiago') ? undefined : null, invest: true };
+  if (ok('tarifas') && sub !== REORG_SUB.tarifas && sub !== 'Saúde' && sub !== 'Moradia' && !REORG_RE.assin.test(T) && (
+        sub === 'tarifa bancária' ||
+        (gNome && /^(taxas banc[aá]rias|custo cart[aã]o de cr[eé]dito)$/i.test(gNome)) ||
+        ((sub === 'Outros' || sub === 'Contas/Serviços') && REORG_RE.tarifas.test(T))))
+    return { item: 'tarifas', categoria: cat, subcategoria: REORG_SUB.tarifas, grupo: null };
+  if (ok('assin') && sub === 'Assinaturas IA/Produtividade' && !REORG_RE.assin.test(T) && !(gNome && /^(assinaturas|ia)$/i.test(gNome))) {
+    /* o que não é assinatura sai do subgrupo extinto: telefonia → Contas/Serviços; o resto fica para o Tiago classificar */
+    if (REORG_RE.telecom.test(T)) return { item: 'assin', categoria: cat, subcategoria: 'Contas/Serviços', grupo: null };
+    return { item: 'assin', categoria: cat, subcategoria: 'a classificar', grupo: null };
+  }
+  if (ok('assin') && sub !== REORG_SUB.assin && (
+        sub === 'Assinaturas IA/Produtividade' ||
+        (gNome && /^(assinaturas|ia)$/i.test(gNome)) ||
+        (['Contas/Serviços', 'Lazer/Entretenimento', 'Educação', 'Outros'].indexOf(sub) >= 0 && REORG_RE.assin.test(T))))
+    return { item: 'assin', categoria: cat, subcategoria: REORG_SUB.assin, grupo: null };
+  if (ok('bud') && !(cat === 'casa' && sub === REORG_SUB.bud && !(gNome && /^bud$/i.test(gNome))) && (
+        (gNome && /^bud$/i.test(gNome)) || sub === REORG_SUB.bud || REORG_RE.bud.test(T)))
+    return { item: 'bud', categoria: 'casa', subcategoria: REORG_SUB.bud, grupo: null };
+  if (ok('educ') && (sub === 'Escola' || sub === 'Escola/Cursos')) {
+    if (REORG_RE.comidaEscola.test(T)) return { item: 'educ', categoria: cat, subcategoria: 'Alimentação', grupo: null };
+    return { item: 'educ', categoria: cat, subcategoria: REORG_SUB.educ, grupoNome: cat === 'juliana' ? 'Cursos' : 'Escola' };
+  }
+  if (ok('grupos') && r.grupoId) {
+    if (gNome === null) return { item: 'grupos', categoria: cat, subcategoria: sub, grupo: null };
+    const nrm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (nrm(gNome) === nrm(sub)) return { item: 'grupos', categoria: cat, subcategoria: sub, grupo: null };
+    if (cat === 'heitor' && /^psicologo$/i.test(gNome)) return { item: 'grupos', categoria: cat, subcategoria: sub, grupoNome: 'Psicóloga' };
+  }
+  return null;
+}
+function _subTarifaPadrao() {
+  return ((state && state.subcatsUniversais) || []).indexOf('Tarifas e seguros') >= 0 ? 'Tarifas e seguros' : 'tarifa bancária';
+}
+function _reorgTextoGasto(g) { return [g.nome, g.descricao, g.observacao].filter(Boolean).join(' '); }
+function _reorgTextoAlias(a) { return [a.chave, a.identificacao].filter(Boolean).join(' '); }
+function _reorgColecoes(st) {
+  return [
+    ['gastos', st.gastos || [], _reorgTextoGasto],
+    ['memorias', st.aliasItems || [], _reorgTextoAlias],
+    ['fixos', st.fixedExpenses || [], (f) => f.nome || '']
+  ];
+}
+/* plano: por item, quantos registros mudam e exemplos (nada é alterado) */
+function planejarReorg2026(st) {
+  const plano = {};
+  REORG_ITENS.forEach(it => { plano[it.id] = { gastos: 0, memorias: 0, fixos: 0, valor: 0, exemplos: {} }; });
+  _reorgColecoes(st).forEach(([tipo, arr, txt]) => {
+    arr.forEach(r => {
+      if (tipo === 'gastos' && (r.isAjuste || r.isPagamentoFatura)) return;
+      const d = _reorgDestino(st, r, txt(r), null);
+      if (!d) return;
+      const p = plano[d.item];
+      p[tipo]++;
+      if (tipo === 'gastos') {
+        p.valor += Number(r.valor) || 0;
+        const ex = (r.nome || r.descricao || '').trim().toUpperCase().slice(0, 30) + ' → ' + _memNomeCat(d.categoria) + ' › ' + d.subcategoria;
+        p.exemplos[ex] = (p.exemplos[ex] || 0) + 1;
+      }
+    });
+  });
+  if (plano.grupos) {
+    const f = ((st.grupos || {}).casa || []).find(x => x.nome === 'Farmacia');
+    if (f) plano.grupos.renomeia = 1;
+  }
+  return plano;
+}
+/* aplica os itens aprovados. Retorna contagem do que mudou. */
+function aplicarReorg2026(st, aprovados) {
+  const aprov = new Set(aprovados);
+  const res = { gastos: 0, memorias: 0, fixos: 0, gruposApagados: 0 };
+  _reorgColecoes(st).forEach(([tipo, arr, txt]) => {
+    arr.forEach(r => {
+      if (tipo === 'gastos' && (r.isAjuste || r.isPagamentoFatura)) return;
+      const d = _reorgDestino(st, r, txt(r), aprov);
+      if (!d) return;
+      const catMudou = d.categoria !== r.categoria;
+      r.categoria = d.categoria;
+      r.subcategoria = d.subcategoria;
+      if (d.grupoNome) r.grupoId = _reorgGrupoId(st, d.categoria, d.grupoNome, true);
+      else if (d.grupo === null) r.grupoId = null;
+      else if (catMudou) r.grupoId = null;
+      if (d.invest && tipo === 'gastos') r.isInvest = true;
+      res[tipo]++;
+    });
+  });
+  /* listas de subgrupos */
+  if (!Array.isArray(st.subcatsUniversais)) st.subcatsUniversais = [];
+  if (!st.subcatsExclusivas) st.subcatsExclusivas = {};
+  const addU = (x) => { if (st.subcatsUniversais.indexOf(x) < 0) st.subcatsUniversais.push(x); };
+  const tiraEx = (cat, x) => { if (Array.isArray(st.subcatsExclusivas[cat])) st.subcatsExclusivas[cat] = st.subcatsExclusivas[cat].filter(y => y !== x); };
+  const addEx = (cat, x) => { if (!Array.isArray(st.subcatsExclusivas[cat])) st.subcatsExclusivas[cat] = []; if (st.subcatsExclusivas[cat].indexOf(x) < 0) st.subcatsExclusivas[cat].push(x); };
+  if (aprov.has('assin')) {
+    addU(REORG_SUB.assin); tiraEx('tiago', 'Assinaturas IA/Produtividade');
+    if (_reorgColecoes(st).some(([, arr]) => arr.some(r => r.categoria === 'tiago' && r.subcategoria === 'Contas/Serviços'))) addEx('tiago', 'Contas/Serviços');
+  }
+  if (aprov.has('tarifas')) addU(REORG_SUB.tarifas);
+  if (aprov.has('educ')) { tiraEx('marina', 'Escola'); tiraEx('heitor', 'Escola'); tiraEx('juliana', 'Escola/Cursos'); addU(REORG_SUB.educ); }
+  if (aprov.has('trabalho')) addEx('tiago', REORG_SUB.trabalho);
+  if (aprov.has('bud')) addEx('casa', REORG_SUB.bud);
+  if (aprov.has('invest')) {
+    addEx('casa', REORG_SUB.invest); addEx('tiago', REORG_SUB.invest);
+    if (!Array.isArray(st.investMods)) st.investMods = [];
+    if (!st.investMods.some(m => m.nome === REORG_SUB.invest)) st.investMods.push({ id: uid(), nome: REORG_SUB.invest, arquivado: false });
+    (st.gastos || []).forEach(g => { if (g.subcategoria === REORG_SUB.invest && (g.categoria === 'casa' || g.categoria === 'tiago')) g.isInvest = true; });
+  }
+  if (aprov.has('grupos')) {
+    const f = ((st.grupos || {}).casa || []).find(x => x.nome === 'Farmacia');
+    if (f) f.nome = 'Farmácia';
+  }
+  /* grupos que saem: só se ninguém mais aponta para eles */
+  const usados = new Set();
+  _reorgColecoes(st).forEach(([, arr]) => arr.forEach(r => { if (r.grupoId) usados.add(r.grupoId); }));
+  Object.keys(REORG_GRUPOS_SAEM).forEach(it => {
+    if (!aprov.has(it)) return;
+    REORG_GRUPOS_SAEM[it].forEach(([cat, nome]) => {
+      const lista = (st.grupos || {})[cat] || [];
+      const g = lista.find(x => x.nome === nome);
+      if (g && !usados.has(g.id)) { st.grupos[cat] = lista.filter(x => x !== g); res.gruposApagados++; }
+    });
+  });
+  if (aprov.has('grupos')) {
+    /* grupos com o mesmo nome de um subgrupo, já sem uso */
+    const nrm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    Object.keys(st.grupos || {}).forEach(cat => {
+      const subs = (st.subcatsUniversais || []).concat(st.subcatsExclusivas[cat] || []).map(nrm);
+      const antes = st.grupos[cat].length;
+      st.grupos[cat] = st.grupos[cat].filter(g => !(subs.indexOf(nrm(g.nome)) >= 0 && !usados.has(g.id) && nrm(g.nome) !== 'escola'));
+      res.gruposApagados += antes - st.grupos[cat].length;
+    });
+  }
+  st.reorg2026 = { aplicadoEm: new Date().toISOString(), itens: Array.from(aprov), res };
+  return res;
+}
+
+function _reorgBackupKey() {
+  return (typeof StorageAdapter !== 'undefined' && StorageAdapter.userId)
+    ? `financa.v1.user.${StorageAdapter.userId}.backupReorg` : 'financa.v1.backupReorg';
+}
+function openReorgSheet() {
+  const plano = planejarReorg2026(state);
+  let temBackup = false;
+  try { temBackup = !!localStorage.getItem(_reorgBackupKey()); } catch (e) {}
+  const feito = state.reorg2026;
+  const html = `
+    <div class="card-flat">
+      <div class="muted" style="font-size:13px;line-height:1.45;">
+        Regra nova: o <strong>subgrupo</strong> diz o que é o gasto e é igual para todos; o <strong>grupo</strong> é detalhe opcional e nunca repete o subgrupo.
+        Confira o que cada item move, desmarque o que não quiser e toque em aplicar. Gastos, memórias e fixos mudam juntos; antes de aplicar, este aparelho guarda uma cópia para desfazer.
+        ${feito ? `<br><br><em>Já aplicada em ${escapeHtml(_fmtDataBR(String(feito.aplicadoEm).slice(0, 10)))} — os números abaixo são o que ainda falta.</em>` : ''}
+      </div>
+    </div>
+    ${REORG_ITENS.map(it => {
+      const p = plano[it.id];
+      const ex = Object.entries(p.exemplos).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      const nada = !p.gastos && !p.memorias && !p.fixos && !p.renomeia;
+      return `
+      <label class="reorg-item${nada ? ' vazio' : ''}">
+        <input type="checkbox" data-reorg="${it.id}" ${nada ? '' : 'checked'}>
+        <div class="reorg-body">
+          <div class="reorg-tit">${escapeHtml(it.titulo)}</div>
+          <div class="reorg-desc">${escapeHtml(it.desc)}</div>
+          <div class="reorg-num">${nada ? 'nada a mudar' : `${p.gastos} gasto${p.gastos !== 1 ? 's' : ''} (${fmtBRL(p.valor)}) · ${p.memorias} memória${p.memorias !== 1 ? 's' : ''} · ${p.fixos} fixo${p.fixos !== 1 ? 's' : ''}`}</div>
+          ${ex.length ? `<div class="reorg-ex">${ex.map(([t, n]) => escapeHtml(t) + (n > 1 ? ' ×' + n : '')).join('<br>')}</div>` : ''}
+        </div>
+      </label>`;
+    }).join('')}
+  `;
+  const footer = `
+    ${temBackup ? '<button class="btn btn-secondary" id="reorgDesfazer">desfazer</button>' : ''}
+    <button class="btn btn-primary" id="reorgAplicar" style="flex:1;">aplicar selecionados</button>
+  `;
+  sheet.open('Reorganizar categorias', html, footer);
+  document.getElementById('reorgAplicar').onclick = async () => {
+    const aprovados = Array.from(document.querySelectorAll('[data-reorg]')).filter(c => c.checked).map(c => c.dataset.reorg);
+    if (!aprovados.length) { toast('Nenhum item selecionado', 'info'); return; }
+    const tot = aprovados.reduce((a, id) => a + plano[id].gastos, 0);
+    const ok = await askConfirm({
+      title: 'Aplicar a reorganização?',
+      message: `${aprovados.length} ite${aprovados.length !== 1 ? 'ns' : 'm'} · ${tot} gastos mudam de lugar, junto com as memórias e os fixos correspondentes. Dá para desfazer neste aparelho.`,
+      confirmLabel: 'Aplicar'
+    });
+    if (!ok) return;
+    try { localStorage.setItem(_reorgBackupKey(), JSON.stringify({ em: new Date().toISOString(), state })); }
+    catch (e) {
+      const seguir = await askConfirm({ title: 'Sem espaço para a cópia', message: 'Este aparelho não conseguiu guardar a cópia para desfazer. Aplicar mesmo assim?', confirmLabel: 'Aplicar sem cópia', danger: true });
+      if (!seguir) return;
+    }
+    const res = aplicarReorg2026(state, aprovados);
+    saveState(state);
+    try { render(); } catch (e) {}
+    try { renderConfigCounts(); } catch (e) {}
+    sheet.close();
+    toast(`Reorganizado: ${res.gastos} gastos · ${res.memorias} memórias · ${res.fixos} fixos · ${res.gruposApagados} grupos removidos`, 'success');
+  };
+  const des = document.getElementById('reorgDesfazer');
+  if (des) des.onclick = async () => {
+    let bk = null;
+    try { bk = JSON.parse(localStorage.getItem(_reorgBackupKey())); } catch (e) {}
+    if (!bk || !bk.state) { toast('Cópia não encontrada', 'error'); return; }
+    const ok = await askConfirm({
+      title: 'Desfazer a reorganização?',
+      message: `Volta tudo ao estado de ${_fmtDataHora(bk.em)}. Atenção: o que você lançou ou mudou depois disso também volta atrás.`,
+      confirmLabel: 'Desfazer', danger: true
+    });
+    if (!ok) return;
+    state = StorageAdapter._migrate(bk.state);
+    saveState(state);
+    try { localStorage.removeItem(_reorgBackupKey()); } catch (e) {}
+    try { render(); } catch (e) {}
+    try { renderConfigCounts(); } catch (e) {}
+    sheet.close();
+    toast('Reorganização desfeita', 'success');
+  };
 }
 
 /* ===== v0.58.2 — Memórias de classificação =====================
@@ -8649,6 +8961,52 @@ function relCalcSubcatsConsolidadas(ym, cats, limit) {
     .slice(0, limit);
 }
 
+/* v0.59.1 — POR TIPO DE GASTO, QUEM GASTOU
+   Para cada subgrupo (Alimentação, Educação, Saúde...), o total da FAMÍLIA
+   no mês e quanto foi de cada pessoa. O Tiago fica sempre de fora (gastos à
+   parte, decisão de 06/11/2026). Média = só meses fechados do período
+   (regra canônica); tendência = mês escolhido vs média (±5% = estável).
+   Mesmo filtro de consumo do resto do relatório (_relGastoConta). */
+const REL_TIPO_CATS = ['casa', 'marina', 'heitor', 'juliana'];
+function relCalcTipoGastoPorMembro(ym, ymsHist) {
+  const ymAtual = (typeof currentYM === 'function') ? currentYM() : null;
+  const fechados = (ymsHist || []).filter(y => !ymAtual || y < ymAtual);
+  const mapa = new Map();
+  const pega = (sc) => {
+    if (!mapa.has(sc)) mapa.set(sc, { nome: sc, total: 0, pago: 0, previsto: 0, porCat: {}, n: 0, porYm: {} });
+    return mapa.get(sc);
+  };
+  (state.gastos || []).forEach(g => {
+    if (REL_TIPO_CATS.indexOf(g.categoria) < 0) return;
+    if (!_relGastoConta(g)) return;
+    const v = Number(g.valor) || 0;
+    const sc = g.subcategoria || '—';
+    if (g.ym === ym) {
+      const b = pega(sc);
+      b.total += v; b.n++;
+      if (g.pago === false) b.previsto += v; else b.pago += v;
+      b.porCat[g.categoria] = (b.porCat[g.categoria] || 0) + v;
+    }
+    if (fechados.indexOf(g.ym) >= 0) {
+      const b = pega(sc);
+      b.porYm[g.ym] = (b.porYm[g.ym] || 0) + v;
+    }
+  });
+  const consumoMes = Array.from(mapa.values()).reduce((a, b) => a + b.total, 0);
+  return Array.from(mapa.values()).map(b => {
+    const media = fechados.length ? fechados.reduce((a, y) => a + (b.porYm[y] || 0), 0) / fechados.length : null;
+    let tend = null, variacao = null;
+    if (media && media > 0 && fechados.length >= 2) {
+      variacao = (b.total - media) / media;
+      tend = Math.abs(variacao) <= 0.05 ? 'flat' : (variacao > 0 ? 'up' : 'down');
+    }
+    const partes = REL_TIPO_CATS.filter(k => (b.porCat[k] || 0) > 0).map(k => ({ cat: k, valor: b.porCat[k] }));
+    return { nome: b.nome, total: b.total, pago: b.pago, previsto: b.previsto, n: b.n, partes,
+             pct: consumoMes > 0 ? b.total / consumoMes : 0, media, nFechados: fechados.length, tend, variacao };
+  }).filter(b => b.total > 0 || (b.media || 0) > 0)
+    .sort((a, b) => (b.total - a.total) || ((b.media || 0) - (a.media || 0)));
+}
+
 /* v0.21.2: descobre a categoria com maior contribuição numa subcategoria
    consolidada. Usado pra colorir as colunas do gráfico "consumo · por
    subcategoria (top 10)" com a cor do membro predominante — revela
@@ -9930,12 +10288,13 @@ window.relatorioElegante = {
           '<div class="pdf-card no-break">' +
             this._chColunasSubcat(m.subTop, m.subRestoVal, m.subRestoN) + '</div>')
       : '';
+    const b1Tipo = this._secaoTipoGasto(ctx.ym, ctx.yms); /* v0.59.1 */
     const b1Comp = (d.comp.total > 0)
       ? this._secao('\ud83d\udd01', 'Compromissos do m\u00eas',
           '<div class="pdf-card no-break">' + this._chCompromissos(d.comp.fixos, d.comp.parcelas) + '</div>')
       : '';
     const b1Top = this._secaoTopAgrupado(m.topAgrupado, 'Maiores lan\u00e7amentos do m\u00eas');
-    const bloco1 = b1Titulo + b1Cards + b1Membro + b1Subcat + b1Comp + b1Top;
+    const bloco1 = b1Titulo + b1Cards + b1Membro + b1Subcat + b1Tipo + b1Comp + b1Top;
 
     /* ---------- bloco 2: o periodo, mes a mes ---------- */
     let bloco2 = '';
@@ -10134,6 +10493,36 @@ window.relatorioElegante = {
     return this._secao('\ud83c\udff7\ufe0f', 'Cada grupo de gasto, mes a mes',
       '<div class="pdf-card"><div class="pnl-nota">' + this._esc(nota) + '</div>' +
       cards + '</div>');
+  },
+
+  /* v0.59.1 — por tipo de gasto, quem gastou (família sem o Tiago) */
+  _secaoTipoGasto(ym, yms) {
+    const linhas = relCalcTipoGastoPorMembro(ym, yms || [ym]).filter(b => b.total > 0);
+    if (!linhas.length) return '';
+    const cats = REL_TIPO_CATS.filter(k => linhas.some(b => b.partes.some(p => p.cat === k)));
+    const seta = { up: '▲', down: '▼', flat: '●' };
+    const tot = { total: 0 };
+    cats.forEach(k => { tot[k] = 0; });
+    const rows = linhas.map(b => {
+      tot.total += b.total;
+      const cel = cats.map(k => {
+        const p = b.partes.find(x => x.cat === k);
+        if (p) tot[k] += p.valor;
+        return '<td class="tg-val' + (p ? '' : ' tg-mute') + '">' + (p ? this._fmt(p.valor) : '—') + '</td>';
+      }).join('');
+      const tend = b.tend ? ' <span class="tt-' + b.tend + '">' + seta[b.tend] + '</span>' : '';
+      return '<tr><td>' + this._esc(b.nome) + '</td>' + cel +
+        '<td class="tg-val" style="font-weight:700;color:var(--pdf-ink);">' + this._fmt(b.total) + '</td>' +
+        '<td class="tg-val tg-mute">' + (b.media !== null ? this._fmt(b.media) : '—') + tend + '</td></tr>';
+    }).join('');
+    const foot = '<tr class="tt-foot"><td>Total</td>' + cats.map(k => '<td class="tg-val">' + this._fmt(tot[k]) + '</td>').join('') +
+      '<td class="tg-val">' + this._fmt(tot.total) + '</td><td></td></tr>';
+    const head = '<tr><th>TIPO DE GASTO</th>' + cats.map(k => '<th class="tg-th-val">' + this._esc(this._nomeMembro(k)).toUpperCase() + '</th>').join('') +
+      '<th class="tg-th-val">TOTAL</th><th class="tg-th-val">MÉDIA</th></tr>';
+    const nota = 'Família sem o Tiago (gastos à parte). Média dos meses fechados do período; ▲▼● compara o mês com ela (±5% = na média).';
+    return this._secao('🧾', 'Por tipo de gasto · quem gastou',
+      '<div class="pdf-card"><div class="pnl-nota">' + this._esc(nota) + '</div>' +
+      '<div style="overflow-x:auto;"><table class="tg-table tt-table"><thead>' + head + '</thead><tbody>' + rows + foot + '</tbody></table></div></div>');
   },
 
   _secaoTopAgrupado(top, titulo) {
@@ -11194,6 +11583,9 @@ text{font-family:'Montserrat',sans-serif;}
 .bar-fill{height:100%;border-radius:4px;}
 
 .tg-table{width:100%;border-collapse:collapse;font-size:11px;}
+.tt-table td,.tt-table th{white-space:nowrap;}
+.tt-table tr.tt-foot td{border-top:1.5px solid var(--pdf-border);border-bottom:none;font-weight:700;color:var(--pdf-ink);}
+.tt-up{color:var(--pdf-out);}.tt-down{color:var(--pdf-in);}.tt-flat{color:var(--pdf-ink-mute);}
 .tg-table th{text-align:left;padding-bottom:6px;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--pdf-ink-mute);font-weight:600;border-bottom:1.5px solid var(--pdf-border);}
 .tg-th-val{text-align:right;}
 .tg-table td{padding:6px 4px;border-bottom:1px solid var(--pdf-border);vertical-align:top;}
@@ -11308,6 +11700,7 @@ function _renderRel1Inner() {
   html += _relSecaoTotalHtml(consolidado, cats);
   html += _relSecaoCategoriasHtml(ym, cats);
   html += _relSecaoSubcatsConsolidadasHtml(ym, cats);
+  html += _relSecaoTipoGastoHtml(ym, yms); /* v0.59.1 */
   html += _relSecaoCompromissosHtml(ym, cats);
   html += _relSecaoInvestSubcatsHtml(ym, cats);
 
@@ -11489,6 +11882,46 @@ function _relSecaoCategoriasHtml(ym, cats) {
       </div>
     </div>
   `;
+}
+
+function _relSecaoTipoGastoHtml(ym, yms) {
+  const linhas = relCalcTipoGastoPorMembro(ym, yms);
+  if (!linhas.length) return '';
+  const nomeM = (k) => ((state.members || {})[k] || {}).nome || k;
+  const seta = { up: '▲', down: '▼', flat: '●' };
+  const rows = linhas.map(b => {
+    const segs = b.partes.map(p =>
+      '<span style="width:' + (b.total > 0 ? (p.valor / b.total * 100).toFixed(2) : 0) + '%;background:' + relCatColor(p.cat) + ';"></span>').join('');
+    const split = b.partes.length > 1
+      ? '<div class="rtg-split">(' + b.partes.map(p => escapeHtml(nomeM(p.cat)) + ' ' + _relFmtBR(p.valor)).join(' · ') + ')</div>'
+      : (b.partes.length === 1 ? '<div class="rtg-split">só ' + escapeHtml(nomeM(b.partes[0].cat)) + '</div>' : '');
+    const tend = b.tend
+      ? '<span class="rtg-tend ' + b.tend + '">' + seta[b.tend] + ' ' + (b.tend === 'flat' ? 'na média' : ((b.variacao > 0 ? '+' : '−') + Math.abs(b.variacao * 100).toFixed(0) + '% vs média')) + '</span>'
+      : '';
+    return `
+      <div class="rtg-row" data-rel-subcat-cons="${escapeHtml(b.nome)}">
+        <div class="rtg-head">
+          <span class="rtg-nome">${escapeHtml(b.nome)}</span>
+          <span class="rtg-val">${_relFmtBR(b.total)}</span>
+        </div>
+        ${split}
+        <div class="rtg-track"><div class="rtg-fill" style="width:${(b.pct * 100).toFixed(2)}%;">${segs}</div></div>
+        <div class="rtg-meta">
+          <span>${(b.pct * 100).toFixed(1)}% do consumo${b.previsto > 0 ? ' · ' + _relFmtBR(b.previsto) + ' previsto' : ''}</span>
+          <span>${b.media !== null ? 'média ' + _relFmtBR(b.media) : ''} ${tend}</span>
+        </div>
+      </div>`;
+  }).join('');
+  const leg = REL_TIPO_CATS.map(k => '<span><i style="background:' + relCatColor(k) + ';"></i>' + escapeHtml(nomeM(k)) + '</span>').join('');
+  return `
+    <div class="rel-section">
+      <div class="rel-section-title"><span class="rst-icon">🧾</span> por tipo de gasto · quem gastou</div>
+      <div class="rtg-leg">${leg}</div>
+      <div class="rtg-list">${rows}</div>
+      <div style="font-size:10.5px;color:var(--ink-mute);margin-top:8px;padding:0 4px;line-height:1.5;font-style:italic;">
+        Família sem o Tiago (gastos à parte). A barra é a fatia do tipo no consumo do mês, dividida por pessoa. Média: meses fechados do período · ▲▼● compara o mês com ela (±5% = na média). Toque para ver os gastos.
+      </div>
+    </div>`;
 }
 
 function _relSecaoSubcatsConsolidadasHtml(ym, cats) {
@@ -11981,7 +12414,8 @@ function _relBindEvents() {
   el.querySelectorAll('[data-rel-subcat-cons]').forEach(seg => {
     seg.onclick = (e) => {
       e.stopPropagation();
-      _relDrillSubcatConsolidada(seg.dataset.relSubcatCons);
+      /* v0.59.1: a lista "por tipo de gasto" abre só o mês e só a família */
+      _relDrillSubcatConsolidada(seg.dataset.relSubcatCons, seg.classList.contains('rtg-row'));
     };
   });
   el.querySelectorAll('[data-rel-invest-tipo]').forEach(seg => {
@@ -12155,10 +12589,10 @@ function _relDrillInvestSubcat(subc) {
 }
 
 /* v0.18.0: drill-down de subcat consolidada (qualquer categoria) */
-function _relDrillSubcatConsolidada(subc) {
+function _relDrillSubcatConsolidada(subc, soFamilia) {
   const periodo = REL_PERIODOS.find(p => p.id === relState.periodo) || REL_PERIODOS[0];
-  const yms = relYmsHistorico(relState.ym, periodo.months);
-  const cats = relCategoriasIncluidas();
+  const yms = soFamilia ? [relState.ym] : relYmsHistorico(relState.ym, periodo.months);
+  const cats = soFamilia ? REL_TIPO_CATS : relCategoriasIncluidas();
   const gastos = state.gastos.filter(g =>
     g.subcategoria === subc &&
     cats.indexOf(g.categoria) >= 0 &&
@@ -20389,7 +20823,7 @@ const EXTRATO_RE_TRANSFERENCIA = /\b(PIX|TED|DOC|TEV|TRANSF)/i;
    Retorna null quando só sobra jargão bancário (aí nada é aprendido). */
 function extrairContraparteExtrato(desc) {
   if (!desc) return null;
-  let t = String(desc).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  let t = String(desc).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   t = t.replace(/\d{2}\/\d{2}(\/\d{2,4})?/g, ' ').replace(/[^A-Z ]+/g, ' ');
   const stop = (typeof ALIAS_STOPWORDS_EXTRATO !== 'undefined') ? ALIAS_STOPWORDS_EXTRATO : new Set();
   const toks = t.split(/\s+/).filter(x => x.length >= 2 && !EXTRATO_TOKENS_GENERICOS.has(x) && !stop.has(x));
@@ -20399,7 +20833,7 @@ function extrairContraparteExtrato(desc) {
 
 function _extratoFpBase(l, contaId) {
   const d = String(l.descricaoOriginal || '').toUpperCase().normalize('NFD')
-    .replace(/[̀-ͯ]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim();
+    .replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim();
   return [contaId || '', l.dataISO || '', (Number(l.valor) || 0).toFixed(2), l.sinal || '', d].join('|');
 }
 /* impressão digital com nº da ocorrência: duas compras iguais no mesmo dia
@@ -21029,7 +21463,7 @@ function _rexRenderRow(l, idxGlobal) {
     /* v0.51.0 (Fatia B): prioridade de exibição — manual > memória (auto) > default */
     const sug = (!l.classifManual && l.aliasSugerido) ? l.aliasSugerido : null;
     const cat = l.classifManualCategoria || (sug && sug.categoria) || 'tiago';
-    const sub = l.classifManualSubcategoria || (sug && sug.subcategoria) || (l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar');
+    const sub = l.classifManualSubcategoria || (sug && sug.subcategoria) || (l.tipo === 'SAIDA_TARIFA' ? _subTarifaPadrao() : 'a classificar');
     const classificado = !!l.classifManual;
     /* v0.56.4: grupo visível na linha, sem precisar abrir o picker */
     const grupoIdRow = l.classifManual ? (l.classifManualGrupoId || null) : ((sug && sug.grupoId) || null);
@@ -21117,7 +21551,7 @@ function _rexAbrirPickerClassificacao(idx) {
      (a mesma que a linha mostra com a tag "auto") — não mais do zero. */
   const sugP = (!l.classifManual && l.aliasSugerido) ? l.aliasSugerido : null;
   const catAtual = l.classifManualCategoria || (sugP && sugP.categoria) || 'tiago';
-  const subAtual = l.classifManualSubcategoria || (sugP && sugP.subcategoria) || (l.tipo === 'SAIDA_TARIFA' ? 'tarifa bancária' : 'a classificar');
+  const subAtual = l.classifManualSubcategoria || (sugP && sugP.subcategoria) || (l.tipo === 'SAIDA_TARIFA' ? _subTarifaPadrao() : 'a classificar');
   const grupoAtual = l.classifManual ? (l.classifManualGrupoId || null) : ((sugP && sugP.grupoId) || null);
 
   /* Estado temporário do picker */
@@ -21504,7 +21938,7 @@ function aplicarLancamentosExtratoImportados(lancs, contaId, opts) {
          Fallback pra aliasItems se não houver classificação manual.
          Último fallback: 'tiago > a classificar' (ou 'tarifa bancária'). */
       let categoria = 'tiago';
-      let subcategoria = (l.tipo === 'SAIDA_TARIFA') ? 'tarifa bancária' : 'a classificar';
+      let subcategoria = (l.tipo === 'SAIDA_TARIFA') ? _subTarifaPadrao() : 'a classificar';
       let grupoId = null;
       let isFixo = false;
       let usouAlias = false;
