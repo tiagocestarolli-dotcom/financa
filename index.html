@@ -3405,6 +3405,17 @@ label {
   flex: 0 0 auto;
 }
 
+/* v0.58.2 — memórias de classificação */
+.mem-busca { width: 100%; box-sizing: border-box; margin: 12px 0 6px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--bg-elevated); font: inherit; font-size: 14px; color: var(--ink); }
+.mem-cont { font-size: 11.5px; color: var(--ink-mute); margin-bottom: 6px; }
+.mem-sec { font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; color: var(--ink-mute); margin: 14px 2px 6px; }
+.mem-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--bg-elevated); border: 1px solid var(--line); border-radius: var(--r); margin-bottom: 6px; }
+.mem-main { flex: 1; min-width: 0; }
+.mem-chave { font-size: 13px; font-weight: 600; color: var(--ink); word-break: break-word; }
+.mem-dest { font-size: 12.5px; color: var(--ink-soft); margin-top: 1px; }
+.mem-meta { font-size: 11px; color: var(--ink-mute); margin-top: 2px; }
+.mem-fraca { color: #8A5A1F; font-style: italic; }
+
 /* v0.58.0 (Fatia A) — fila do extrato: ações por lançamento */
 .rex-acts { display: flex; gap: 6px; margin-top: 9px; }
 .rex-act {
@@ -5066,6 +5077,14 @@ label {
 </button>
 
 <div class="section-title">Outros</div>
+<button class="menu-item" data-cfg="memorias">
+  <div class="mi-ico">🧠</div>
+  <div class="mi-body">
+    <div class="mi-title">Memórias de classificação</div>
+    <div class="mi-sub" id="memoriasCount">O que o app aprendeu a sugerir na importação</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 <button class="menu-item" data-cfg="aliases">
   <div class="mi-ico">🏷️</div>
   <div class="mi-body">
@@ -5144,7 +5163,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.58.1 · Sincronização segura: aparelhos mesclam os dados item a item em vez de um sobrescrever o outro (corrige a perda da importação de outubro em 05/11)</div>
+  Finança · v0.58.2 · Modo conferência na fila do extrato (nada entra sem o seu toque) e tela Memórias de classificação para apagar sugestões erradas · inclui a sincronização segura da v0.58.1</div>
 
   </section>
 
@@ -6279,6 +6298,9 @@ function renderConfigCounts() {
     `${ativos} modalidades ativas` + (state.investMods.length - ativos > 0 ? ` · ${state.investMods.length - ativos} arquivadas` : '');
 
   /* Apelidos */
+  { const mc = document.getElementById('memoriasCount');
+    if (mc) { const nm = (state.aliasItems || []).length + (state.memoriaEntradas || []).length;
+      mc.textContent = nm ? `${nm} memórias · confira antes de importar` : 'Nenhuma memória ainda'; } }
   document.getElementById('aliasesCount').textContent =
     Object.keys(state.aliases).length + ' renomeações memorizadas';
 
@@ -6347,6 +6369,7 @@ function onConfigClick(btn) {
     case 'fontes':    openFontesSheet(); break;
     case 'invest':    openInvestSheet(); break;
     case 'aliases':   openAliasesSheet(); break;
+    case 'memorias':  openMemoriasSheet(); break;
     case 'fixed':     openFixedSheet(); break;
     case 'reminders': openRemindersSheet(); break;
     case 'historicoImportacoes': openHistoricoImportacoesSheet(); break;
@@ -7193,6 +7216,121 @@ function openInvestSheet() {
     });
   }
   render();
+}
+
+/* ===== v0.58.2 — Memórias de classificação =====================
+   Mostra tudo o que o app aprendeu (estabelecimento → categoria › subgrupo,
+   e quem paga → fonte de renda) para o Tiago conferir e apagar o que está
+   errado ANTES de importar. Apagar não mexe em nenhum gasto já registrado:
+   só faz o app parar de sugerir aquilo. */
+let _memBusca = '';
+function _memNomeCat(k) {
+  const m = (state.members || {})[k];
+  return (m && m.nome) ? m.nome : _capitalizar(k || '');
+}
+function _memNomeGrupo(cat, gid) {
+  if (!gid) return '';
+  const g = ((state.grupos || {})[cat] || []).find(x => x.id === gid);
+  return g ? g.nome : '';
+}
+function _memLinhas() {
+  const q = (_memBusca || '').trim().toUpperCase();
+  const fontes = Object.fromEntries((state.fontesRenda || []).map(f => [f.id, f.nome]));
+  const saidas = (state.aliasItems || []).map(a => ({
+    tipo: 'saida', id: a.id, chave: a.chave || '',
+    destino: _memNomeCat(a.categoria) + ' › ' + (a.subcategoria || 'a classificar') +
+      (_memNomeGrupo(a.categoria, a.grupoId) ? ' · grupo ' + _memNomeGrupo(a.categoria, a.grupoId) : ''),
+    extra: [a.identificacao ? 'nome "' + a.identificacao + '"' : '', a.isFixo ? 'fixo' : '',
+            (a.valor != null) ? 'só para ' + fmtBRL(a.valor) : '', a.parcelaTotal ? a.parcelaTotal + ' parcelas' : '']
+            .filter(Boolean).join(' · '),
+    usos: a.contagemUso || 0, ultimo: a.ultimoUsoEm || a.criadoEm || '', cat: a.categoria || ''
+  }));
+  const entradas = (state.memoriaEntradas || []).map(m => ({
+    tipo: 'entrada', id: m.id, chave: m.chave || '',
+    destino: 'Entrada › ' + (fontes[m.fonteId] || '(fonte apagada)'),
+    extra: (m.divergencias ? m.divergencias + ' correç' + (m.divergencias > 1 ? 'ões' : 'ão') : ''),
+    usos: m.confirmacoes || 0, ultimo: m.ultimoUsoEm || m.criadoEm || '', cat: '_entrada'
+  }));
+  return saidas.concat(entradas)
+    .filter(x => !q || x.chave.toUpperCase().includes(q) || x.destino.toUpperCase().includes(q))
+    .sort((a, b) => a.cat.localeCompare(b.cat) || a.chave.localeCompare(b.chave));
+}
+function _memRenderLista() {
+  const host = document.getElementById('memLista');
+  if (!host) return;
+  const linhas = _memLinhas();
+  const total = (state.aliasItems || []).length + (state.memoriaEntradas || []).length;
+  const cont = document.getElementById('memCont');
+  if (cont) cont.textContent = linhas.length === total ? `${total} memórias` : `${linhas.length} de ${total} memórias`;
+  if (!linhas.length) {
+    host.innerHTML = '<div class="empty" style="padding:24px;">Nenhuma memória' + (_memBusca ? ' com esse texto' : '') + '.</div>';
+    return;
+  }
+  let catAnt = null;
+  host.innerHTML = linhas.map(x => {
+    let h = '';
+    if (x.cat !== catAnt) {
+      catAnt = x.cat;
+      h += `<div class="mem-sec">${x.cat === '_entrada' ? 'Entradas · fonte por quem paga' : escapeHtml(_memNomeCat(x.cat))}</div>`;
+    }
+    const conf = x.usos >= 3 ? '' : ' <span class="mem-fraca">pouco confirmada</span>';
+    return h + `
+      <div class="mem-row">
+        <div class="mem-main">
+          <div class="mem-chave">${escapeHtml(x.chave)}</div>
+          <div class="mem-dest">→ ${escapeHtml(x.destino)}</div>
+          <div class="mem-meta">${x.usos} uso${x.usos !== 1 ? 's' : ''}${x.ultimo ? ' · último ' + escapeHtml(_fmtDataBR(String(x.ultimo).slice(0, 10))) : ''}${x.extra ? ' · ' + escapeHtml(x.extra) : ''}${conf}</div>
+        </div>
+        <button class="tiny-btn danger" data-mem-rm="${escapeHtml(x.tipo + '|' + x.id)}" aria-label="apagar memória">apagar</button>
+      </div>`;
+  }).join('');
+  host.querySelectorAll('[data-mem-rm]').forEach(b => {
+    b.onclick = () => {
+      const [tipo, id] = b.dataset.memRm.split('|');
+      if (tipo === 'saida') state.aliasItems = (state.aliasItems || []).filter(a => a.id !== id);
+      else state.memoriaEntradas = (state.memoriaEntradas || []).filter(m => m.id !== id);
+      saveState(state);
+      _memRenderLista();
+      try { renderConfigCounts(); } catch (e) {}
+      toast('Memória apagada — o app não sugere mais isso', 'success');
+    };
+  });
+}
+function openMemoriasSheet() {
+  _memBusca = '';
+  const html = `
+    <div class="card-flat">
+      <div class="muted" style="font-size:13px;line-height:1.45;">
+        Cada linha é uma sugestão que o app faz ao importar extrato ou fatura. Apague o que estiver errado — <strong>nenhum gasto já registrado muda</strong>; o app só para de sugerir aquilo e aprende de novo na próxima vez que você classificar.
+      </div>
+    </div>
+    <input type="search" id="memBusca" class="mem-busca" placeholder="buscar estabelecimento, categoria ou subgrupo" autocomplete="off">
+    <div class="mem-cont" id="memCont"></div>
+    <div id="memLista"></div>
+  `;
+  const footer = `<button class="btn btn-danger" id="memZerar" style="flex:1;">apagar todas as memórias</button>`;
+  sheet.open('Memórias de classificação', html, footer);
+  const inp = document.getElementById('memBusca');
+  if (inp) inp.oninput = () => { _memBusca = inp.value; _memRenderLista(); };
+  _memRenderLista();
+  const z = document.getElementById('memZerar');
+  if (z) z.onclick = async () => {
+    const n = (state.aliasItems || []).length + (state.memoriaEntradas || []).length;
+    if (!n) { toast('Não há memórias', 'info'); return; }
+    const ok = await askConfirm({
+      title: `Apagar as ${n} memórias?`,
+      message: 'O app deixa de sugerir categorias e fontes e passa a aprender do zero com as suas próximas classificações. Nenhum gasto ou entrada já registrado é alterado.',
+      confirmLabel: 'Apagar todas',
+      danger: true
+    });
+    if (!ok) return;
+    state.aliasItems = [];
+    state.memoriaEntradas = [];
+    saveState(state);
+    _memRenderLista();
+    try { renderConfigCounts(); } catch (e) {}
+    toast('Memórias apagadas', 'success');
+  };
 }
 
 /* ===== Apelidos memorizados (para PDFs de cartão na Etapa 5) ===== */
@@ -20579,14 +20717,14 @@ function openRevisaoExtratoSheet() {
   const html = `
     <div id="rexResumo"></div>
     <div class="rex-microcopy">
-      <em>Faça aos poucos: <strong>incluir</strong> grava no app na hora e tira da fila; <strong>dúvida</strong> guarda para pesquisar depois; <strong>ignorar</strong> tira da fila sem registrar. A fila fica salva na nuvem — feche e volte quando quiser, de qualquer aparelho.</em>
+      <em>Modo conferência: nada entra no app sem o seu toque. A categoria sugerida pela memória aparece em cada lançamento — confira, troque se precisar (a memória aprende a correção) e toque em <strong>incluir</strong>. <strong>Dúvida</strong> guarda para depois; <strong>ignorar</strong> tira da fila sem registrar. A fila fica salva na nuvem — volte quando quiser, de qualquer aparelho.</em>
     </div>
     <div id="rexFiltros" class="rex-filtros"></div>
     <div id="rexList" class="rex-list"></div>
   `;
+  /* v0.58.2: modo conferência — sem inclusão em lote */
   const footer = `
-    <button class="btn btn-secondary" id="rexDraft">fechar · continuar depois</button>
-    <button class="btn btn-primary" id="rexApply">incluir prontos</button>
+    <button class="btn btn-secondary" id="rexDraft" style="flex:1;">fechar · continuar depois</button>
   `;
   sheet.open(`Fila · Extrato ${bancoLabel}`, html, footer);
   _rexRefresh();
@@ -20596,28 +20734,6 @@ function openRevisaoExtratoSheet() {
     sheet.close();
   };
 
-  document.getElementById('rexApply').onclick = async () => {
-    const prontos = revisaoExtratoState.lancs.filter(rexItemPronto);
-    if (prontos.length === 0) {
-      toast('Nenhum pronto ainda — classifique ou toque em "incluir" no lançamento.', 'info');
-      return;
-    }
-    const nE = prontos.filter(l => l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO').length;
-    const nB = prontos.filter(l => l.baixaFixo).length;
-    const nS = prontos.length - nE - nB;
-    const partes = [];
-    if (nS > 0) partes.push(`${nS} saída${nS !== 1 ? 's' : ''}`);
-    if (nE > 0) partes.push(`${nE} entrada${nE !== 1 ? 's' : ''}`);
-    if (nB > 0) partes.push(`${nB} baixa${nB !== 1 ? 's' : ''} de conta pendente`);
-    const ok = await askConfirm({
-      title: 'Incluir os prontos?',
-      message: `Vou gravar ${partes.join(' + ')} já classificados. Sugestões, dúvidas e os não classificados continuam na fila. Dá para desfazer em Config → Histórico de importações.`,
-      confirmLabel: 'Incluir',
-      cancelLabel: 'Voltar à fila'
-    });
-    if (!ok) return;
-    _rexIncluir(prontos);
-  };
 }
 
 /* contadores, chips de filtro, lista e rótulo do botão — tudo a partir do estado */
@@ -20648,15 +20764,15 @@ function _rexRefresh() {
       </div>
       <div class="rex-sum-line">
         <span class="rex-sum-label">Na fila</span>
-        <span class="rex-sum-meta"><strong>${cont.pendentes + cont.duvidas}</strong> · ${cont.prontos} pronto${cont.prontos !== 1 ? 's' : ''} · ${cont.duvidas} dúvida${cont.duvidas !== 1 ? 's' : ''}</span>
+        <span class="rex-sum-meta"><strong>${cont.pendentes + cont.duvidas}</strong> · ${cont.aclassificar} sem categoria · ${cont.duvidas} dúvida${cont.duvidas !== 1 ? 's' : ''}</span>
       </div>
     </div>`;
   const filtros = document.getElementById('rexFiltros');
   if (filtros) {
     filtros.innerHTML = [
       _rexFiltroChip('pendentes', `na fila (${cont.pendentes})`),
-      cont.prontos > 0 ? _rexFiltroChip('prontos', `✓ prontos (${cont.prontos})`, 'var(--flow-in)') : '',
-      cont.aclassificar > 0 ? _rexFiltroChip('aclassificar', `❓ a classificar (${cont.aclassificar})`) : '',
+      cont.prontos > 0 ? _rexFiltroChip('prontos', `com sugestão (${cont.prontos})`) : '',
+      cont.aclassificar > 0 ? _rexFiltroChip('aclassificar', `❓ sem categoria (${cont.aclassificar})`) : '',
       cont.duvidas > 0 ? _rexFiltroChip('duvidas', `? dúvidas (${cont.duvidas})`, '#C18C2D') : '',
       _rexFiltroChip('saidas', `saídas (${cont.saidas})`, 'var(--flow-out)'),
       _rexFiltroChip('entradas', `entradas (${cont.entradas})`, 'var(--flow-in)'),
@@ -20703,6 +20819,13 @@ async function _rexIncluirUm(idx) {
     return;
   }
   const ehEntrada = (l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO');
+  /* v0.58.2: saída sem categoria (nem manual nem da memória) não entra como
+     "a classificar" — abre a classificação primeiro */
+  if (l.tipo === 'SAIDA_CONSUMO' && !l.classifManual && !(l.aliasSugerido && l.aliasSugerido.categoria)) {
+    toast('Escolha a categoria e depois toque em incluir', 'info');
+    _rexAbrirPickerClassificacao(idx);
+    return;
+  }
   if (ehEntrada && !l.fonteManualId && !l.fonteSugerida) {
     const ok = await _rexEscolherFonte(idx);
     if (!ok) return;
@@ -20915,7 +21038,7 @@ function _rexRenderRow(l, idxGlobal) {
     let badge = '';
     if (classificado) badge = '<span class="rex-tag rex-tag-classif">✓ classificado</span>';
     else if (sug && sug.nivel === 'sugestao') badge = '<span class="rex-tag rex-tag-sug" title="memória ainda não confirmada 3 vezes — confira antes de incluir">◐ sugestão · confira</span>';
-    else if (sug) badge = '<span class="rex-tag rex-tag-classif" style="background:color-mix(in srgb,var(--accent,#4A6741) 14%,transparent);color:var(--accent,#4A6741);">✦ auto</span>';
+    else if (sug) badge = '<span class="rex-tag rex-tag-classif" style="background:color-mix(in srgb,var(--accent,#4A6741) 14%,transparent);color:var(--accent,#4A6741);">✦ memória · confira</span>';
     classifLinha = `
       <div class="rex-row-classif">
         <button class="rex-classif-btn" data-rex-classif="${idxGlobal}">
@@ -20933,7 +21056,7 @@ function _rexRenderRow(l, idxGlobal) {
     const fo = fid ? (state.fontesRenda || []).find(x => x.id === fid) : null;
     let badgeF = '';
     if (l.fonteManualId) badgeF = '<span class="rex-tag rex-tag-classif">✓ escolhida</span>';
-    else if (l.fonteSugerida && l.fonteSugerida.nivel === 'auto') badgeF = '<span class="rex-tag rex-tag-classif" style="background:color-mix(in srgb,var(--flow-in) 14%,transparent);color:var(--flow-in);">✦ auto</span>';
+    else if (l.fonteSugerida && l.fonteSugerida.nivel === 'auto') badgeF = '<span class="rex-tag rex-tag-classif" style="background:color-mix(in srgb,var(--flow-in) 14%,transparent);color:var(--flow-in);">✦ memória · confira</span>';
     else if (l.fonteSugerida) badgeF = '<span class="rex-tag rex-tag-sug">◐ sugestão · confira</span>';
     classifLinha = `
       <div class="rex-row-classif">
