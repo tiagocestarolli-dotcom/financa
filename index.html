@@ -5177,6 +5177,13 @@ html:not([data-theme="escuro"]) .rel-monthlabel, html:not([data-theme="escuro"])
 html:not([data-theme="escuro"]) .rel-monthnav button { border-color: rgba(159,181,224,.28); }
 html:not([data-theme="escuro"]) .rel-tab:not(.active) { color: var(--ink-page) !important; }
 html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .empty-cta { background: rgba(241,231,214,.06); border-color: rgba(159,181,224,.22); }
+
+/* v0.65.0 — Início: sem a caixa rápida "quanto gastou?" (o botão + já faz isso) */
+.view[data-view="familia"] .quick-launch { display: none; }
+.ini-total { font-size: 60px !important; letter-spacing: -.01em; }
+.ini-quem .hd h3 { color: var(--ink); }
+.ini-quem { margin-top: 0; animation-delay: .1s; }
+.ini-grid { margin-top: 14px; }
 </style>
 
 </head>
@@ -5560,7 +5567,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.64.0 · Novo visual (fatia 5): tema padrão com a página inteira em navy e cartões claros (texto da página separado do texto do cartão) · números em Montserrat tabular no lugar da monoespaçada · heróis por pessoa legíveis no tema escuro</div>
+  Finança · v0.65.0 · Início: total da família maior · "Quanto gastou" (barras por pessoa) acima dos cartões por tipo de gasto · sem a caixa rápida "quanto gastou?" (o + já faz isso) · dashboard não re-anima ao trocar de pessoa</div>
 
   </section>
 
@@ -6707,10 +6714,19 @@ function _iniConsumoFamilia(yms) {
   return { porYm, porCat };
 }
 
-function renderInicioDash() {
+let _iniUltimaChave = null;
+function renderInicioDash(forcar) {
   const host = document.getElementById('inicioDash');
   if (!host) return;
   const ym = famCurrentYM;
+  /* v0.65.0: chave do que o dashboard mostra — se nada mudou, não anima de novo */
+  const _g = state.gastos || [];
+  let _soma = 0, _n = 0;
+  const _ym0 = relYmsHistorico(ym, INI_HIST_MESES + 1)[0];
+  for (const g of _g) { if (REL_TIPO_CATS.indexOf(g.categoria) >= 0 && g.ym >= _ym0 && g.ym <= ym) { _soma += Number(g.valor) || 0; _n++; } }
+  const chave = [ym, _n, _soma.toFixed(2), !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal), temaAtual(), new Date().getDate()].join('|');
+  if (!forcar && chave === _iniUltimaChave && host.firstElementChild) return;
+  _iniUltimaChave = chave;
   const ymAtual = currentYM();
   const ehAtual = ym === ymAtual;
   const yms = relYmsHistorico(ym, INI_HIST_MESES + 1); /* 6 anteriores + o mês */
@@ -6809,17 +6825,17 @@ function renderInicioDash() {
     <div class="ini">
       <div class="ini-hero">
         <div class="ini-eyebrow">Família · ${mesLabel}${ehAtual ? '' : ' · fechado'}</div>
-        <button class="ini-total ${reveal ? '' : 'hidden-val'}" id="iniTotal" style="background:none;border:0;color:inherit;font:inherit;cursor:pointer;" aria-label="Mostrar ou ocultar valores">${reveal ? _iniFmt(total) : 'R$ ••••••'}</button>
+        <button class="ini-total ${reveal ? '' : 'hidden-val'}" id="iniTotal" style="background:none;border:0;color:inherit;font-family:var(--font-display);line-height:1.05;cursor:pointer;padding:0;" aria-label="Mostrar ou ocultar valores">${reveal ? _iniFmt(total) : 'R$ ••••••'}</button>
         <div class="ini-vs">${vsHtml}</div>
       </div>
       ${sparkHtml}
       ${statusHtml}
-      <div class="ini-sec"><h3>Por tipo de gasto</h3><button id="iniVerTudo">ver tudo ›</button></div>
-      ${linhas.length ? '<div class="ini-grid">' + cards + '</div>' : '<div class="ini-empty">Nenhum gasto da família neste mês ainda.</div>'}
+      <div class="ini-sec"><h3>Quanto gastou</h3><span style="font-size:12px;color:#9eabc0">família · sem o Tiago</span></div>
       <div class="ini-quem">
-        <div class="hd"><h3>Quem gastou</h3><span>família · sem o Tiago</span></div>
         ${rows}
       </div>
+      <div class="ini-sec"><h3>Por tipo de gasto</h3><button id="iniVerTudo">ver tudo ›</button></div>
+      ${linhas.length ? '<div class="ini-grid">' + cards + '</div>' : '<div class="ini-empty">Nenhum gasto da família neste mês ainda.</div>'}
     </div>`;
 
   document.getElementById('iniTotal').onclick = () => {
