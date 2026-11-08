@@ -5196,7 +5196,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.59.1 · Por tipo de gasto, quem gastou: total de cada subgrupo da família (sem o Tiago) dividido por pessoa, com média e tendência · inclui a reorganização das categorias</div>
+  Finança · v0.59.2 · Extrato Itaú: débito "FATURA ITAU PERSON VS INFIN" reconhecido como pagamento de fatura · trava anti-duplicidade ao incluir saída com "FATURA" · chip de duplicatas mostra quantas já foram ignoradas</div>
 
   </section>
 
@@ -20507,9 +20507,7 @@ function classificarLancamentosExtrato(lancs, contaId) {
     /* PAGAMENTO DE FATURA — Itaú escreve "PERS INFINIT XXXX-XXXX" ou
        "ITAU BLACK XXXX-XXXX" no extrato. São saídas técnicas que já
        existem como isPagamentoFatura no app. */
-    if (sinal === '-' && (/^PERS\s+INFINIT/i.test(desc) ||
-                          /^ITAU\s+BLACK/i.test(desc) ||
-                          /^ITAU.*FATURA/i.test(desc))) {
+    if (sinal === '-' && _ehPagamentoFaturaItau(desc)) {
       const match = _matchPagamentoFatura(l, contaId);
       if (match) {
         l.tipo = 'PAGAMENTO_FATURA';
@@ -20553,6 +20551,36 @@ function classificarLancamentosExtrato(lancs, contaId) {
   }
 
   return lancs;
+}
+
+/* v0.59.2: reconhecimento do débito de fatura no extrato Itaú.
+   O Itaú muda o texto do débito automático sem aviso: antes "PERS INFINIT
+   4xxx-xxxx", em out/2026 veio "FATURA ITAU PERSON VS INFIN" — e o app tratou
+   como gasto comum (risco de contar a fatura duas vezes). Agora vale qualquer
+   débito com FATURA + uma marca de cartão em qualquer posição do texto. */
+function _ehPagamentoFaturaItau(desc) {
+  const d = String(desc || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/^PERS\s+INFINIT/.test(d) || /^ITAU\s+BLACK/.test(d)) return true;
+  return /\bFATURA\b/.test(d) &&
+         /\b(ITAU|ITAUCARD|PERS|PERSON|PERSONNALITE|INFIN\w*|BLACK|VISA|MASTERCARD|CARTAO)\b/.test(d);
+}
+
+/* v0.59.2: fila salva antes do patch — linhas do Itaú que ficaram como
+   "saída" mas são débito de fatura voltam a ser pagamento de fatura. */
+function reclassificarFaturasNaFila(lancs, contaId) {
+  let n = 0;
+  for (const l of (lancs || [])) {
+    if (l.excluir || l.tipo !== 'SAIDA_CONSUMO' || l.sinal !== '-') continue;
+    if (l.tipoTransacao !== undefined || l.historico) continue; /* só formato Itaú */
+    if (!_ehPagamentoFaturaItau(l.descricaoOriginal)) continue;
+    const match = _matchPagamentoFatura(l, contaId);
+    l.tipo = 'PAGAMENTO_FATURA';
+    l.matchPagamentoFaturaId = match ? match.id : null;
+    l.excluir = true;
+    l.potencialMatch = null;
+    n++;
+  }
+  return n;
 }
 
 /* Procura no state.gastos um pagamento de fatura que case com este
@@ -20991,7 +21019,7 @@ async function importarExtratoBancario(file, contaId) {
     }
     revisaoExtratoState = {
       contaId,
-      lancs: ((fila && fila.lancs) || []).concat(novos),
+      lancs: (() => { const fl = ((fila && fila.lancs) || []); reclassificarFaturasNaFila(fl, contaId); return fl.concat(novos); })(), /* v0.59.2 */
       banco,
       metaPeriodo: _unirPeriodosExtrato(fila && fila.metaPeriodo, metaPeriodo),
       filtroTipo: 'pendentes',
@@ -21135,6 +21163,12 @@ function retomarRascunhoRevisao(contaId) {
     filtroTipo: 'pendentes',
     loteId: draft.loteId || null
   };
+  /* v0.59.2 */
+  const nFat = reclassificarFaturasNaFila(revisaoExtratoState.lancs, draft.contaId);
+  if (nFat > 0) {
+    salvarRascunhoRevisao();
+    toast(`${nFat} débito${nFat !== 1 ? 's' : ''} de fatura reconhecido${nFat !== 1 ? 's' : ''} e tirado${nFat !== 1 ? 's' : ''} da fila`, 'info');
+  }
   openRevisaoExtratoSheet();
 }
 
@@ -21185,6 +21219,7 @@ function _rexRefresh() {
     tarifas: L.filter(l => !l.excluir && l.tipo === 'SAIDA_TARIFA').length,
     pagfat: L.filter(l => l.tipo === 'PAGAMENTO_FATURA').length,
     duplicatas: L.filter(l => l.potencialMatch).length,
+    duplicatasAbertas: L.filter(l => l.potencialMatch && !l.excluir).length, /* v0.59.2 */
     ignorados: L.filter(l => l.excluir).length,
     todos: L.length
   };
@@ -21212,7 +21247,9 @@ function _rexRefresh() {
       _rexFiltroChip('entradas', `entradas (${cont.entradas})`, 'var(--flow-in)'),
       cont.tarifas > 0 ? _rexFiltroChip('tarifas', `tarifas (${cont.tarifas})`) : '',
       cont.pagfat > 0 ? _rexFiltroChip('pagfat', `🔄 fatura (${cont.pagfat})`) : '',
-      cont.duplicatas > 0 ? _rexFiltroChip('duplicatas', `⚠ possíveis duplicatas (${cont.duplicatas})`) : '',
+      cont.duplicatas > 0 ? _rexFiltroChip('duplicatas', cont.duplicatasAbertas > 0
+        ? `⚠ possíveis duplicatas (${cont.duplicatasAbertas} na fila · ${cont.duplicatas - cont.duplicatasAbertas} já ignoradas)`
+        : `✓ duplicatas já ignoradas (${cont.duplicatas})`) : '', /* v0.59.2 */
       cont.ignorados > 0 ? _rexFiltroChip('ignorados', `ignorados (${cont.ignorados})`) : '',
       _rexFiltroChip('todos', `todos (${cont.todos})`)
     ].join('');
@@ -21251,6 +21288,17 @@ async function _rexIncluirUm(idx) {
   if (l.tipo === 'PAGAMENTO_FATURA' && l.matchPagamentoFaturaId) {
     toast('Esse pagamento já está registrado no app — use ignorar.', 'info');
     return;
+  }
+  /* v0.59.2: trava anti-duplicidade — saída com cara de fatura de cartão */
+  if ((l.tipo === 'SAIDA_CONSUMO' || l.tipo === 'SAIDA_TARIFA') && /\bFATURA\b/i.test(l.descricaoOriginal || '')) {
+    const ok = await askConfirm({
+      title: 'Isto parece pagamento de fatura',
+      message: `"${l.descricaoOriginal}" · ${fmtBRL(l.valor)}. As compras do cartão já entram pela fatura importada — incluir este débito como gasto conta tudo duas vezes. O normal é ignorar.`,
+      confirmLabel: 'Incluir mesmo assim',
+      cancelLabel: 'Voltar',
+      danger: true
+    });
+    if (!ok) return;
   }
   const ehEntrada = (l.tipo === 'ENTRADA_RENDA' || l.tipo === 'ENTRADA_RENDIMENTO');
   /* v0.58.2: saída sem categoria (nem manual nem da memória) não entra como
@@ -22062,14 +22110,14 @@ function _identificarCartaoPorDescricao(desc) {
   const d = (desc || '').toUpperCase();
   /* PERS INFINIT XXXX-XXXX → Itaú Visa Infinite
      ITAU BLACK XXXX-XXXX → Itaú MC Black */
-  if (/^PERS\s+INFINIT/i.test(d)) {
+  if (/^PERS\s+INFINIT/i.test(d) || (/\bFATURA\b/.test(d) && /\b(PERS|PERSON|PERSONNALITE|INFIN\w*)\b/.test(d))) { /* v0.59.2 */
     const c = (state.cards || []).find(card =>
       /infinit|personnalit/i.test(card.nome || '') ||
       /visa.*infinit/i.test(card.bandeira || '')
     );
     return c ? c.id : null;
   }
-  if (/^ITAU\s+BLACK/i.test(d)) {
+  if (/^ITAU\s+BLACK/i.test(d) || (/\bFATURA\b/.test(d) && /\bBLACK\b/.test(d))) { /* v0.59.2 */
     const c = (state.cards || []).find(card =>
       /black/i.test(card.nome || '') ||
       /mastercard.*black/i.test(card.bandeira || '')
