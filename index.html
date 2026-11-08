@@ -5184,6 +5184,14 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 .ini-quem .hd h3 { color: var(--ink); }
 .ini-quem { margin-top: 0; animation-delay: .1s; }
 .ini-grid { margin-top: 14px; }
+
+/* v0.66.0 — Início: seletor de mês no topo (vale para a página toda); o de baixo some */
+.view[data-view="familia"] #familiaContent > .month-nav { display: none; }
+.ini-mes { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 4px; padding: 0 2px; }
+.ini-mes button { width: 40px; height: 40px; border-radius: 14px; border: 1px solid rgba(159,181,224,.22); background: rgba(241,231,214,.08); color: var(--cream); font-size: 20px; display: flex; align-items: center; justify-content: center; }
+.ini-mes .lbl { font-family: var(--font-display); font-size: 20px; color: var(--cream); text-align: center; }
+.ini-mes .lbl small { font-family: var(--font-body); font-size: 12px; color: #9eabc0; margin-left: 6px; letter-spacing: .04em; }
+.ini-mes .lbl .fechado { display: block; font-family: var(--font-body); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: #9eabc0; margin-top: 2px; }
 </style>
 
 </head>
@@ -5567,7 +5575,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.65.0 · Início: total da família maior · "Quanto gastou" (barras por pessoa) acima dos cartões por tipo de gasto · sem a caixa rápida "quanto gastou?" (o + já faz isso) · dashboard não re-anima ao trocar de pessoa</div>
+  Finança · v0.66.0 · Início: seletor de mês no topo, acima de "Família", que muda a página inteira (dashboard e listas por pessoa) · seção "Quanto gastou" renomeada para "Família"</div>
 
   </section>
 
@@ -6824,13 +6832,18 @@ function renderInicioDash(forcar) {
   host.innerHTML = `
     <div class="ini">
       <div class="ini-hero">
-        <div class="ini-eyebrow">Família · ${mesLabel}${ehAtual ? '' : ' · fechado'}</div>
+        <div class="ini-eyebrow">Gasto da família · ${mesLabel}</div>
         <button class="ini-total ${reveal ? '' : 'hidden-val'}" id="iniTotal" style="background:none;border:0;color:inherit;font-family:var(--font-display);line-height:1.05;cursor:pointer;padding:0;" aria-label="Mostrar ou ocultar valores">${reveal ? _iniFmt(total) : 'R$ ••••••'}</button>
         <div class="ini-vs">${vsHtml}</div>
       </div>
       ${sparkHtml}
       ${statusHtml}
-      <div class="ini-sec"><h3>Quanto gastou</h3><span style="font-size:12px;color:#9eabc0">família · sem o Tiago</span></div>
+      <div class="ini-mes">
+        <button id="iniMesPrev" aria-label="Mês anterior">‹</button>
+        <div class="lbl">${mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)}<small>${ym.split('-')[0]}</small>${ehAtual ? '' : '<span class="fechado">mês fechado</span>'}</div>
+        <button id="iniMesNext" aria-label="Próximo mês">›</button>
+      </div>
+      <div class="ini-sec"><h3>Família</h3><span style="font-size:12px;color:#9eabc0">sem o Tiago</span></div>
       <div class="ini-quem">
         ${rows}
       </div>
@@ -6838,6 +6851,9 @@ function renderInicioDash(forcar) {
       ${linhas.length ? '<div class="ini-grid">' + cards + '</div>' : '<div class="ini-empty">Nenhum gasto da família neste mês ainda.</div>'}
     </div>`;
 
+  const _iniMes = (fn) => { famCurrentYM = fn(famCurrentYM); renderFamiliaTotalConsolidado(); renderFamiliaContent(); };
+  document.getElementById('iniMesPrev').onclick = () => _iniMes(ymPrev);
+  document.getElementById('iniMesNext').onclick = () => _iniMes(ymNext);
   document.getElementById('iniTotal').onclick = () => {
     if (!state.uiPrefs) state.uiPrefs = {};
     state.uiPrefs.revealFamiliaTotal = !state.uiPrefs.revealFamiliaTotal;
