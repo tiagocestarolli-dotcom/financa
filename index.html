@@ -137,6 +137,7 @@
   --chrome-ink: #f1e7d6;
   --chrome-mute: #9eabc0;
   --chrome-line: rgba(159, 181, 224, 0.18);
+  --gold-ink: #8A5A1F;         /* texto dourado (dúvida, pendente) */
 
   /* Cores de membros (defaults — editáveis em Configurações) */
   --member-casa:    #6B5544;
@@ -189,6 +190,7 @@ html[data-theme="escuro"] {
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
   --chrome-bg: #071226;
+  --gold-ink: #d9b06a;
 }
 html[data-theme="escuro"] body { background: linear-gradient(180deg, #071226 0%, #0b1a30 38%, #0f2139 100%) fixed; }
 
@@ -214,7 +216,8 @@ body {
 .auth-screen {
   position: fixed;
   inset: 0;
-  background: var(--bg);
+  background: linear-gradient(180deg, #071226 0%, #0b1a30 50%, #14284a 100%);
+  color: var(--cream);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -235,31 +238,31 @@ body {
   width: 88px;
   height: 88px;
   border-radius: 24px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--line);
-  box-shadow: 0 4px 16px -4px rgba(20, 18, 14, 0.08);
+  background: rgba(241,231,214,0.06);
+  border: 1px solid rgba(159,181,224,0.18);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
   font-size: 56px;
-  color: var(--ink);
+  color: var(--cream);
   margin-bottom: 24px;
 }
 .auth-title {
   font-family: var(--font-display);
   font-weight: 400;
   font-size: 36px;
-  letter-spacing: -0.02em;
-  color: var(--ink);
+  letter-spacing: 0.01em;
+  color: var(--cream);
   line-height: 1;
   margin-bottom: 6px;
 }
 .auth-subtitle {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 14px;
   color: var(--ink-mute);
   letter-spacing: 0.02em;
@@ -267,7 +270,7 @@ body {
 }
 .auth-status {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 13px;
   color: var(--ink-faint);
   margin-bottom: 16px;
@@ -308,7 +311,7 @@ body {
   margin-top: 28px;
   font-size: 11.5px;
   color: var(--ink-faint);
-  font-style: italic;
+  font-style: normal;
   font-family: var(--font-display);
   line-height: 1.55;
   max-width: 320px;
@@ -332,7 +335,7 @@ body {
   letter-spacing: 0.06em;
 }
 .auth-footer-signature .tc-year {
-  font-style: italic;
+  font-style: normal;
   color: var(--ink-faint);
 }
 
@@ -386,9 +389,9 @@ body {
   color: var(--ink-mute);
 }
 .sync-badge.offline {
-  background: color-mix(in srgb, #C28846 14%, white);
+  background: color-mix(in srgb, #C28846 14%, var(--bg-elevated));
   border-color: color-mix(in srgb, #C28846 28%, transparent);
-  color: #8A5A1F;
+  color: var(--gold-ink);
 }
 .sync-badge.error {
   background: color-mix(in srgb, var(--flow-out) 10%, white);
@@ -1136,7 +1139,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   vertical-align: 0.45em;
   margin-right: 4px;
   color: var(--ink-mute);
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
 }
 .redacted-value .cents {
@@ -1147,7 +1150,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .redacted-value .reveal-hint {
   font-family: var(--font-body);
   font-size: 11px;
-  font-style: italic;
+  font-style: normal;
   color: var(--ink-faint);
   font-weight: 400;
   margin-left: 8px;
@@ -1173,7 +1176,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .contas-hero .ch-label {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 13px;
   color: var(--ink-mute);
   letter-spacing: 0.02em;
@@ -1324,7 +1327,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .contas-section-h .csh-title {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
   font-size: 14px;
   color: var(--ink-mute);
@@ -1389,7 +1392,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 
 .familia-total .ft-label {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 13.5px;
   color: var(--ink-mute);
   letter-spacing: 0.02em;
@@ -1419,7 +1422,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .familia-total .ft-eye {
   color: var(--ink-faint);
   font-size: 11px;
-  font-style: italic;
+  font-style: normal;
   font-family: var(--font-display);
   font-weight: 400;
 }
@@ -1440,7 +1443,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .familia-total.expanded .ft-head-label {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 12.5px;
   color: var(--ink-mute);
 }
@@ -1455,7 +1458,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .familia-total.expanded .ft-big .currency {
   font-size: 16px; vertical-align: 0.45em; margin-right: 3px;
-  color: var(--ink-mute); font-style: italic;
+  color: var(--ink-mute); font-style: normal;
 }
 .familia-total.expanded .ft-big .cents {
   font-size: 18px; color: var(--ink-mute);
@@ -1544,7 +1547,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .hero-toggle:active { background: var(--bg-sunken); }
 .hero-toggle .ht-label {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 13.5px;
   color: var(--ink-mute);
   letter-spacing: 0.02em;
@@ -1570,7 +1573,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .hero-toggle .ht-eye {
   color: var(--ink-faint);
   font-size: 11px;
-  font-style: italic;
+  font-style: normal;
   font-family: var(--font-display);
   font-weight: 400;
 }
@@ -1604,7 +1607,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .quick-launch .ql-prefix {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   color: var(--ink-mute);
   font-size: 16px;
   flex: 0 0 auto;
@@ -1625,7 +1628,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .quick-launch input:focus { outline: none; box-shadow: none; }
 .quick-launch input::placeholder {
   color: var(--ink-faint);
-  font-style: italic;
+  font-style: normal;
 }
 .quick-launch .ql-go {
   width: 44px; height: 44px;
@@ -1647,7 +1650,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .quick-launch .ql-go:active { transform: scale(0.92); }
 .quick-launch .ql-hint {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 11px;
   color: var(--ink-faint);
   position: absolute;
@@ -1699,7 +1702,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .cat-hero-hide svg { display: block; }
 .cat-hero .ch-eyebrow {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 12.5px;
   color: var(--ink-mute);
   letter-spacing: 0.02em;
@@ -1725,7 +1728,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   vertical-align: 0.5em;
   margin-right: 3px;
   color: var(--ink-mute);
-  font-style: italic;
+  font-style: normal;
 }
 .cat-hero .ch-value .cents {
   font-size: 18px;
@@ -1898,8 +1901,8 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   color: var(--flow-in);
 }
 .gasto-row .gr-flag.pendente {
-  background: color-mix(in srgb, #C28846 16%, white);
-  color: #8A5A1F;
+  background: color-mix(in srgb, #C28846 16%, var(--bg-elevated));
+  color: var(--gold-ink);
   font-weight: 600;
 }
 .gasto-row .gr-flag.auto {
@@ -1920,8 +1923,8 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   color: var(--flow-out);
 }
 .gasto-row .gr-flag.pendente-cat {
-  background: color-mix(in srgb, #C28846 18%, white);
-  color: #8A5A1F;
+  background: color-mix(in srgb, #C28846 18%, var(--bg-elevated));
+  color: var(--gold-ink);
   font-weight: 700;
   border: 1px solid color-mix(in srgb, #C28846 30%, transparent);
 }
@@ -1983,7 +1986,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   padding: 8px 12px;
   font-size: 11.5px;
   color: var(--ink-faint);
-  font-style: italic;
+  font-style: normal;
   text-align: center;
   background: var(--bg-sunken);
 }
@@ -1998,7 +2001,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .nome-totals .nt-title {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 11.5px;
   color: var(--ink-mute);
   letter-spacing: 0.04em;
@@ -2070,14 +2073,14 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .grupo-block-head .gb-name {
   flex: 1;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 500;
   font-size: 13px;
   color: var(--ink);
   letter-spacing: -0.01em;
 }
 .grupo-block-head.no-group .gb-name {
-  font-style: italic;
+  font-style: normal;
   color: var(--ink-mute);
 }
 .grupo-block-head .gb-count {
@@ -2141,7 +2144,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .fixo-panel.open { display: block; }
 .fixo-panel .fp-title {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 12.5px;
   color: var(--ink-mute);
   margin-bottom: 8px;
@@ -2301,7 +2304,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .placeholder-card .pc-eyebrow {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   color: var(--ink-mute);
   font-size: 13px;
   margin-bottom: 6px;
@@ -2367,7 +2370,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .month-nav .month-label .y {
   color: var(--ink-mute);
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
   margin-left: 4px;
   font-size: 14px;
@@ -2393,7 +2396,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .summary-card .sc-eyebrow {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 13px;
   color: var(--ink-mute);
   letter-spacing: 0.02em;
@@ -2415,7 +2418,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   vertical-align: 0.45em;
   margin-right: 4px;
   color: var(--ink-mute);
-  font-style: italic;
+  font-style: normal;
 }
 .summary-card .sc-value .cents {
   font-size: 22px;
@@ -2592,7 +2595,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .pendencias-banner .pb-ico {
   width: 32px; height: 32px;
   border-radius: 8px;
-  background: color-mix(in srgb, #C28846 22%, white);
+  background: color-mix(in srgb, #C28846 22%, var(--bg-elevated));
   display: flex; align-items: center; justify-content: center;
   font-size: 15px;
   flex: 0 0 auto;
@@ -2603,7 +2606,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .pendencias-banner .pb-title {
   font-size: 13.5px;
   font-weight: 600;
-  color: #8A5A1F;
+  color: var(--gold-ink);
   letter-spacing: -0.005em;
 }
 .pendencias-banner .pb-sub {
@@ -2613,7 +2616,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-family: var(--font-mono);
 }
 .pendencias-banner .pb-chev {
-  color: #8A5A1F;
+  color: var(--gold-ink);
   font-size: 14px;
   font-weight: 600;
   flex: 0 0 auto;
@@ -2626,7 +2629,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   gap: 4px;
   margin-left: 12px;
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 14px;
   color: var(--ink-mute);
   letter-spacing: -0.005em;
@@ -2639,7 +2642,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-style: normal;
 }
 .cat-hero .ch-previsto .ch-prev-val {
-  color: #8A5A1F;
+  color: var(--gold-ink);
   font-weight: 500;
 }
 
@@ -2819,7 +2822,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .cm-monthnav .cm-monthlabel {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 16px;
 }
 .cm-toggle {
@@ -2835,7 +2838,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .cm-toggle input { transform: scale(1.2); }
 .cm-section-title {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 13px;
   color: var(--ink-mute, #6E6857);
   margin: 14px 2px 6px;
@@ -2880,7 +2883,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   letter-spacing: 0.3px;
 }
 .cm-row .cm-tag.parcela { background: #FFF3DB; color: #8B6A1A; }
-.cm-row .cm-tag.projetado { background: #E8EDF5; color: #4A5A7A; }
+.cm-row .cm-tag.projetado { background: var(--flow-invest-soft); color: var(--flow-invest); }
 .cm-totals {
   margin-top: 14px;
   padding-top: 12px;
@@ -2895,7 +2898,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .cm-total-line.grand {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 20px;
   margin-top: 8px;
 }
@@ -2904,7 +2907,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   padding: 24px 0;
   text-align: center;
   color: var(--ink-mute, #6E6857);
-  font-style: italic;
+  font-style: normal;
   font-size: 13px;
 }
 
@@ -2920,8 +2923,8 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   padding: 3px 8px; border-radius: var(--r-sm, 8px); white-space: nowrap; flex-shrink: 0;
 }
 .cm-badge.pago   { background: var(--flow-in-soft, #E4ECDF); color: var(--flow-in, #2D5F3F); }
-.cm-badge.apagar { background: #F6E4CC; color: #8A5A1F; }
-.cm-badge.auto   { background: #E8EDF5; color: #3A6991; }
+.cm-badge.apagar { background: #F6E4CC; color: var(--gold-ink); }
+.cm-badge.auto   { background: var(--flow-invest-soft); color: var(--flow-invest); }
 .cm-acts { display: flex; gap: 6px; flex-wrap: wrap; }
 .cm-act {
   border: 1px solid var(--line, #E5E1D5); background: var(--bg-elevated, #fff);
@@ -2933,7 +2936,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .cm-act.pay { border-color: var(--flow-in, #2D5F3F); color: var(--flow-in, #2D5F3F); }
 .cm-act.del { color: var(--flow-out, #A8462C); }
 .cm-fatura-note {
-  font-size: 11px; color: var(--ink-mute, #6E6857); font-style: italic;
+  font-size: 11px; color: var(--ink-mute, #6E6857); font-style: normal;
   margin: 2px 2px 6px;
 }
 
@@ -2946,7 +2949,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .view-section-h .vh-title {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
   font-size: 14px;
   color: var(--ink-mute);
@@ -3001,7 +3004,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .money-input-wrap:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20,18,14,0.06); }
 .money-input-wrap .mi-currency {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 18px;
   color: var(--ink-mute);
   flex: 0 0 auto;
@@ -3073,7 +3076,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .emoji-section .es-label {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
   font-size: 12px;
   color: var(--ink-mute);
@@ -3126,7 +3129,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 @keyframes pl-spin { to { transform: rotate(360deg); } }
 .pdf-loading .pl-status {
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
   font-size: 14px;
   color: var(--ink-mute);
   text-align: center;
@@ -3261,8 +3264,8 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   letter-spacing: 0.02em;
 }
 .revisao-item .ri-tag.pendente {
-  background: color-mix(in srgb, #C28846 18%, white);
-  color: #8A5A1F;
+  background: color-mix(in srgb, #C28846 18%, var(--bg-elevated));
+  color: var(--gold-ink);
 }
 .revisao-item .ri-tag.atribuido {
   background: var(--flow-in-soft);
@@ -3325,7 +3328,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .rex-microcopy {
   font-size: 11.5px;
   color: var(--ink-mute);
-  font-style: italic;
+  font-style: normal;
   font-family: var(--font-display);
   line-height: 1.5;
   margin: 0 0 12px;
@@ -3398,7 +3401,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-size: 10.5px;
   color: var(--ink-mute);
   text-transform: lowercase;
-  font-style: italic;
+  font-style: normal;
   font-family: var(--font-display);
 }
 .rex-tag {
@@ -3447,7 +3450,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-size: 11.5px;
   color: var(--ink-mute);
   font-family: var(--font-display);
-  font-style: italic;
+  font-style: normal;
 }
 .hist-btn-undo {
   flex: 0 0 auto;
@@ -3472,7 +3475,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .mem-chave { font-size: 13px; font-weight: 600; color: var(--ink); word-break: break-word; }
 .mem-dest { font-size: 12.5px; color: var(--ink-soft); margin-top: 1px; }
 .mem-meta { font-size: 11px; color: var(--ink-mute); margin-top: 2px; }
-.mem-fraca { color: #8A5A1F; font-style: italic; }
+.mem-fraca { color: var(--gold-ink); font-style: normal; }
 
 /* v0.58.0 (Fatia A) — fila do extrato: ações por lançamento */
 .rex-acts { display: flex; gap: 6px; margin-top: 9px; }
@@ -3481,11 +3484,11 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   padding: 7px 8px; font: inherit; font-size: 12.5px; color: var(--ink-soft); cursor: pointer;
 }
 .rex-act.ok { border-color: var(--flow-in); color: var(--flow-in); font-weight: 600; background: var(--flow-in-soft); }
-.rex-act.duv.on { border-color: #C18C2D; color: #8A5A1F; background: color-mix(in srgb, #C18C2D 12%, transparent); }
+.rex-act.duv.on { border-color: #C18C2D; color: var(--gold-ink); background: color-mix(in srgb, #C18C2D 12%, transparent); }
 .rex-act.ign { color: var(--ink-mute); }
-.rex-tag-sug { background: color-mix(in srgb, #C18C2D 14%, transparent); color: #8A5A1F; }
-.rex-tag-duv { background: color-mix(in srgb, #C18C2D 14%, transparent); color: #8A5A1F; }
-.rex-duv-nota { margin-top: 6px; font-size: 12px; color: #8A5A1F; }
+.rex-tag-sug { background: color-mix(in srgb, #C18C2D 14%, transparent); color: var(--gold-ink); }
+.rex-tag-duv { background: color-mix(in srgb, #C18C2D 14%, transparent); color: var(--gold-ink); }
+.rex-duv-nota { margin-top: 6px; font-size: 12px; color: var(--gold-ink); }
 .rex-duv-nota button { background: none; border: none; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
 
 /* Revisão de extrato — componentes v0.23.2 */
@@ -3516,7 +3519,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .rex-match-body {
   color: var(--ink-soft);
-  font-style: italic;
+  font-style: normal;
 }
 .rex-match-body em {
   color: var(--ink);
@@ -3556,7 +3559,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .rex-classif-edit {
   color: var(--ink-mute);
   font-size: 11px;
-  font-style: italic;
+  font-style: normal;
 }
 .rex-tag-classif {
   background: color-mix(in srgb, var(--flow-in) 14%, transparent);
@@ -3603,7 +3606,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .rex-picker-sub {
   font-size: 12.5px;
   color: var(--ink-mute);
-  font-style: italic;
+  font-style: normal;
   font-family: var(--font-display);
   word-break: break-word;
 }
@@ -3638,7 +3641,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-family: var(--font-body);
 }
 .rex-pick-hint {
-  font-size: 11px; font-style: italic; color: var(--ink-mute);
+  font-size: 11px; font-style: normal; color: var(--ink-mute);
   margin-top: 6px; line-height: 1.4;
 }
 .rex-picker-chips {
@@ -3938,7 +3941,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .rel-pnl-foot .rp-trend.down { color: var(--flow-in); }
 .rel-pnl-foot .rp-trend.flat { color: var(--ink-mute); }
 .rel-pnl-nota {
-  font-size: 10px; color: var(--ink-mute); font-style: italic;
+  font-size: 10px; color: var(--ink-mute); font-style: normal;
   margin: 2px 0 6px; line-height: 1.45;
 }
 
@@ -3949,7 +3952,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   border: 1px solid var(--line); border-radius: 16px;
   font-size: 12.5px; cursor: pointer; color: var(--ink);
 }
-.rel-grupo-chip:active { background: #F0EDE4; }
+.rel-grupo-chip:active { background: var(--bg-sunken); }
 .rel-grupo-chip strong {
   font-family: var(--font-display); font-weight: 500; letter-spacing: -0.005em;
 }
@@ -4007,7 +4010,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .rel-drill-row .rdr-val.previsto { color: var(--ink-mute); }
 .rel-drill-row .rdr-tag {
   display: inline-block; font-size: 9px; padding: 1px 6px;
-  border-radius: 8px; background: #F0EDE4; color: var(--ink-mute);
+  border-radius: 8px; background: var(--bg-sunken); color: var(--ink-mute);
   margin-left: 6px; vertical-align: middle; font-weight: 600;
   letter-spacing: 0.04em; text-transform: uppercase;
 }
@@ -4097,7 +4100,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .rel2-hero3 .rh3-saldo-val.neg { color: var(--flow-out); }
 .rel2-hero3 .rh3-microcopy {
   font-size: 10.5px; color: var(--ink-mute); margin-top: 8px;
-  line-height: 1.5; font-style: italic;
+  line-height: 1.5; font-style: normal;
 }
 
 /* Gráfico multi-mês com 3 barras agrupadas por mês */
@@ -4494,7 +4497,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .rel-det-filtro-limpar:active { opacity: 0.6; }
 .rel-det-filtro-label {
-  font-size: 10px; color: var(--ink-faint); font-style: italic;
+  font-size: 10px; color: var(--ink-faint); font-style: normal;
   margin: 6px 0 5px;
 }
 .rel-det-filtro-chips {
@@ -4552,7 +4555,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .rel-det-sum-count {
   font-size: 12px;
   color: var(--ink-mute);
-  font-style: italic;
+  font-style: normal;
   font-family: var(--font-display);
 }
 
@@ -4572,7 +4575,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   padding: 4px 0;
   color: var(--ink-soft);
 }
-.rel-det-bd-resto { color: var(--ink-mute); font-style: italic; }
+.rel-det-bd-resto { color: var(--ink-mute); font-style: normal; }
 .rel-det-bd-name { font-weight: 500; }
 .rel-det-bd-val {
   font-family: var(--font-mono);
@@ -4644,7 +4647,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   margin-bottom: 4px;
 }
 .rel-det-row-identif em {
-  font-style: italic;
+  font-style: normal;
   color: var(--ink-mute);
 }
 .rel-det-row-meta {
@@ -4656,7 +4659,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .rel-det-meta-item {
   color: var(--ink-mute);
-  font-style: italic;
+  font-style: normal;
 }
 .rel-det-badge {
   display: inline-block;
@@ -4991,6 +4994,11 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
 .det-lista .rel-drill-total span, .det-lista .rel-drill-sub { color: #9eabc0; }
 .det-vazio { padding: 22px 14px; text-align: center; color: #9eabc0; font-size: 13px; }
 @keyframes iniColIn { from { transform: scaleY(0); } }
+
+/* v0.62.0 — ícones de traço no lugar de emoji */
+.ico-i { display: inline-block; width: 1em; height: 1em; vertical-align: -0.15em; margin-right: 6px; }
+.ico-i svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.pb-ico .ico-i, .filter .ico-i, .gr-flag .ico-i { margin-right: 4px; }
 </style>
 
 </head>
@@ -5114,19 +5122,19 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
   <section class="view" data-view="familia">
     <div id="inicioDash"></div>
     <div id="familiaTotalConsolidado" style="display:none;"></div>
-    <button class="compromissos-btn" data-compromissos="familia">📋 Contas do mês</button>
+    <button class="compromissos-btn" data-compromissos="familia"><span class="ico-i"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span>Contas do mês</button>
     <div class="subtabs" id="familiaSubtabs"></div>
     <div id="familiaContent"></div>
-    <button class="extrato-btn" data-extrato="familia">🧾 Ver extrato do mês (todos os lançamentos)</button>
+    <button class="extrato-btn" data-extrato="familia"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></span>Ver extrato do mês (todos os lançamentos)</button>
     <button class="fab" id="famFab" aria-label="Novo gasto">＋</button>
   </section>
 
   <!-- TIAGO — gastos isolados, nunca somam família -->
 
   <section class="view" data-view="tiago">
-    <button class="compromissos-btn" data-compromissos="tiago">📋 Contas do mês</button>
+    <button class="compromissos-btn" data-compromissos="tiago"><span class="ico-i"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span>Contas do mês</button>
     <div id="tiagoContent"></div>
-    <button class="extrato-btn" data-extrato="tiago">🧾 Ver extrato do mês (todos os lançamentos)</button>
+    <button class="extrato-btn" data-extrato="tiago"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></span>Ver extrato do mês (todos os lançamentos)</button>
     <button class="fab" id="tiagoFab" aria-label="Novo gasto">＋</button>
   </section>
 
@@ -5374,7 +5382,7 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.61.0 · Novo visual (fatia 2): detalhe do tipo de gasto em navy — colunas dos últimos 6 meses, mês atual com realizado + projeção hachurada, linha da média, divisão por pessoa e lançamentos do mês · abre ao tocar num cartão do Início ou numa linha de "ver tudo"</div>
+  Finança · v0.62.0 · Novo visual (fatia 3): Entradas e Meus Gastos na identidade nova — fim do itálico falso (Marcellus), ícones de traço no lugar de emoji nos botões e filtros, tela de login em navy, cabeçalhos sem "módulo · 0X" · cores fixas trocadas por variáveis para o tema escuro</div>
 
   </section>
 
@@ -6253,13 +6261,13 @@ function askChoice({ title, message, options }) {
 
 /* ====== Roteamento (bottom nav) ====== */
 const VIEW_LABELS = {
-  entradas:   { eyebrow: 'módulo · 02', title: 'Entradas' },
+  entradas:   { eyebrow: 'Finança · renda', title: 'Entradas' },
   familia:    { eyebrow: 'Finança', title: 'Início' },
-  tiago:      { eyebrow: 'módulo · 04 · isolado', title: 'Meus Gastos' },
-  cartoes:    { eyebrow: 'módulo · 05', title: 'Cartões' },
-  relatorios: { eyebrow: 'módulo · 06', title: 'Relatórios' },
-  contas:     { eyebrow: 'saldos bancários', title: 'Contas' },
-  config:     { eyebrow: 'preferências', title: 'Configurações' }
+  tiago:      { eyebrow: 'Finança · só meus', title: 'Meus Gastos' },
+  cartoes:    { eyebrow: 'Finança · cartões', title: 'Cartões' },
+  relatorios: { eyebrow: 'Finança · análise', title: 'Relatórios' },
+  contas:     { eyebrow: 'Finança · contas', title: 'Contas' },
+  config:     { eyebrow: 'Finança · ajustes', title: 'Configurações' }
 };
 
 let activeView = 'config';
@@ -15784,7 +15792,7 @@ function renderFamiliaContent() {
   const filtersHtml = `
     <div class="filter-row">
       <button class="filter ${famFilter === 'todos' ? 'active' : ''}" data-f="todos">todos · ${totalFixos + totalVar}</button>
-      ${totalPend > 0 ? `<button class="filter ${famFilter === 'pendentes' ? 'active' : ''}" data-f="pendentes">⏳ a pagar · ${totalPend}</button>` : ''}
+      ${totalPend > 0 ? `<button class="filter ${famFilter === 'pendentes' ? 'active' : ''}" data-f="pendentes"><span class="ico-i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>a pagar · ${totalPend}</button>` : ''}
       <button class="filter ${famFilter === 'pagos' ? 'active' : ''}" data-f="pagos">✓ pagos · ${totalPagos}</button>
       <button class="filter ${famFilter === 'fixos' ? 'active' : ''}" data-f="fixos">🔁 fixos · ${totalFixos}</button>
       <button class="filter ${famFilter === 'variaveis' ? 'active' : ''}" data-f="variaveis">variáveis · ${totalVar}</button>
@@ -15798,7 +15806,7 @@ function renderFamiliaContent() {
     const n = totaisMes.pendentes.length;
     banner = `
       <div class="pendencias-banner" id="pendBanner">
-        <div class="pb-ico">⏳</div>
+        <div class="pb-ico"><span class="ico-i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span></div>
         <div class="pb-body">
           <div class="pb-title">${n} ${n === 1 ? 'conta a pagar' : 'contas a pagar'} este mês</div>
           <div class="pb-sub">${fmtBRL(totalAPagar)} pendente${n === 1 ? '' : 's'} de confirmação</div>
@@ -16057,7 +16065,7 @@ function renderGastoRow(g) {
   const [y, mm, dd] = g.data.split('-');
   const flags = [];
   if (g.categoriaPendente) flags.push('<span class="gr-flag pendente-cat">⚠ identificar</span>');
-  if (g.pago === false) flags.push('<span class="gr-flag pendente">⏳ a pagar</span>');
+  if (g.pago === false) flags.push('<span class="gr-flag pendente"><span class="ico-i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>a pagar</span>');
   /* Tag "auto" suave para fixos que não precisam de check-in (cartão / débito automático) */
   if (g.isFixo && (g.pagamento === 'cartao' || g.pagamento === 'debito')) {
     flags.push('<span class="gr-flag auto">auto</span>');
@@ -16152,7 +16160,7 @@ function openGastoForm(id, defaultCategoria, opts) {
     if (editing.pago === false) {
       return `
         <div class="card-flat" style="background:color-mix(in srgb,#C28846 12%,white);border:1px solid color-mix(in srgb,#C28846 26%,transparent);">
-          <strong style="color:#8A5A1F;">⏳ Ainda não foi pago</strong>
+          <strong style="color:var(--gold-ink);">Ainda não foi pago</strong>
           <div class="muted" style="font-size:13px;margin-top:4px;line-height:1.5;">
             Enquanto não for marcado como pago, este lançamento não debita o saldo bancário.
           </div>
@@ -17851,7 +17859,7 @@ function renderTiagoView() {
   const filtersHtml = `
     <div class="filter-row">
       <button class="filter ${tiagoFilter === 'todos' ? 'active' : ''}" data-f="todos">todos · ${totalFixos + totalVar}</button>
-      ${totalPendT > 0 ? `<button class="filter ${tiagoFilter === 'pendentes' ? 'active' : ''}" data-f="pendentes">⏳ a pagar · ${totalPendT}</button>` : ''}
+      ${totalPendT > 0 ? `<button class="filter ${tiagoFilter === 'pendentes' ? 'active' : ''}" data-f="pendentes"><span class="ico-i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>a pagar · ${totalPendT}</button>` : ''}
       <button class="filter ${tiagoFilter === 'pagos' ? 'active' : ''}" data-f="pagos">✓ pagos · ${totalPagosT}</button>
       <button class="filter ${tiagoFilter === 'fixos' ? 'active' : ''}" data-f="fixos">🔁 fixos · ${totalFixos}</button>
       <button class="filter ${tiagoFilter === 'variaveis' ? 'active' : ''}" data-f="variaveis">variáveis · ${totalVar}</button>
@@ -17864,7 +17872,7 @@ function renderTiagoView() {
     const n = totaisMesTiago.pendentes.length;
     bannerTiago = `
       <div class="pendencias-banner" id="pendBannerTiago">
-        <div class="pb-ico">⏳</div>
+        <div class="pb-ico"><span class="ico-i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span></div>
         <div class="pb-body">
           <div class="pb-title">${n} ${n === 1 ? 'conta a pagar' : 'contas a pagar'} este mês</div>
           <div class="pb-sub">${fmtBRL(totaisMesTiago.previsto)} pendente${n === 1 ? '' : 's'} de confirmação</div>
