@@ -149,7 +149,7 @@
   /* Tipografia */
   --font-display: 'Marcellus', 'Times New Roman', serif;
   --font-body: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --font-mono: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif; /* v0.64.0: números em Montserrat tabular */
 
   /* Espaços, raios, sombras */
   --r-sm: 10px;
@@ -299,7 +299,7 @@ body {
 .auth-help {
   margin-top: 14px;
   padding: 10px 14px;
-  background: color-mix(in srgb, var(--flow-out) 8%, white);
+  background: color-mix(in srgb, var(--flow-out) 8%, var(--bg-elevated));
   border: 1px solid color-mix(in srgb, var(--flow-out) 22%, transparent);
   color: var(--flow-out);
   border-radius: 10px;
@@ -373,7 +373,7 @@ body {
   flex: 0 0 auto;
 }
 .sync-badge.saving {
-  background: color-mix(in srgb, var(--flow-invest) 8%, white);
+  background: color-mix(in srgb, var(--flow-invest) 8%, var(--bg-elevated));
   border-color: color-mix(in srgb, var(--flow-invest) 22%, transparent);
   color: var(--flow-invest);
 }
@@ -384,7 +384,7 @@ body {
   to { transform: rotate(360deg); }
 }
 .sync-badge.pending {
-  background: color-mix(in srgb, var(--ink) 5%, white);
+  background: color-mix(in srgb, var(--ink) 5%, var(--bg-elevated));
   border-color: color-mix(in srgb, var(--ink) 14%, transparent);
   color: var(--ink-mute);
 }
@@ -394,7 +394,7 @@ body {
   color: var(--gold-ink);
 }
 .sync-badge.error {
-  background: color-mix(in srgb, var(--flow-out) 10%, white);
+  background: color-mix(in srgb, var(--flow-out) 10%, var(--bg-elevated));
   border-color: color-mix(in srgb, var(--flow-out) 26%, transparent);
   color: var(--flow-out);
 }
@@ -650,7 +650,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 
 .list-row .lr-trail {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 14px;
   color: var(--ink-soft);
   flex: 0 0 auto;
@@ -752,7 +752,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 
 .tag.member {
-  background: color-mix(in srgb, var(--member-color, var(--ink-mute)) 14%, white);
+  background: color-mix(in srgb, var(--member-color, var(--ink-mute)) 14%, var(--bg-elevated));
   color: var(--member-color, var(--ink));
 }
 .tag.flow-in    { background: var(--flow-in-soft); color: var(--flow-in); }
@@ -1036,7 +1036,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-size: 12px;
   color: var(--ink-mute);
   margin-top: 3px;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }
 .member-card .mc-chev { color: var(--ink-faint); font-size: 20px; flex: 0 0 auto; position: relative; z-index: 1; }
@@ -1066,8 +1066,8 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   padding: 18px;
   border-radius: var(--r);
   background: linear-gradient(135deg,
-    color-mix(in srgb, var(--member-color) 14%, white),
-    color-mix(in srgb, var(--member-color) 6%, white));
+    color-mix(in srgb, var(--member-color) 14%, var(--bg-elevated)),
+    color-mix(in srgb, var(--member-color) 6%, var(--bg-elevated)));
   border: 1px solid color-mix(in srgb, var(--member-color) 22%, var(--line));
   margin-bottom: 4px;
   transition: background .2s, border-color .2s;
@@ -1159,7 +1159,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 /* dots em vez de número */
 .redacted-value.hidden .digits {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   letter-spacing: 0.1em;
   color: var(--ink-faint);
 }
@@ -1292,7 +1292,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .statement-row .sr-ico.in    { background: var(--flow-in-soft); color: var(--flow-in); }
 .statement-row .sr-ico.out   { background: var(--flow-out-soft); color: var(--flow-out); }
 .statement-row .sr-ico.adj   { background: var(--bg-sunken); color: var(--ink-mute); }
-.statement-row .sr-ico.tx    { background: color-mix(in srgb, var(--flow-invest) 14%, white); color: var(--flow-invest); }
+.statement-row .sr-ico.tx    { background: color-mix(in srgb, var(--flow-invest) 14%, var(--bg-elevated)); color: var(--flow-invest); }
 .statement-row .sr-body { flex: 1; min-width: 0; }
 .statement-row .sr-title {
   font-size: 13.5px;
@@ -1306,10 +1306,10 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-size: 11px;
   color: var(--ink-mute);
   margin-top: 1px;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 .statement-row .sr-value {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: 13.5px;
   font-variant-numeric: tabular-nums;
@@ -1414,7 +1414,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   color: var(--ink);
 }
 .familia-total .ft-value.hidden {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 16px;
   letter-spacing: 0.12em;
   color: var(--ink-faint);
@@ -1486,7 +1486,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   margin-bottom: 2px;
 }
 .familia-total .ft-person .fp-value {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 11.5px;
   font-weight: 600;
   color: var(--ink);
@@ -1499,7 +1499,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   align-items: center;
   font-size: 11.5px;
   color: var(--ink-mute);
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   margin-top: 8px;
   flex-wrap: wrap;
 }
@@ -1565,7 +1565,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   color: var(--ink);
 }
 .hero-toggle .ht-value.hidden {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 16px;
   letter-spacing: 0.12em;
   color: var(--ink-faint);
@@ -1581,8 +1581,8 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 /* Quando categoria está revelada, mantém o card expansivo (Família) */
 .hero-toggle.expanded {
   background: linear-gradient(135deg,
-    color-mix(in srgb, var(--member-color, var(--ink)) 12%, white),
-    color-mix(in srgb, var(--member-color, var(--ink)) 4%, white));
+    color-mix(in srgb, var(--member-color, var(--ink)) 12%, var(--bg-elevated)),
+    color-mix(in srgb, var(--member-color, var(--ink)) 4%, var(--bg-elevated)));
   border-color: color-mix(in srgb, var(--member-color, var(--ink)) 20%, var(--line));
 }
 
@@ -1659,8 +1659,8 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 /* Header da categoria (cor do membro) */
 .cat-hero {
   background: linear-gradient(135deg,
-    color-mix(in srgb, var(--member-color) 16%, white),
-    color-mix(in srgb, var(--member-color) 6%, white));
+    color-mix(in srgb, var(--member-color) 16%, var(--bg-elevated)),
+    color-mix(in srgb, var(--member-color) 6%, var(--bg-elevated)));
   border: 1px solid color-mix(in srgb, var(--member-color) 22%, var(--line));
   border-radius: var(--r-lg);
   padding: 18px 18px 16px;
@@ -1683,7 +1683,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
+  background: color-mix(in srgb, var(--bg-elevated) 85%, transparent);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border: 1px solid color-mix(in srgb, var(--member-color) 18%, var(--line));
@@ -1739,7 +1739,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-size: 12.5px;
   color: var(--ink-mute);
   position: relative; z-index: 1;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   flex-wrap: wrap;
 }
 .cat-hero .ch-meta .delta {
@@ -1798,12 +1798,12 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   border-radius: 4px;
 }
 .subc-head .sh-count {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 11.5px;
   color: var(--ink-mute);
 }
 .subc-head .sh-total {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: 14px;
   color: var(--ink);
@@ -1835,7 +1835,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .gasto-row:active { background: var(--bg-sunken); }
 .gasto-row .gr-date {
   flex: 0 0 32px;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 11px;
   color: var(--ink-mute);
   text-align: center;
@@ -1884,7 +1884,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   gap: 4px;
 }
 .gasto-row .gr-flag.fixo {
-  background: color-mix(in srgb, var(--ink) 8%, white);
+  background: color-mix(in srgb, var(--ink) 8%, var(--bg-elevated));
   color: var(--ink-soft);
 }
 .gasto-row .gr-flag.invest {
@@ -1895,7 +1895,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   color: #fff;
 }
 .gasto-row .gr-flag.deb {
-  background: color-mix(in srgb, var(--flow-in) 14%, white);
+  background: color-mix(in srgb, var(--flow-in) 14%, var(--bg-elevated));
   color: var(--flow-in);
 }
 .gasto-row .gr-flag.pendente {
@@ -1904,7 +1904,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-weight: 600;
 }
 .gasto-row .gr-flag.auto {
-  background: color-mix(in srgb, var(--ink) 4%, white);
+  background: color-mix(in srgb, var(--ink) 4%, var(--bg-elevated));
   color: var(--ink-faint);
   font-size: 9.5px;
   letter-spacing: 0.06em;
@@ -1917,7 +1917,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   opacity: 0.85;
 }
 .gasto-row .gr-flag.parcela {
-  background: color-mix(in srgb, var(--flow-out) 12%, white);
+  background: color-mix(in srgb, var(--flow-out) 12%, var(--bg-elevated));
   color: var(--flow-out);
 }
 .gasto-row .gr-flag.pendente-cat {
@@ -1927,7 +1927,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   border: 1px solid color-mix(in srgb, #C28846 30%, transparent);
 }
 .gasto-row .gr-flag.grupo {
-  background: color-mix(in srgb, var(--ink) 6%, white);
+  background: color-mix(in srgb, var(--ink) 6%, var(--bg-elevated));
   color: var(--ink-soft);
   font-weight: 600;
   border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
@@ -1975,7 +1975,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .nome-autocomplete-list .ns-count {
   font-size: 11px;
   color: var(--ink-mute);
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   background: var(--bg-sunken);
   padding: 2px 7px;
   border-radius: 999px;
@@ -2028,13 +2028,13 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   min-width: 0;
 }
 .nome-totals .nt-row .nt-name .nt-count {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 10px;
   color: var(--ink-mute);
   font-weight: 400;
 }
 .nome-totals .nt-row .nt-value {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-soft);
@@ -2082,19 +2082,19 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   color: var(--ink-mute);
 }
 .grupo-block-head .gb-count {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 10.5px;
   color: var(--ink-mute);
 }
 .grupo-block-head .gb-total {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: 12.5px;
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 .gasto-row .gr-value {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 13.5px;
   font-weight: 600;
   color: var(--flow-out);
@@ -2189,7 +2189,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-size: 12.5px;
   color: var(--ink-soft);
   font-weight: 500;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 .filter-row .filter.active {
   background: var(--ink);
@@ -2284,7 +2284,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .pay-option .po-title { font-weight: 500; font-size: 14px; color: var(--ink); }
 .pay-option .po-sub { font-size: 12px; color: var(--ink-mute); margin-top: 2px; }
 .pay-option.selected {
-  background: color-mix(in srgb, var(--ink) 4%, white);
+  background: color-mix(in srgb, var(--ink) 4%, var(--bg-elevated));
   border-color: var(--ink);
 }
 .pay-option.selected .po-ico {
@@ -2440,7 +2440,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   border-radius: 999px;
   font-weight: 600;
   font-size: 12px;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 .summary-card .sc-meta .delta.up {
   background: var(--flow-in-soft);
@@ -2455,7 +2455,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   color: var(--ink-mute);
 }
 .summary-card .sc-count {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 12px;
   color: var(--ink-mute);
 }
@@ -2487,7 +2487,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   color: var(--ink);
 }
 .source-row .sr-value {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-weight: 500;
   color: var(--ink);
   font-size: 14px;
@@ -2512,7 +2512,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   justify-content: space-between;
   font-size: 11.5px;
   color: var(--ink-mute);
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 
 /* Lançamento na lista */
@@ -2532,7 +2532,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   padding: 6px 0;
   background: var(--bg-sunken);
   border-radius: 8px;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 .entry-row .er-date .er-day {
   display: block;
@@ -2567,7 +2567,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   text-overflow: ellipsis;
 }
 .entry-row .er-value {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--flow-in);
   font-size: 14.5px;
@@ -2611,7 +2611,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   font-size: 11.5px;
   color: var(--ink-mute);
   margin-top: 1px;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 .pendencias-banner .pb-chev {
   color: var(--gold-ink);
@@ -2925,7 +2925,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .cm-badge.auto   { background: var(--flow-invest-soft); color: var(--flow-invest); }
 .cm-acts { display: flex; gap: 6px; flex-wrap: wrap; }
 .cm-act {
-  border: 1px solid var(--line, #E5E1D5); background: var(--bg-elevated, #fff);
+  border: 1px solid var(--line, #E5E1D5); background: var(--bg-elevated, var(--bg-elevated));
   border-radius: var(--r-sm, 8px); padding: 6px 11px; font-size: 12.5px; font-weight: 500;
   color: var(--ink-soft, #3D3A33); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
   line-height: 1; white-space: nowrap;
@@ -3153,7 +3153,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   flex: 1;
   font-size: 12px;
   color: var(--ink-mute);
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .revisao-toolbar .rt-action {
@@ -3191,7 +3191,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   transition: background .12s, border-color .12s;
 }
 .revisao-item.selected {
-  background: color-mix(in srgb, var(--ink) 5%, white);
+  background: color-mix(in srgb, var(--ink) 5%, var(--bg-elevated));
   border-color: color-mix(in srgb, var(--ink) 18%, var(--line));
 }
 .revisao-item.pendente {
@@ -3222,7 +3222,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 }
 .revisao-item .ri-date {
   flex: 0 0 36px;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 11px;
   color: var(--ink-mute);
   text-align: center;
@@ -3270,23 +3270,23 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   color: var(--flow-in);
 }
 .revisao-item .ri-tag.parc {
-  background: color-mix(in srgb, var(--flow-out) 12%, white);
+  background: color-mix(in srgb, var(--flow-out) 12%, var(--bg-elevated));
   color: var(--flow-out);
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 .revisao-item .ri-tag.intl {
-  background: color-mix(in srgb, var(--flow-invest) 14%, white);
+  background: color-mix(in srgb, var(--flow-invest) 14%, var(--bg-elevated));
   color: var(--flow-invest);
 }
 .revisao-item .ri-tag.auto {
-  background: color-mix(in srgb, var(--flow-in) 12%, white);
+  background: color-mix(in srgb, var(--flow-in) 12%, var(--bg-elevated));
   color: var(--flow-in);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: lowercase;
 }
 .revisao-item .ri-value {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: 13.5px;
   color: var(--flow-out);
@@ -3380,7 +3380,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   flex: 0 0 auto;
 }
 .rex-row-valor {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 13.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -4576,7 +4576,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .rel-det-bd-resto { color: var(--ink-mute); font-style: normal; }
 .rel-det-bd-name { font-weight: 500; }
 .rel-det-bd-val {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-variant-numeric: tabular-nums;
 }
 .rel-det-bd-val em {
@@ -4617,7 +4617,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   background: var(--bg-sunken);
 }
 .rel-det-row-data {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 14px;
   font-weight: 600;
   color: var(--ink-soft);
@@ -4679,7 +4679,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .rel-det-bdg-parc {
   background: color-mix(in srgb, var(--flow-in) 15%, transparent);
   color: var(--flow-in);
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 .rel-det-bdg-ext {
   background: color-mix(in srgb, #4A90A4 15%, transparent);
@@ -4694,7 +4694,7 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   color: var(--flow-out);
 }
 .rel-det-row-valor {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
   font-size: 14.5px;
   font-weight: 600;
   color: var(--flow-out);
@@ -4997,6 +4997,186 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
 .ico-i { display: inline-block; width: 1em; height: 1em; vertical-align: -0.15em; margin-right: 6px; }
 .ico-i svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; }
 .pb-ico .ico-i, .filter .ico-i, .gr-flag .ico-i { margin-right: 4px; }
+
+/* ============== v0.64.0 — TEMA PADRÃO: página navy, cartões claros ============== */
+:root {
+  --page: #1a2f52;
+  --page-2: #203a63;
+  --ink-page: #f1e7d6;        /* texto direto na página */
+  --ink-page-soft: #c9d3e6;
+  --ink-page-mute: #9eabc0;
+}
+html[data-theme="escuro"] {
+  --page: #0b1a30;
+  --page-2: #0f2139;
+  --ink-page: var(--ink);
+  --ink-page-soft: var(--ink-soft);
+  --ink-page-mute: var(--ink-mute);
+}
+html:not([data-theme="escuro"]) body { background: linear-gradient(180deg, #14284a 0%, #1a2f52 240px, #1a2f52 100%) fixed; color: var(--ink-page); }
+html:not([data-theme="escuro"]) .app,
+html:not([data-theme="escuro"]) .view,
+html:not([data-theme="escuro"]) .view[data-view="relatorios"],
+html:not([data-theme="escuro"]) #relInner,
+html:not([data-theme="escuro"]) #relatoriosContent { background: transparent; }
+html:not([data-theme="escuro"]) .app-header { border-radius: 0 0 28px 28px; margin-bottom: 8px; background: linear-gradient(180deg, #071226 0%, #0f2139 100%); }
+html:not([data-theme="escuro"]) .ini { background: transparent; border-radius: 0; margin-bottom: 8px; padding-top: 10px; }
+html:not([data-theme="escuro"]) .ini-card, html:not([data-theme="escuro"]) .ini-quem { box-shadow: 0 12px 32px rgba(3,10,24,.28); }
+/* texto direto na página */
+html:not([data-theme="escuro"]) .section-title,
+html:not([data-theme="escuro"]) .list-label,
+html:not([data-theme="escuro"]) .sec-label,
+html:not([data-theme="escuro"]) .rel-section-title,
+html:not([data-theme="escuro"]) .rel-sub,
+html:not([data-theme="escuro"]) .empty,
+html:not([data-theme="escuro"]) .cat-empty-text,
+html:not([data-theme="escuro"]) .lbl-row,
+html:not([data-theme="escuro"]) .view > .label,
+html:not([data-theme="escuro"]) .view .label-row,
+html:not([data-theme="escuro"]) .view .row-label { color: var(--ink-page-mute); }
+html:not([data-theme="escuro"]) .view h2, html:not([data-theme="escuro"]) .view h3 { color: var(--ink-page); }
+/* superfícies claras: texto escuro */
+html:not([data-theme="escuro"]) :is(
+input,
+select,
+textarea,
+.icon-btn,
+.card,
+.card-flat,
+.subtab,
+.list-row,
+.list-row .lr-leading,
+.tiny-btn,
+.btn-secondary,
+.tag,
+.tag.member,
+.menu-item,
+.menu-item .mi-ico,
+.member-card,
+.member-card .mc-iso,
+.member-preview,
+.contas-hero,
+.conta-card,
+.conta-card .cc-ico,
+.conta-card .cc-principal,
+.contas-actions .btn,
+.statement-row,
+.statement-row .sr-ico,
+.statement-row .sr-ico.adj,
+.statement-row .sr-ico.tx,
+.conta-hero-detail,
+.familia-total,
+.familia-total.expanded,
+.familia-total .ft-person,
+.familia-total .ft-meta-row .delta.flat,
+.hero-toggle,
+.hero-toggle.expanded,
+.quick-launch,
+.cat-hero,
+.cat-hero-hide,
+.cat-hero .ch-meta .delta.flat,
+.subc-group,
+.subc-head,
+.gasto-row .gr-date,
+.gasto-row .gr-flag,
+.gasto-row .gr-flag.fixo,
+.gasto-row .gr-flag.deb,
+.gasto-row .gr-flag.pendente,
+.gasto-row .gr-flag.auto,
+.gasto-row .gr-flag.parcela,
+.gasto-row .gr-flag.pendente-cat,
+.gasto-row .gr-flag.grupo,
+.nome-autocomplete-list,
+.nome-autocomplete-list .ns-count,
+.nome-autocomplete-list .ns-help,
+.nome-totals,
+.fixo-panel,
+.row-toggle,
+.filter-row .filter,
+.cat-empty,
+.subcat-pick .pick,
+.pay-option,
+.pay-option .po-ico,
+.pay-option.selected,
+.placeholder-card,
+.month-nav,
+.summary-card,
+.summary-card .sc-meta .delta.flat,
+.source-row,
+.entry-row,
+.entry-row .er-date,
+.pendencias-banner,
+.pendencias-banner .pb-ico,
+.cm-act,
+.chip,
+.money-input-wrap,
+.empty-cta,
+.emoji-cell,
+.emoji-cell.selected,
+.revisao-toolbar .rt-action,
+.revisao-item,
+.revisao-item.selected,
+.revisao-item .ri-date,
+.revisao-item .ri-tag.pendente,
+.revisao-item .ri-tag.parc,
+.revisao-item .ri-tag.intl,
+.revisao-item .ri-tag.auto,
+.rex-summary,
+.rex-row,
+.hist-card,
+.reorg-item,
+.mem-busca,
+.mem-row,
+.rex-match-banner,
+.rex-classif-btn,
+.rex-pick-nome,
+.rex-pick-sub-select,
+.rex-pick-fixo-row,
+.rel-periodo .rp,
+.rel-periodo .rp-custom,
+.rel-toggle-tiago,
+.rel-opts,
+.rel-hero,
+.rel-section,
+.rel-drill-row .rdr-tag,
+.rel-tab,
+.rel2-hero3,
+.rtg-row,
+.rel3-hero-comp,
+.rel-det-summary-card,
+.sheet,
+.modal,
+.ask-overlay .ask-box
+) { color: var(--ink); }
+html:not([data-theme="escuro"]) .btn-secondary, html:not([data-theme="escuro"]) .icon-btn { color: var(--ink); }
+html:not([data-theme="escuro"]) .app-header .icon-btn { color: var(--chrome-ink); }
+/* botão "Contas do mês" e similares sobre a página */
+html:not([data-theme="escuro"]) .compromissos-btn, html:not([data-theme="escuro"]) .extrato-btn { background: rgba(241,231,214,.08); color: var(--ink-page) !important; border-color: rgba(159,181,224,.22); }
+html:not([data-theme="escuro"]) .subtab:not(.active) { background: rgba(241,231,214,.08); color: var(--ink-page) !important; border-color: rgba(159,181,224,.22); }
+html:not([data-theme="escuro"]) .subtab.active { color: #fff; }
+html:not([data-theme="escuro"]) .filter-row .filter:not(.active) { background: rgba(241,231,214,.08); color: var(--ink-page) !important; border-color: rgba(159,181,224,.22); }
+html:not([data-theme="escuro"]) .filter-row .filter.active { background: var(--cream); color: var(--navy-900); border-color: var(--cream); }
+html:not([data-theme="escuro"]) .rel-tab:not(.active), html:not([data-theme="escuro"]) .rel-periodo .rp:not(.active) { background: rgba(241,231,214,.08); color: var(--ink-page) !important; border-color: rgba(159,181,224,.22); }
+html:not([data-theme="escuro"]) .rel-tab.active, html:not([data-theme="escuro"]) .rel-periodo .rp.active { background: var(--cream); color: var(--navy-900); }
+html:not([data-theme="escuro"]) .bottom-nav { background: rgba(7,18,38,.94); }
+html:not([data-theme="escuro"]) .fab { box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+
+/* v0.64.0 — mais texto direto na página (tema padrão) */
+html:not([data-theme="escuro"]) .view-section-h .vh-title,
+html:not([data-theme="escuro"]) .view-section-h .vh-action,
+html:not([data-theme="escuro"]) .rel-monthlabel,
+html:not([data-theme="escuro"]) .rel-monthnav button,
+html:not([data-theme="escuro"]) .rel-empty,
+html:not([data-theme="escuro"]) .cat-empty,
+html:not([data-theme="escuro"]) .empty-cta,
+html:not([data-theme="escuro"]) .ft-label,
+html:not([data-theme="escuro"]) .hist-label,
+html:not([data-theme="escuro"]) .rel-note,
+html:not([data-theme="escuro"]) .rel-foot { color: var(--ink-page-mute) !important; }
+html:not([data-theme="escuro"]) .rel-monthlabel, html:not([data-theme="escuro"]) .vh-title { color: var(--ink-page) !important; }
+html:not([data-theme="escuro"]) .rel-monthnav button { border-color: rgba(159,181,224,.28); }
+html:not([data-theme="escuro"]) .rel-tab:not(.active) { color: var(--ink-page) !important; }
+html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .empty-cta { background: rgba(241,231,214,.06); border-color: rgba(159,181,224,.22); }
 </style>
 
 </head>
@@ -5330,7 +5510,7 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
   <div class="mi-ico">◐</div>
   <div class="mi-body">
     <div class="mi-title">Tema</div>
-    <div class="mi-sub" id="temaSub">Padrão · fundo claro, cartões brancos</div>
+    <div class="mi-sub" id="temaSub">Padrão · navy com cartões claros</div>
   </div>
   <div class="mi-chev">›</div>
 </button>
@@ -5380,7 +5560,7 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.63.0 · Novo visual (fatia 4): Cartões e Contas — heróis de cartão/conta legíveis no tema escuro, fim das bordas coloridas à esquerda, ícones de traço (banco, cartão, PDF, editar, ajustar saldo, importar, débito automático) no lugar de emoji</div>
+  Finança · v0.64.0 · Novo visual (fatia 5): tema padrão com a página inteira em navy e cartões claros (texto da página separado do texto do cartão) · números em Montserrat tabular no lugar da monoespaçada · heróis por pessoa legíveis no tema escuro</div>
 
   </section>
 
@@ -6462,7 +6642,7 @@ function renderFamiliaSubtabs() {
    v0.60.0 — TEMA (padrão × escuro) e INÍCIO (dashboard por tipo de gasto)
    ========================================================================= */
 const TEMAS = {
-  padrao: { label: 'Padrão', sub: 'fundo claro, cartões brancos', meta: '#0b1a30' },
+  padrao: { label: 'Padrão', sub: 'navy com cartões claros', meta: '#071226' },
   escuro: { label: 'Escuro', sub: 'navy inteiro', meta: '#071226' }
 };
 function contaIconeHtml(c) {
