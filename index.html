@@ -5026,7 +5026,6 @@ html:not([data-theme="escuro"]) .ini-card, html:not([data-theme="escuro"]) .ini-
 html:not([data-theme="escuro"]) .section-title,
 html:not([data-theme="escuro"]) .list-label,
 html:not([data-theme="escuro"]) .sec-label,
-html:not([data-theme="escuro"]) .rel-section-title,
 html:not([data-theme="escuro"]) .rel-sub,
 html:not([data-theme="escuro"]) .empty,
 html:not([data-theme="escuro"]) .cat-empty-text,
@@ -5192,6 +5191,26 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 .ini-mes .lbl { font-family: var(--font-display); font-size: 20px; color: var(--cream); text-align: center; }
 .ini-mes .lbl small { font-family: var(--font-body); font-size: 12px; color: #9eabc0; margin-left: 6px; letter-spacing: .04em; }
 .ini-mes .lbl .fechado { display: block; font-family: var(--font-body); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: #9eabc0; margin-top: 2px; }
+
+/* ============== v0.67.0 — ícones de pessoa em traço + Relatórios ============== */
+.mico { display: inline-flex; width: 1em; height: 1em; vertical-align: -0.15em; }
+.mico svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.sr-ico .mico, .mc-avatar .mico, .mp-circle .mico { width: 20px; height: 20px; }
+.mc-avatar .mico { width: 22px; height: 22px; }
+.mp-circle .mico { width: 34px; height: 34px; }
+.cat-empty .ce-emoji .mico { width: 34px; height: 34px; }
+.member-card .mc-avatar { background: color-mix(in srgb, var(--member-color) 16%, var(--bg-elevated)); color: var(--member-color); border-radius: 14px; }
+.chip .mico, .fp-name .mico, strong .mico, .subtab .mico { margin-right: 5px; }
+/* Relatórios: mesma linguagem do Início */
+.rel-section, .rel-hero { border-radius: 22px; box-shadow: var(--shadow-sm); }
+.rel-section-title { font-family: var(--font-display); font-size: 16px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink); gap: 8px; margin-bottom: 12px; }
+.rel-section-title .rst-icon { display: inline-flex; width: 26px; height: 26px; border-radius: 9px; align-items: center; justify-content: center; background: var(--flow-invest-soft); color: var(--flow-invest); font-size: 0; }
+.rel-section-title .rst-icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.rel-hero .rh-total { font-family: var(--font-display); }
+.rel-empty { font-size: 13px; }
+
+.mi-ico--svg svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.mi-ico--svg { color: var(--flow-invest); }
 </style>
 
 </head>
@@ -5358,7 +5377,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div class="section-title">Subcategorias</div>
 <button class="menu-item" data-cfg="subcats" data-cat="casa">
-  <div class="mi-ico">🏠</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Casa</div>
     <div class="mi-sub" id="subcCountCasa">—</div>
@@ -5366,7 +5385,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="subcats" data-cat="marina">
-  <div class="mi-ico">👧</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/><path d="M8 6c0-2 2-3 4-3s4 1 4 3"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Marina</div>
     <div class="mi-sub" id="subcCountMarina">—</div>
@@ -5374,7 +5393,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="subcats" data-cat="heitor">
-  <div class="mi-ico">👦</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Heitor</div>
     <div class="mi-sub" id="subcCountHeitor">—</div>
@@ -5382,7 +5401,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="subcats" data-cat="juliana">
-  <div class="mi-ico">👩</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/><path d="M8 9c-1 3-1 5 0 7M16 9c1 3 1 5 0 7"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Juliana</div>
     <div class="mi-sub" id="subcCountJuliana">—</div>
@@ -5390,7 +5409,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="subcats" data-cat="tiago">
-  <div class="mi-ico">👤</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Tiago</div>
     <div class="mi-sub" id="subcCountTiago">—</div>
@@ -5400,7 +5419,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div class="section-title">Grupos (cross-cutting)</div>
 <button class="menu-item" data-cfg="grupos" data-cat="casa">
-  <div class="mi-ico">🏠</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Grupos · Casa</div>
     <div class="mi-sub" id="grupoCountCasa">—</div>
@@ -5408,7 +5427,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="grupos" data-cat="marina">
-  <div class="mi-ico">👧🏻</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/><path d="M8 6c0-2 2-3 4-3s4 1 4 3"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Grupos · Marina</div>
     <div class="mi-sub" id="grupoCountMarina">—</div>
@@ -5416,7 +5435,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="grupos" data-cat="heitor">
-  <div class="mi-ico">👦🏻</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Grupos · Heitor</div>
     <div class="mi-sub" id="grupoCountHeitor">—</div>
@@ -5424,7 +5443,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="grupos" data-cat="juliana">
-  <div class="mi-ico">👩🏻</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/><path d="M8 9c-1 3-1 5 0 7M16 9c1 3 1 5 0 7"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Grupos · Juliana</div>
     <div class="mi-sub" id="grupoCountJuliana">—</div>
@@ -5432,7 +5451,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="grupos" data-cat="tiago">
-  <div class="mi-ico">👤</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Grupos · Tiago</div>
     <div class="mi-sub" id="grupoCountTiago">—</div>
@@ -5442,7 +5461,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div class="section-title">Cartões de crédito</div>
 <button class="menu-item" data-cfg="cards">
-  <div class="mi-ico">💳</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M7 15h3"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Gerenciar cartões</div>
     <div class="mi-sub" id="cardsCount">—</div>
@@ -5452,7 +5471,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div class="section-title">Fontes de renda</div>
 <button class="menu-item" data-cfg="fontes">
-  <div class="mi-ico">💵</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Gerenciar fontes</div>
     <div class="mi-sub" id="fontesCount">—</div>
@@ -5462,7 +5481,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div class="section-title">Investimentos</div>
 <button class="menu-item" data-cfg="invest">
-  <div class="mi-ico">📈</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Modalidades de investimento</div>
     <div class="mi-sub" id="investCount">—</div>
@@ -5472,7 +5491,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div class="section-title">Outros</div>
 <button class="menu-item" data-cfg="reorg">
-  <div class="mi-ico">🗂️</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/><path d="M3 7V5h6l2 2"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Reorganizar categorias</div>
     <div class="mi-sub">Assinaturas, tarifas, investimentos, educação, Bud, trabalho e grupos</div>
@@ -5480,7 +5499,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="memorias">
-  <div class="mi-ico">🧠</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M9 4a3 3 0 0 0-3 3v1a3 3 0 0 0-1 5 3 3 0 0 0 2 5h1a3 3 0 0 0 3-3V7a3 3 0 0 0-2-3z"/><path d="M15 4a3 3 0 0 1 3 3v1a3 3 0 0 1 1 5 3 3 0 0 1-2 5h-1a3 3 0 0 1-3-3V7a3 3 0 0 1 2-3z"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Memórias de classificação</div>
     <div class="mi-sub" id="memoriasCount">O que o app aprendeu a sugerir na importação</div>
@@ -5488,7 +5507,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="aliases">
-  <div class="mi-ico">🏷️</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Apelidos memorizados</div>
     <div class="mi-sub" id="aliasesCount">Renomeações de estabelecimentos</div>
@@ -5496,7 +5515,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="fixed">
-  <div class="mi-ico">🔁</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M4 20v-5h5"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Gastos fixos mensais</div>
     <div class="mi-sub" id="fixedCount">Central — gerenciar (cadastro vai dentro da categoria)</div>
@@ -5504,7 +5523,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="reminders">
-  <div class="mi-ico">⏰</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2"/><path d="M5 3L2 6M19 3l3 3"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Lembretes</div>
     <div class="mi-sub">Dia e hora para contas manuais</div>
@@ -5512,7 +5531,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="historicoImportacoes">
-  <div class="mi-ico">📥</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Histórico de importações</div>
     <div class="mi-sub" id="historicoImportacoesCount">Desfazer importações de extrato</div>
@@ -5522,7 +5541,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div class="section-title">Aparência</div>
 <button class="menu-item" data-cfg="tema">
-  <div class="mi-ico">◐</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Tema</div>
     <div class="mi-sub" id="temaSub">Padrão · navy com cartões claros</div>
@@ -5532,7 +5551,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div class="section-title">Backup &amp; dados</div>
 <button class="menu-item" data-cfg="export">
-  <div class="mi-ico">⬇</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M12 4v13"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Exportar JSON</div>
     <div class="mi-sub">Backup completo de todos os dados</div>
@@ -5540,7 +5559,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="import">
-  <div class="mi-ico">⬆</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M12 20V7"/><path d="M6 13l6-6 6 6"/><path d="M4 3h16"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Importar JSON</div>
     <div class="mi-sub">Restaurar a partir de um backup</div>
@@ -5548,7 +5567,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 <button class="menu-item" data-cfg="reset">
-  <div class="mi-ico">⚠️</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5"/><path d="M12 18h.01"/></svg></div>
   <div class="mi-body">
     <div class="mi-title" style="color:var(--flow-out);">Apagar todos os dados</div>
     <div class="mi-sub">Restaurar para a configuração inicial</div>
@@ -5558,14 +5577,14 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div class="section-title">Conta</div>
 <div class="menu-item" id="accountInfo" style="cursor:default;">
-  <div class="mi-ico">👤</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/></svg></div>
   <div class="mi-body">
     <div class="mi-title" id="accountEmail">—</div>
     <div class="mi-sub" id="accountSync">—</div>
   </div>
 </div>
 <button class="menu-item" data-cfg="logout">
-  <div class="mi-ico">⎋</div>
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M10 4H5v16h5"/><path d="M14 8l5 4-5 4"/><path d="M19 12H9"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Sair</div>
     <div class="mi-sub">Encerrar sessão neste dispositivo</div>
@@ -5575,7 +5594,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.66.0 · Início: seletor de mês no topo, acima de "Família", que muda a página inteira (dashboard e listas por pessoa) · seção "Quanto gastou" renomeada para "Família"</div>
+  Finança · v0.67.0 · Ícones de pessoa em traço (casa, pessoas) em listas, extrato, avatares e chips — emoji escolhido pelo usuário continua valendo · Relatórios na linguagem do Início: títulos de seção em Marcellus com ícone de traço, cartões arredondados · tag "fixo" sem emoji</div>
 
   </section>
 
@@ -6588,7 +6607,7 @@ function renderFamiliaTotalConsolidado() {
             const m = state.members[k];
             return `
               <div class="ft-person" style="--member-color:${m.cor};">
-                <div class="fp-name">${m.icone} ${escapeHtml(m.nome)}</div>
+                <div class="fp-name">${memberIconeHtml(m)} ${escapeHtml(m.nome)}</div>
                 <div class="fp-value">${fmtBRL(breakdown[k])}</div>
               </div>
             `;
@@ -6660,6 +6679,14 @@ const TEMAS = {
   padrao: { label: 'Padrão', sub: 'navy com cartões claros', meta: '#071226' },
   escuro: { label: 'Escuro', sub: 'navy inteiro', meta: '#071226' }
 };
+/* v0.67.0: emoji padrão de pessoa vira ícone de traço; emoji escolhido pelo usuário continua */
+const MEMBER_ICONES_TRACO = {"🏠": "<svg viewBox=\"0 0 24 24\"><path d=\"M3 11l9-7 9 7\"/><path d=\"M5 10v10h14V10\"/><path d=\"M10 20v-6h4v6\"/></svg>", "👧🏻": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/><path d=\"M8 6c0-2 2-3 4-3s4 1 4 3\"/></svg>", "👦🏻": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/></svg>", "👩🏻": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/><path d=\"M8 9c-1 3-1 5 0 7M16 9c1 3 1 5 0 7\"/></svg>", "👤": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/></svg>", "👨🏻": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/></svg>", "🧑🏻": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/></svg>", "👨‍👩‍👧‍👦": "<svg viewBox=\"0 0 24 24\"><circle cx=\"8\" cy=\"7\" r=\"3\"/><circle cx=\"16\" cy=\"8\" r=\"2.5\"/><path d=\"M2 20c.5-3 3-5 6-5s5.5 2 6 5\"/><path d=\"M13 20c.4-2.4 2-4 4-4s3.5 1.5 3.5 4\"/></svg>"};
+function memberIconeHtml(m) {
+  const i = m && m.icone;
+  if (!i) return '<span class="mico">' + MEMBER_ICONES_TRACO['👤'] + '</span>';
+  if (MEMBER_ICONES_TRACO[i]) return '<span class="mico">' + MEMBER_ICONES_TRACO[i] + '</span>';
+  return escapeHtml(i);
+}
 function contaIconeHtml(c) {
   const i = c && c.icone;
   if (!i || i === '🏦') return '<span class="ico-i"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M10 10v8M14 10v8M19 10v8"/><path d="M3 20h18"/></svg></span>';
@@ -6990,7 +7017,7 @@ function renderConfigCounts() {
   const cm = document.getElementById('cfgMembers');
   cm.innerHTML = Object.entries(state.members).map(([key, m]) => `
     <button class="member-card" data-cfg="member" data-key="${key}" style="--member-color:${m.cor};">
-      <div class="mc-avatar">${m.icone}</div>
+      <div class="mc-avatar">${memberIconeHtml(m)}</div>
       <div class="mc-body">
         <div class="mc-name">${escapeHtml(m.nome)}${m.isolado ? '<span class="mc-iso">isolado</span>' : ''}</div>
         <div class="mc-meta">${m.cor.toUpperCase()}</div>
@@ -7204,7 +7231,7 @@ function openMemberSheet(key) {
   const m = state.members[key];
   const html = `
     <div class="member-preview" id="m_preview" style="--member-color:${m.cor};">
-      <div class="mp-circle" id="mp_circle">${m.icone}</div>
+      <div class="mp-circle" id="mp_circle">${memberIconeHtml(m)}</div>
       <div class="mp-info">
         <div class="mp-name" id="mp_name">${escapeHtml(m.nome)}</div>
         <span class="mp-tag" id="mp_tag"><span class="mp-dot"></span>cor &amp; emoji</span>
@@ -7339,7 +7366,7 @@ function openGruposSheet(catKey) {
 
     const html = `
       <div class="card-flat" style="border-left:4px solid ${member.cor};">
-        <strong>${member.icone} Grupos de ${escapeHtml(member.nome)}</strong>
+        <strong>${memberIconeHtml(member)} Grupos de ${escapeHtml(member.nome)}</strong>
         <div class="muted" style="font-size:13px;margin-top:4px;line-height:1.5;">
           Grupos são <strong>agrupadores opcionais</strong> dentro de uma subcategoria.
           Por exemplo, em <em>Tiago → Transporte</em>: grupos "Honda Civic" e "Moto GS" permitem distinguir o gasto por veículo.
@@ -7495,7 +7522,7 @@ function openSubcatsSheet(catKey) {
   function render() {
     const html = `
       <div class="card-flat">
-        <strong>${member.icone} ${escapeHtml(member.nome)}</strong>
+        <strong>${memberIconeHtml(member)} ${escapeHtml(member.nome)}</strong>
         <div class="muted" style="font-size:13px;margin-top:4px;">
           As subcategorias <strong>universais</strong> existem em todas as categorias. Você pode adicionar subcategorias <strong>exclusivas</strong> apenas para ${escapeHtml(member.nome)}.
         </div>
@@ -12483,7 +12510,7 @@ function _relSecaoTotalHtml(consolidado, cats) {
   const total = consolidado.totalGeral;
   if (total === 0) {
     return `<div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">📊</span> total consolidado</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/></svg></span> total consolidado</div>
       <div class="rel-empty"><div class="re-icon">∅</div>Nenhum gasto registrado no mês.</div>
     </div>`;
   }
@@ -12532,7 +12559,7 @@ function _relSecaoTotalHtml(consolidado, cats) {
 
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">📊</span> total consolidado</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/></svg></span> total consolidado</div>
       <div class="rel-chart-total">
         <div class="rct-col" style="height:100%;">${segInvestHtml}${segHtml}</div>
         <div class="rct-legend">${legendaHtml}${investLegenda}</div>
@@ -12586,7 +12613,7 @@ function _relSecaoCategoriasHtml(ym, cats) {
 
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">🪟</span> por categoria · subcategorias</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg></span> por categoria · subcategorias</div>
       <div class="rel-chart-cats">${colsHtml}</div>
       <div style="font-size:10.5px;color:var(--ink-mute);margin-top:8px;padding:0 4px;line-height:1.5;">
         Toque numa faixa pra ver os gastos. Faixa tracejada = previsto.
@@ -12626,7 +12653,7 @@ function _relSecaoTipoGastoHtml(ym, yms) {
   const leg = REL_TIPO_CATS.map(k => '<span><i style="background:' + relCatColor(k) + ';"></i>' + escapeHtml(nomeM(k)) + '</span>').join('');
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">🧾</span> por tipo de gasto · quem gastou</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></span> por tipo de gasto · quem gastou</div>
       <div class="rtg-leg">${leg}</div>
       <div class="rtg-list">${rows}</div>
       <div style="font-size:10.5px;color:var(--ink-mute);margin-top:8px;padding:0 4px;line-height:1.5;font-style:italic;">
@@ -12669,7 +12696,7 @@ function _relSecaoSubcatsConsolidadasHtml(ym, cats) {
 
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">📦</span> consumo · por subcategoria (top ${subcats.length})</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span> consumo · por subcategoria (top ${subcats.length})</div>
       <div class="rel-chart-subcats">${colsHtml}</div>
       <div style="font-size:10.5px;color:var(--ink-mute);margin-top:14px;padding:0 4px;line-height:1.5;">
         Cor = categoria predominante na subcategoria. Toque pra ver os gastos. Arraste pra ver mais.
@@ -12710,7 +12737,7 @@ function _relSecaoInvestSubcatsHtml(ym, cats) {
 
   return `
     <div class="rel-section">
-      <div class="rel-section-title" style="color:var(--flow-invest);"><span class="rst-icon">📈</span> investimentos · por tipo</div>
+      <div class="rel-section-title" style="color:var(--flow-invest);"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span> investimentos · por tipo</div>
       <div class="rel-chart-subcats">${colsHtml}</div>
       <div style="font-size:10.5px;color:var(--ink-mute);margin-top:14px;padding:0 4px;line-height:1.5;">
         Saem da conta e somam no total do mês, mas não contam como consumo. Agrupamento: identificação → grupo → subcategoria.
@@ -12770,7 +12797,7 @@ function _relSecaoMultiMesHtml(historico, cats, periodo) {
 
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">📈</span> evolução · ${escapeHtml(periodo.label)} (${N} meses)</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span> evolução · ${escapeHtml(periodo.label)} (${N} meses)</div>
       <div class="rel-chart-multi">
         <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
           ${bars}
@@ -12968,7 +12995,7 @@ function _relSecaoPainelMesAMesHtml(historico, cats) {
     'Coluna tracejada = media dos meses fechados; o mes em curso aparece hachurado e fica fora da media.';
 
   return '<div class="rel-section">' +
-    '<div class="rel-section-title"><span class="rst-icon">\ud83d\udcca</span> cada categoria, mes a mes</div>' +
+    '<div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/></svg></span> cada categoria, mes a mes</div>' +
     '<div class="rel-pnl-nota">' + escapeHtml(nota) + '</div>' +
     '<div class="rel-pnls">' + paineis + '</div>' +
   '</div>';
@@ -12991,7 +13018,7 @@ function _relSecaoGruposHtml(grupos) {
   if (!grupos.length) {
     return `
       <div class="rel-section">
-        <div class="rel-section-title"><span class="rst-icon">📋</span> grupos cross-cutting</div>
+        <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span> grupos cross-cutting</div>
         <div class="rel-empty" style="padding:14px;">Nenhum gasto agrupado no período.</div>
       </div>
     `;
@@ -13006,7 +13033,7 @@ function _relSecaoGruposHtml(grupos) {
   const hasCross = grupos.some(g => g.crossCutting);
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">📋</span> grupos cross-cutting</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span> grupos cross-cutting</div>
       <div class="rel-grupos">${chipsHtml}</div>
       ${hasCross ? '<div style="font-size:10.5px;color:var(--ink-mute);margin-top:10px;line-height:1.5;">✦ grupos com gastos somados em mais de uma categoria.</div>' : ''}
     </div>
@@ -13017,7 +13044,7 @@ function _relSecaoNomesHtml(topNomes) {
   if (!topNomes.length) {
     return `
       <div class="rel-section">
-        <div class="rel-section-title"><span class="rst-icon">🏷</span> top nomes</div>
+        <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg></span> top nomes</div>
         <div class="rel-empty" style="padding:14px;">Sem gastos no período.</div>
       </div>
     `;
@@ -13043,7 +13070,7 @@ function _relSecaoNomesHtml(topNomes) {
   }).join('');
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">🏷</span> top nomes</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg></span> top nomes</div>
       ${rowsHtml}
     </div>
   `;
@@ -13053,7 +13080,7 @@ function _relSecaoIdfsHtml(topIdfs) {
   if (!topIdfs.length) {
     return `
       <div class="rel-section">
-        <div class="rel-section-title"><span class="rst-icon">✦</span> top identificações</div>
+        <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M12 3l2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2z"/></svg></span> top identificações</div>
         <div class="rel-empty" style="padding:14px;">Nenhum gasto com identificação no período.</div>
       </div>
     `;
@@ -13079,7 +13106,7 @@ function _relSecaoIdfsHtml(topIdfs) {
   }).join('');
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">✦</span> top identificações</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M12 3l2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2z"/></svg></span> top identificações</div>
       ${rowsHtml}
     </div>
   `;
@@ -13231,7 +13258,7 @@ function _relSecaoCompromissosHtml(ym, cats) {
 
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">🔁</span> compromissos do mês</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M4 20v-5h5"/></svg></span> compromissos do mês</div>
       <div class="rel-compromissos">
         <div class="rcp-coluna">
           <div class="rcp-col-total">${_relFmtBR(total)}</div>
@@ -13367,7 +13394,7 @@ function _relDrillListaHtml(gastos) {
     total += v;
     if (g.pago === false) totalPrev += v; else totalPago += v;
     const tags = [];
-    if (g.isFixo) tags.push('<span class="rdr-tag">🔁 fixo</span>');
+    if (g.isFixo) tags.push('<span class="rdr-tag"><span class="mico"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M4 20v-5h5"/></svg></span> fixo</span>');
     if (g.parcela && g.parcela.total > 1) tags.push('<span class="rdr-tag">' + g.parcela.atual + '/' + g.parcela.total + '</span>');
     if (g.isFixoProjetado || g.isParcelaProjetada) tags.push('<span class="rdr-tag">proj</span>');
     if (g.pago === false && !g.isFixoProjetado && !g.isParcelaProjetada) tags.push('<span class="rdr-tag">a pagar</span>');
@@ -13810,7 +13837,7 @@ function _rel2SecaoComposicaoMesHtml(ym, cats, entradasTotal, saidasTotal) {
 
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">📊</span> composição do mês</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/></svg></span> composição do mês</div>
       <div class="rel2-composicao">
         <div class="rcomp-zero-line"></div>
 
@@ -13902,7 +13929,7 @@ function _rel2SecaoMultiMesHtml(historico, periodo) {
 
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">📊</span> evolução · ${escapeHtml(periodo.label)} (${N} meses)</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/></svg></span> evolução · ${escapeHtml(periodo.label)} (${N} meses)</div>
       <div class="rel2-chart-grouped" style="height:240px;">
         <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
           ${zeroLine}
@@ -13924,7 +13951,7 @@ function _rel2SecaoEntradasFontesHtml(fontes) {
   if (!fontes.length) {
     return `
       <div class="rel-section fluxo-entradas">
-        <div class="rel-section-title"><span class="rst-icon">💰</span> entradas · por fonte</div>
+        <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M16 7.5c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 2.5 4 2.5 4 1 4 3-1.8 3-4 3-4-1.3-4-3"/></svg></span> entradas · por fonte</div>
         <div class="rel-empty" style="padding:14px;">Nenhuma entrada no período.</div>
       </div>
     `;
@@ -13947,7 +13974,7 @@ function _rel2SecaoEntradasFontesHtml(fontes) {
   }).join('');
   return `
     <div class="rel-section fluxo-entradas">
-      <div class="rel-section-title"><span class="rst-icon">💰</span> entradas · por fonte</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M16 7.5c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 2.5 4 2.5 4 1 4 3-1.8 3-4 3-4-1.3-4-3"/></svg></span> entradas · por fonte</div>
       <div class="rel2-flow-list">${rowsHtml}</div>
     </div>
   `;
@@ -13957,7 +13984,7 @@ function _rel2SecaoSaidasCatHtml(cats) {
   if (!cats.length) {
     return `
       <div class="rel-section fluxo-saidas">
-        <div class="rel-section-title"><span class="rst-icon">📤</span> saídas · por categoria</div>
+        <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M4 5h16"/></svg></span> saídas · por categoria</div>
         <div class="rel-empty" style="padding:14px;">Nenhuma saída no período.</div>
       </div>
     `;
@@ -13980,7 +14007,7 @@ function _rel2SecaoSaidasCatHtml(cats) {
   }).join('');
   return `
     <div class="rel-section fluxo-saidas">
-      <div class="rel-section-title"><span class="rst-icon">📤</span> saídas · por categoria</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M4 5h16"/></svg></span> saídas · por categoria</div>
       <div class="rel2-flow-list">${rowsHtml}</div>
     </div>
   `;
@@ -13990,7 +14017,7 @@ function _rel2SecaoInvestHtml(subcats) {
   if (!subcats.length) {
     return `
       <div class="rel-section fluxo-invest">
-        <div class="rel-section-title"><span class="rst-icon">📈</span> investimentos · por tipo</div>
+        <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span> investimentos · por tipo</div>
         <div class="rel-empty" style="padding:14px;">Nenhum investimento no período.</div>
       </div>
     `;
@@ -14013,7 +14040,7 @@ function _rel2SecaoInvestHtml(subcats) {
   }).join('');
   return `
     <div class="rel-section fluxo-invest">
-      <div class="rel-section-title"><span class="rst-icon">📈</span> investimentos · por tipo</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span> investimentos · por tipo</div>
       <div class="rel2-flow-list">${rowsHtml}</div>
     </div>
   `;
@@ -14208,7 +14235,7 @@ function _rel2DrillGastosHtml(gastos) {
     total += v;
     const tags = [];
     if (g.isPagamentoFatura) tags.push('<span class="rdr-tag">🔄 fatura</span>');
-    if (g.isFixo) tags.push('<span class="rdr-tag">🔁 fixo</span>');
+    if (g.isFixo) tags.push('<span class="rdr-tag"><span class="mico"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M4 20v-5h5"/></svg></span> fixo</span>');
     if (g.parcela && g.parcela.total > 1) tags.push('<span class="rdr-tag">' + g.parcela.atual + '/' + g.parcela.total + '</span>');
     if (_isInvestRuntime(g)) tags.push('<span class="rdr-tag">📈 invest</span>');
     const m = state.members[g.categoria];
@@ -14455,7 +14482,7 @@ function _rel3SecaoSubcatsHtml(ym) {
   if (!subcats.length) {
     return `
       <div class="rel-section">
-        <div class="rel-section-title"><span class="rst-icon">📦</span> consumo · por subcategoria</div>
+        <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span> consumo · por subcategoria</div>
         <div class="rel-empty"><div class="re-icon">∅</div>Nenhum gasto no mês.</div>
       </div>
     `;
@@ -14482,7 +14509,7 @@ function _rel3SecaoSubcatsHtml(ym) {
   }).join('');
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">📦</span> consumo · por subcategoria (top ${subcats.length})</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span> consumo · por subcategoria (top ${subcats.length})</div>
       <div class="rel-chart-subcats">${colsHtml}</div>
       <div style="font-size:10.5px;color:var(--ink-mute);margin-top:14px;padding:0 4px;line-height:1.5;">
         Toque numa coluna pra ver os gastos. Arraste pra ver mais.
@@ -14530,7 +14557,7 @@ function _rel3SecaoMultiMesSoloHtml(historico, periodo) {
 
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">📈</span> evolução · ${escapeHtml(periodo.label)} (${N} meses)</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span> evolução · ${escapeHtml(periodo.label)} (${N} meses)</div>
       <div class="rel-chart-multi">
         <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
           ${bars}
@@ -16009,7 +16036,7 @@ function renderFamiliaContent() {
       <button class="filter ${famFilter === 'todos' ? 'active' : ''}" data-f="todos">todos · ${totalFixos + totalVar}</button>
       ${totalPend > 0 ? `<button class="filter ${famFilter === 'pendentes' ? 'active' : ''}" data-f="pendentes"><span class="ico-i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>a pagar · ${totalPend}</button>` : ''}
       <button class="filter ${famFilter === 'pagos' ? 'active' : ''}" data-f="pagos">✓ pagos · ${totalPagos}</button>
-      <button class="filter ${famFilter === 'fixos' ? 'active' : ''}" data-f="fixos">🔁 fixos · ${totalFixos}</button>
+      <button class="filter ${famFilter === 'fixos' ? 'active' : ''}" data-f="fixos"><span class="mico" style="margin-right:4px"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M4 20v-5h5"/></svg></span>fixos · ${totalFixos}</button>
       <button class="filter ${famFilter === 'variaveis' ? 'active' : ''}" data-f="variaveis">variáveis · ${totalVar}</button>
     </div>
   `;
@@ -16036,7 +16063,7 @@ function renderFamiliaContent() {
   if (gastosCat.length === 0) {
     bodyHtml = `
       <div class="cat-empty">
-        <div class="ce-emoji">${member.icone}</div>
+        <div class="ce-emoji" style="color:${member.cor}">${memberIconeHtml(member)}</div>
         <div class="ce-title">Nenhum lançamento ${famFilter === 'fixos' ? 'fixo' : famFilter === 'variaveis' ? 'variável' : ''}</div>
         <div class="ce-desc">${famFilter === 'todos' ? `Toque no botão <strong>+</strong> abaixo para lançar o primeiro gasto de ${escapeHtml(member.nome)} em ${MESES_PT[Number(famCurrentYM.split('-')[1]) - 1]}.` : 'Mude o filtro para "todos" ou adicione um novo lançamento.'}</div>
       </div>
@@ -16285,7 +16312,7 @@ function renderGastoRow(g) {
   if (g.isFixo && (g.pagamento === 'cartao' || g.pagamento === 'debito')) {
     flags.push('<span class="gr-flag auto">auto</span>');
   }
-  if (g.isFixo) flags.push('<span class="gr-flag fixo">🔁 fixo</span>');
+  if (g.isFixo) flags.push('<span class="gr-flag fixo"><span class="mico" style="margin-right:3px"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M4 20v-5h5"/></svg></span>fixo</span>');
   if (g.pagamento === 'debito') flags.push('<span class="gr-flag deb"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M13 2L5 14h6l-1 8 9-13h-6z"/></svg></span>débito</span>');
   if (g.pagamento === 'cartao' && g.cardId) {
     const c = getCardById(g.cardId);
@@ -18076,7 +18103,7 @@ function renderTiagoView() {
       <button class="filter ${tiagoFilter === 'todos' ? 'active' : ''}" data-f="todos">todos · ${totalFixos + totalVar}</button>
       ${totalPendT > 0 ? `<button class="filter ${tiagoFilter === 'pendentes' ? 'active' : ''}" data-f="pendentes"><span class="ico-i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>a pagar · ${totalPendT}</button>` : ''}
       <button class="filter ${tiagoFilter === 'pagos' ? 'active' : ''}" data-f="pagos">✓ pagos · ${totalPagosT}</button>
-      <button class="filter ${tiagoFilter === 'fixos' ? 'active' : ''}" data-f="fixos">🔁 fixos · ${totalFixos}</button>
+      <button class="filter ${tiagoFilter === 'fixos' ? 'active' : ''}" data-f="fixos"><span class="mico" style="margin-right:4px"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M4 20v-5h5"/></svg></span>fixos · ${totalFixos}</button>
       <button class="filter ${tiagoFilter === 'variaveis' ? 'active' : ''}" data-f="variaveis">variáveis · ${totalVar}</button>
     </div>
   `;
@@ -18102,7 +18129,7 @@ function renderTiagoView() {
   if (gastosTiago.length === 0) {
     bodyHtml = `
       <div class="cat-empty">
-        <div class="ce-emoji">${member.icone}</div>
+        <div class="ce-emoji" style="color:${member.cor}">${memberIconeHtml(member)}</div>
         <div class="ce-title">Nenhum lançamento ${tiagoFilter === 'fixos' ? 'fixo' : tiagoFilter === 'variaveis' ? 'variável' : ''}</div>
         <div class="ce-desc">${tiagoFilter === 'todos' ? `Toque no botão <strong>+</strong> abaixo para lançar seu primeiro gasto em ${MESES_PT[Number(tiagoCurrentYM.split('-')[1]) - 1]}.` : 'Mude o filtro para "todos" ou adicione um novo lançamento.'}</div>
       </div>
@@ -18447,7 +18474,7 @@ function renderCartoesDetail(cartaoId) {
           const parcLabel = (g.parcela && g.parcela.total > 1) ? ` · ${g.parcela.atual}/${g.parcela.total}` : '';
           return `
             <div class="statement-row" data-edit-gasto="${g.id}" style="cursor:pointer;">
-              <div class="sr-ico" style="background:${member ? `color-mix(in srgb, ${member.cor} 14%, var(--bg-elevated))` : 'var(--bg-sunken)'};color:${member ? member.cor : 'var(--ink-mute)'};">${member ? member.icone : '?'}</div>
+              <div class="sr-ico" style="background:${member ? `color-mix(in srgb, ${member.cor} 14%, var(--bg-elevated))` : 'var(--bg-sunken)'};color:${member ? member.cor : 'var(--ink-mute)'};">${member ? memberIconeHtml(member) : '?'}</div>
               <div class="sr-body">
                 <div class="sr-title">${escapeHtml(g.nome || g.subcategoria)}</div>
                 <div class="sr-meta">${dd}/${mm} · ${escapeHtml(member ? member.nome : '?')} · ${escapeHtml(g.subcategoria)}${parcLabel}</div>
@@ -20202,7 +20229,7 @@ function renderRevisaoItem(l) {
   if (l.aliasAplicado) tags.push('<span class="ri-tag auto">auto</span>');
   if (isAttr) {
     const member = state.members[l.atribuido.categoria];
-    tags.push(`<span class="ri-tag atribuido">${member ? escapeHtml(member.icone + ' ' + member.nome) : '?'} · ${escapeHtml(l.atribuido.subcategoria || '?')}</span>`);
+    tags.push(`<span class="ri-tag atribuido">${member ? memberIconeHtml(member) + ' ' + escapeHtml(member.nome) : '?'} · ${escapeHtml(l.atribuido.subcategoria || '?')}</span>`);
     if (l.atribuido.identificacao) {
       tags.push(`<span class="ri-tag ident" style="background:color-mix(in srgb,var(--ink) 6%,white);color:var(--ink-soft);font-style:italic;">${escapeHtml(l.atribuido.identificacao)}</span>`);
     }
@@ -20263,7 +20290,7 @@ function openItemAtribuicaoIndividual(itemId) {
             const m = state.members[k];
             const sel = k === st_cat;
             const styleSel = sel ? `background:${m.cor};border-color:${m.cor};color:#fff;` : '';
-            return `<button type="button" class="chip ${sel ? 'selected' : ''}" data-icat="${k}" style="${styleSel}">${m.icone} ${escapeHtml(m.nome)}</button>`;
+            return `<button type="button" class="chip ${sel ? 'selected' : ''}" data-icat="${k}" style="${styleSel}">${memberIconeHtml(m)} ${escapeHtml(m.nome)}</button>`;
           }).join('')}
         </div>
       </div>
@@ -20488,7 +20515,7 @@ function openBulkAtribuicaoSheet(callback, prefill) {
           const m = state.members[k];
           const sel = k === st_cat;
           const styleSel = sel ? `background:${m.cor};border-color:${m.cor};color:#fff;` : '';
-          return `<button type="button" class="chip ${sel ? 'selected' : ''}" data-bcat="${k}" style="${styleSel}">${m.icone} ${escapeHtml(m.nome)}</button>`;
+          return `<button type="button" class="chip ${sel ? 'selected' : ''}" data-bcat="${k}" style="${styleSel}">${memberIconeHtml(m)} ${escapeHtml(m.nome)}</button>`;
         }).join('')}
       </div>
 
