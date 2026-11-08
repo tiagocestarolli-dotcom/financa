@@ -994,7 +994,6 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   padding: 14px 16px 14px 18px;
   background: var(--bg-elevated);
   border: 1px solid var(--line);
-  border-left: 6px solid var(--member-color, var(--ink));
   border-radius: var(--r);
   width: 100%;
   text-align: left;
@@ -1194,7 +1193,6 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
   gap: 14px;
   background: var(--bg-elevated);
   border: 1px solid var(--line);
-  border-left: 6px solid var(--conta-color, var(--ink));
   border-radius: var(--r);
   padding: 14px 16px;
   margin-bottom: 8px;
@@ -1207,13 +1205,16 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 .conta-card:active { background: var(--bg-sunken); }
 .conta-card .cc-ico {
   width: 42px; height: 42px;
-  border-radius: 50%;
-  background: var(--conta-color, var(--ink));
-  color: #fff;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--conta-color, var(--ink)) 16%, var(--bg-elevated));
+  color: var(--conta-color, var(--ink));
   display: flex; align-items: center; justify-content: center;
   font-size: 18px;
   flex: 0 0 auto;
 }
+.conta-card .cc-ico .ico-i, .chd-name .ico-i { margin-right: 0; width: 20px; height: 20px; }
+.chd-name .ico-i { margin-right: 8px; vertical-align: -3px; }
+.btn .ai .ico-i { margin-right: 0; }
 .conta-card .cc-body { flex: 1; min-width: 0; }
 .conta-card .cc-name {
   font-family: var(--font-display);
@@ -1338,10 +1339,9 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
 /* Hero de uma conta específica (drill-down) */
 .conta-hero-detail {
   background: linear-gradient(135deg,
-    color-mix(in srgb, var(--conta-color) 14%, white),
-    color-mix(in srgb, var(--conta-color) 4%, white));
+    color-mix(in srgb, var(--conta-color) 16%, var(--bg-elevated)),
+    color-mix(in srgb, var(--conta-color) 4%, var(--bg-elevated)));
   border: 1px solid color-mix(in srgb, var(--conta-color) 22%, var(--line));
-  border-left: 6px solid var(--conta-color);
   border-radius: var(--r-lg);
   padding: 18px;
   margin-bottom: 14px;
@@ -1584,7 +1584,6 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
     color-mix(in srgb, var(--member-color, var(--ink)) 12%, white),
     color-mix(in srgb, var(--member-color, var(--ink)) 4%, white));
   border-color: color-mix(in srgb, var(--member-color, var(--ink)) 20%, var(--line));
-  border-left: 6px solid var(--member-color, var(--ink));
 }
 
 /* ============== FAMÍLIA — Module 3 ============== */
@@ -1663,7 +1662,6 @@ html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; back
     color-mix(in srgb, var(--member-color) 16%, white),
     color-mix(in srgb, var(--member-color) 6%, white));
   border: 1px solid color-mix(in srgb, var(--member-color) 22%, var(--line));
-  border-left: 6px solid var(--member-color);
   border-radius: var(--r-lg);
   padding: 18px 18px 16px;
   margin-bottom: 14px;
@@ -5382,7 +5380,7 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.62.0 · Novo visual (fatia 3): Entradas e Meus Gastos na identidade nova — fim do itálico falso (Marcellus), ícones de traço no lugar de emoji nos botões e filtros, tela de login em navy, cabeçalhos sem "módulo · 0X" · cores fixas trocadas por variáveis para o tema escuro</div>
+  Finança · v0.63.0 · Novo visual (fatia 4): Cartões e Contas — heróis de cartão/conta legíveis no tema escuro, fim das bordas coloridas à esquerda, ícones de traço (banco, cartão, PDF, editar, ajustar saldo, importar, débito automático) no lugar de emoji</div>
 
   </section>
 
@@ -6467,6 +6465,11 @@ const TEMAS = {
   padrao: { label: 'Padrão', sub: 'fundo claro, cartões brancos', meta: '#0b1a30' },
   escuro: { label: 'Escuro', sub: 'navy inteiro', meta: '#071226' }
 };
+function contaIconeHtml(c) {
+  const i = c && c.icone;
+  if (!i || i === '🏦') return '<span class="ico-i"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M10 10v8M14 10v8M19 10v8"/><path d="M3 20h18"/></svg></span>';
+  return escapeHtml(i);
+}
 function temaAtual() {
   const t = state && state.uiPrefs && state.uiPrefs.tema;
   return TEMAS[t] ? t : 'padrao';
@@ -7140,7 +7143,7 @@ function openGruposSheet(catKey) {
             const fixos = usoFixo[g.id] || 0;
             return `
               <li class="list-row">
-                <div class="lr-leading" style="background:color-mix(in srgb,${member.cor} 14%, white);color:${member.cor};">▤</div>
+                <div class="lr-leading" style="background:color-mix(in srgb,${member.cor} 14%, var(--bg-elevated));color:${member.cor};">▤</div>
                 <div class="lr-body">
                   <div class="lr-title">${escapeHtml(g.nome)}</div>
                   <div class="lr-sub">${uso} ${uso === 1 ? 'lançamento' : 'lançamentos'}${fixos > 0 ? ` · ${fixos} fixo(s)` : ''}</div>
@@ -7453,7 +7456,7 @@ function openCardsSheet() {
         </div>
       </div>
       <ul class="list" style="margin-top:6px;">
-        ${state.cards.length === 0 ? '<div class="empty" style="padding:24px;"><div class="icon-big">💳</div>Nenhum cartão cadastrado</div>' : state.cards.map(c => {
+        ${state.cards.length === 0 ? '<div class="empty" style="padding:24px;"><div class="icon-big" style="color:var(--gold)"><span class="ico-i" style="width:40px;height:40px;margin:0"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M7 15h3"/></svg></span></div>Nenhum cartão cadastrado</div>' : state.cards.map(c => {
           const banco = getBancoEmissor(c.bancoEmissor);
           const conta = c.contaPagamentoId ? getContaById(c.contaPagamentoId) : null;
           return `
@@ -7550,7 +7553,7 @@ function openCardForm(id) {
         <div class="chip-row" id="c_conta">
           ${contasAtivas.length === 0
             ? '<div class="muted" style="font-size:13px;padding:6px 0;">Nenhuma conta ativa. Cadastre em Contas primeiro.</div>'
-            : contasAtivas.map(co => `<button type="button" class="chip ${co.id === c.contaPagamentoId ? 'selected' : ''}" data-conta="${co.id}" style="${co.id === c.contaPagamentoId ? `background:${co.cor};border-color:${co.cor};color:#fff;` : ''}">${co.icone || '🏦'} ${escapeHtml(co.nome)}</button>`).join('')
+            : contasAtivas.map(co => `<button type="button" class="chip ${co.id === c.contaPagamentoId ? 'selected' : ''}" data-conta="${co.id}" style="${co.id === c.contaPagamentoId ? `background:${co.cor};border-color:${co.cor};color:#fff;` : ''}">${contaIconeHtml(co)} ${escapeHtml(co.nome)}</button>`).join('')
           }
         </div>
       </div>
@@ -7568,7 +7571,7 @@ function openCardForm(id) {
 
       <div class="row-toggle">
         <div class="rt-body">
-          <div class="rt-title">⚡ Débito automático</div>
+          <div class="rt-title"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M13 2L5 14h6l-1 8 9-13h-6z"/></svg></span>Débito automático</div>
           <div class="rt-sub">A fatura é debitada automaticamente da conta no vencimento</div>
         </div>
         <label class="switch">
@@ -8872,7 +8875,7 @@ function renderCompromissosSheet() {
   /* Selo de status forte (substitui o círculo ✓/○) */
   const badge = (g) => {
     if (g.pago) return '<span class="cm-badge pago">pago ✓</span>';
-    if (g.pagamento === 'cartao' || g.pagamento === 'debito') return '<span class="cm-badge auto">⚡ auto</span>';
+    if (g.pagamento === 'cartao' || g.pagamento === 'debito') return '<span class="cm-badge auto"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M13 2L5 14h6l-1 8 9-13h-6z"/></svg></span>auto</span>';
     return '<span class="cm-badge apagar">a pagar</span>';
   };
 
@@ -8924,7 +8927,7 @@ function renderCompromissosSheet() {
     const [, vmm, vdd] = venc.split('-');
     let bcls, blabel;
     if (pag) { bcls = 'pago'; blabel = 'paga ✓'; }
-    else if (card.debitoAutomatico) { bcls = 'auto'; blabel = '⚡ auto'; }
+    else if (card.debitoAutomatico) { bcls = 'auto'; blabel = '<span class="ico-i"><svg viewBox="0 0 24 24"><path d="M13 2L5 14h6l-1 8 9-13h-6z"/></svg></span>auto'; }
     else { bcls = 'apagar'; blabel = 'a pagar'; }
     const valorMostrar = pag ? (Number(pag.valor) || total) : total;
     const act = pag
@@ -16071,7 +16074,7 @@ function renderGastoRow(g) {
     flags.push('<span class="gr-flag auto">auto</span>');
   }
   if (g.isFixo) flags.push('<span class="gr-flag fixo">🔁 fixo</span>');
-  if (g.pagamento === 'debito') flags.push('<span class="gr-flag deb">⚡ débito</span>');
+  if (g.pagamento === 'debito') flags.push('<span class="gr-flag deb"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M13 2L5 14h6l-1 8 9-13h-6z"/></svg></span>débito</span>');
   if (g.pagamento === 'cartao' && g.cardId) {
     const c = getCardById(g.cardId);
     if (c) {
@@ -16159,7 +16162,7 @@ function openGastoForm(id, defaultCategoria, opts) {
     const eraElegivel = editing.parentFixoId && editing.pagamento === 'manual';
     if (editing.pago === false) {
       return `
-        <div class="card-flat" style="background:color-mix(in srgb,#C28846 12%,white);border:1px solid color-mix(in srgb,#C28846 26%,transparent);">
+        <div class="card-flat" style="background:color-mix(in srgb,#C28846 12%,var(--bg-elevated));border:1px solid color-mix(in srgb,#C28846 26%,transparent);">
           <strong style="color:var(--gold-ink);">Ainda não foi pago</strong>
           <div class="muted" style="font-size:13px;margin-top:4px;line-height:1.5;">
             Enquanto não for marcado como pago, este lançamento não debita o saldo bancário.
@@ -16993,7 +16996,7 @@ function abrirDialogoCheckin(gasto, opts = {}) {
     const chipsHtml = contasAtivas.map(c => {
       const sel = c.id === selectedConta;
       const styleSel = sel ? `background:${c.cor};border-color:${c.cor};color:#fff;` : '';
-      return `<button type="button" class="chip ${sel ? 'selected' : ''}" data-conta="${c.id}" style="${styleSel}">${c.icone || '🏦'} ${escapeHtml(c.nome)}</button>`;
+      return `<button type="button" class="chip ${sel ? 'selected' : ''}" data-conta="${c.id}" style="${styleSel}">${contaIconeHtml(c)} ${escapeHtml(c.nome)}</button>`;
     }).join('');
     overlay.innerHTML = `
       <div style="background:var(--bg);border-radius:var(--r-lg);padding:22px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;">
@@ -17169,7 +17172,7 @@ function renderContasHome() {
       const saldo = calcSaldoConta(c.id);
       return `
         <button class="conta-card" data-conta="${c.id}" style="--conta-color:${c.cor};">
-          <div class="cc-ico">${c.icone || '🏦'}</div>
+          <div class="cc-ico">${contaIconeHtml(c)}</div>
           <div class="cc-body">
             <div class="cc-name">
               ${escapeHtml(c.nome)}
@@ -17191,7 +17194,7 @@ function renderContasHome() {
         </div>
         ${arq.map(c => `
           <button class="conta-card" data-conta="${c.id}" style="--conta-color:${c.cor};opacity:.55;">
-            <div class="cc-ico">${c.icone || '🏦'}</div>
+            <div class="cc-ico">${contaIconeHtml(c)}</div>
             <div class="cc-body">
               <div class="cc-name">${escapeHtml(c.nome)}</div>
               <div class="cc-saldo">arquivada</div>
@@ -17308,15 +17311,15 @@ function renderContasDetail(contaId) {
     <button class="btn btn-secondary" id="btnVoltarContas" style="width:auto;padding:8px 14px;font-size:13px;margin-bottom:12px;">‹ voltar</button>
 
     <div class="conta-hero-detail" style="--conta-color:${conta.cor};">
-      <div class="chd-name">${conta.icone || '🏦'} ${escapeHtml(conta.nome)}${conta.principal ? ' <span class="cc-principal" style="color:var(--conta-color);background:color-mix(in srgb,var(--conta-color) 14%,transparent);font-size:9.5px;vertical-align:middle;">principal</span>' : ''}</div>
+      <div class="chd-name">${contaIconeHtml(conta)}${escapeHtml(conta.nome)}${conta.principal ? ' <span class="cc-principal" style="color:var(--conta-color);background:color-mix(in srgb,var(--conta-color) 14%,transparent);font-size:9.5px;vertical-align:middle;">principal</span>' : ''}</div>
       <div class="chd-saldo ${saldo < 0 ? 'negative' : ''}" id="chdSaldo">${redactedHtml(saldo, reveal)}</div>
       <div style="font-size:11px;color:var(--ink-mute);font-style:italic;margin-top:4px;font-family:var(--font-display);">${reveal ? 'tocar para ocultar' : 'tocar para mostrar'}</div>
     </div>
 
     <div class="contas-actions">
-      <button class="btn" id="btnAjustarSaldo"><span class="ai">⚖</span> Ajustar saldo</button>
-      <button class="btn" id="btnEditarConta"><span class="ai">✎</span> Editar conta</button>
-      <button class="btn" id="btnImportarExtrato"><span class="ai">📥</span> Importar extrato</button>
+      <button class="btn" id="btnAjustarSaldo"><span class="ai"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M3 15l2-8 2 8a3 3 0 0 1-4 0z"/><path d="M17 15l2-8 2 8a3 3 0 0 1-4 0z"/></svg></span></span> Ajustar saldo</button>
+      <button class="btn" id="btnEditarConta"><span class="ai"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M13 7l3 3"/></svg></span></span> Editar conta</button>
+      <button class="btn" id="btnImportarExtrato"><span class="ai"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg></span></span> Importar extrato</button>
     </div>
 
     <div class="contas-section-h">
@@ -18105,7 +18108,7 @@ function renderCartoesHome() {
       ].filter(Boolean).join(' · ');
       return `
         <button class="conta-card" data-cartao="${c.id}" style="--conta-color:${c.cor};">
-          <div class="cc-ico" style="font-size:11px;font-weight:600;letter-spacing:0.04em;">${escapeHtml((c.bandeira || '').slice(0,2).toUpperCase())}</div>
+          <div class="cc-ico"><span class="ico-i"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M7 15h3"/></svg></span></div>
           <div class="cc-body">
             <div class="cc-name">${escapeHtml(c.nome)}</div>
             <div class="cc-saldo">${redactedHtml(fatura, reveal)}</div>
@@ -18170,21 +18173,21 @@ function renderCartoesDetail(cartaoId) {
 
     <div class="conta-hero-detail" style="--conta-color:${c.cor};">
       <div class="chd-name">
-        <span style="display:inline-flex;width:38px;height:38px;border-radius:8px;background:${c.cor};color:#fff;align-items:center;justify-content:center;font-size:11px;font-weight:600;letter-spacing:0.04em;margin-right:10px;vertical-align:middle;">${escapeHtml((c.bandeira || '').slice(0,2).toUpperCase())}</span>
+        <span style="display:inline-flex;width:38px;height:38px;border-radius:12px;background:color-mix(in srgb, ${c.cor} 18%, var(--bg-elevated));color:${c.cor};border:1px solid color-mix(in srgb, ${c.cor} 30%, transparent);align-items:center;justify-content:center;font-size:11px;font-weight:600;letter-spacing:0.04em;margin-right:10px;vertical-align:middle;"><span class="ico-i" style="margin:0;width:20px;height:20px"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M7 15h3"/></svg></span></span>
         ${escapeHtml(c.nome)}
       </div>
       <div class="chd-saldo" id="chdSaldoCartao">${redactedHtml(fatura, reveal)}</div>
       <div style="font-size:12px;color:var(--ink-mute);margin-top:4px;font-style:italic;font-family:var(--font-display);">lançamentos em ${mesLabel}${reveal ? '' : ' · tocar para ver'}</div>
       <div style="font-size:12px;color:var(--ink-mute);margin-top:10px;font-family:var(--font-body);position:relative;z-index:1;">
-        ${escapeHtml(banco.nome)} · ${escapeHtml(c.bandeira)} · venc dia ${c.vencimento}${conta ? ' · paga via ' + escapeHtml(conta.nome) : ''}${c.debitoAutomatico ? ' · ⚡ débito automático' : ''}
+        ${escapeHtml(banco.nome)} · ${escapeHtml(c.bandeira)} · venc dia ${c.vencimento}${conta ? ' · paga via ' + escapeHtml(conta.nome) : ''}${c.debitoAutomatico ? ' · débito automático' : ''}
       </div>
     </div>
 
     <div class="contas-actions">
       <button class="btn" id="btnImportarFatura">
-        <span class="ai">📄</span> Importar PDF
+        <span class="ai"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/><path d="M9 13h6M9 17h6"/></svg></span></span> Importar PDF
       </button>
-      <button class="btn" id="btnEditarCartao"><span class="ai">✎</span> Editar cartão</button>
+      <button class="btn" id="btnEditarCartao"><span class="ai"><span class="ico-i"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M13 7l3 3"/></svg></span></span> Editar cartão</button>
     </div>
 
     ${(() => {
@@ -18212,7 +18215,7 @@ function renderCartoesDetail(cartaoId) {
             <div class="fs-ico">○</div>
             <div class="fs-body">
               <div class="fs-title">Fatura pendente</div>
-              <div class="fs-meta">venc ${vencBR}${conta ? ' · paga via ' + escapeHtml(conta.nome) : ''}${c.debitoAutomatico ? ' · ⚡ automático' : ''}</div>
+              <div class="fs-meta">venc ${vencBR}${conta ? ' · paga via ' + escapeHtml(conta.nome) : ''}${c.debitoAutomatico ? ' · automático' : ''}</div>
             </div>
             <button class="tiny-btn primary" id="btnMarcarPagFatura">marcar paga</button>
           </div>
@@ -18232,7 +18235,7 @@ function renderCartoesDetail(cartaoId) {
           const parcLabel = (g.parcela && g.parcela.total > 1) ? ` · ${g.parcela.atual}/${g.parcela.total}` : '';
           return `
             <div class="statement-row" data-edit-gasto="${g.id}" style="cursor:pointer;">
-              <div class="sr-ico" style="background:${member ? `color-mix(in srgb, ${member.cor} 14%, white)` : 'var(--bg-sunken)'};color:${member ? member.cor : 'var(--ink-mute)'};">${member ? member.icone : '?'}</div>
+              <div class="sr-ico" style="background:${member ? `color-mix(in srgb, ${member.cor} 14%, var(--bg-elevated))` : 'var(--bg-sunken)'};color:${member ? member.cor : 'var(--ink-mute)'};">${member ? member.icone : '?'}</div>
               <div class="sr-body">
                 <div class="sr-title">${escapeHtml(g.nome || g.subcategoria)}</div>
                 <div class="sr-meta">${dd}/${mm} · ${escapeHtml(member ? member.nome : '?')} · ${escapeHtml(g.subcategoria)}${parcLabel}</div>
@@ -21725,7 +21728,7 @@ function _rexRefresh() {
     <div class="rex-summary">
       <div class="rex-sum-line">
         <span class="rex-sum-label">Conta</span>
-        <span class="rex-sum-meta" style="color:${conta.cor || 'inherit'};">${conta.icone || '🏦'} ${escapeHtml(conta.nome || '')}${mp && mp.dataInicio ? ' · ' + _fmtDataBR(mp.dataInicio) + ' → ' + _fmtDataBR(mp.dataFim) : ''}</span>
+        <span class="rex-sum-meta" style="color:${conta.cor || 'inherit'};">${contaIconeHtml(conta)} ${escapeHtml(conta.nome || '')}${mp && mp.dataInicio ? ' · ' + _fmtDataBR(mp.dataInicio) + ' → ' + _fmtDataBR(mp.dataFim) : ''}</span>
       </div>
       <div class="rex-sum-line">
         <span class="rex-sum-label">Na fila</span>
