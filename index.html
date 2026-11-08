@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Finança">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="application-name" content="Finança">
-<meta name="theme-color" content="#FAFAF5">
+<meta name="theme-color" content="#0b1a30" id="metaThemeColor">
 <meta name="format-detection" content="telephone=no">
 <meta name="description" content="Gestão financeira pessoal e familiar — Finança">
 
@@ -32,7 +32,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
 <!-- Bibliotecas via CDN (carregadas para módulos futuros) -->
 
@@ -98,27 +98,45 @@
    ======================================================================== */
 
 :root {
-  /* Cores fundamentais */
-  --bg: #FAFAF5;
+  /* v0.60.0 — identidade azul (paleta do relatório CLINAS) */
+  --navy-900: #071226;
+  --navy-800: #0b1a30;
+  --navy-700: #14284a;
+  --navy-600: #1a2f52;
+  --navy-card: #11243f;
+  --cream: #f1e7d6;
+  --gold: #d9b06a;
+  --coral: #e48c77;
+  --mint: #6cc59d;
+  --blue: #4f8df7;
+
+  /* Cores fundamentais — tema padrão (fundo claro, cartões brancos) */
+  --bg: #eef2f8;
   --bg-elevated: #FFFFFF;
-  --bg-sunken: #F2F0E9;
-  --bg-overlay: rgba(20, 18, 14, 0.45);
+  --bg-sunken: #e3e9f3;
+  --bg-overlay: rgba(7, 18, 38, 0.55);
 
-  --ink: #14120E;
-  --ink-soft: #3D3A33;
-  --ink-mute: #807A6E;
-  --ink-faint: #B5AEA0;
+  --ink: #0b1a30;
+  --ink-soft: #22395c;
+  --ink-mute: #5b6b85;
+  --ink-faint: #9eabc0;
 
-  --line: #E5E1D5;
-  --line-strong: #D2CCBC;
+  --line: #d5deeb;
+  --line-strong: #bfcbdd;
 
   /* Fluxos financeiros */
-  --flow-in: #2D5F3F;          /* verde moss — entradas */
-  --flow-in-soft: #E4ECDF;
-  --flow-out: #A8462C;         /* terracota — consumo */
-  --flow-out-soft: #F2DBD0;
-  --flow-invest: #1E3A5F;      /* navy — investimento */
-  --flow-invest-soft: #DBE2EC;
+  --flow-in: #1f8f60;          /* verde — entradas */
+  --flow-in-soft: #dff2e8;
+  --flow-out: #c2543d;         /* coral — consumo */
+  --flow-out-soft: #f6e1dc;
+  --flow-invest: #2e6ee0;      /* azul — investimento */
+  --flow-invest-soft: #dde8fb;
+
+  /* Cabeçalho e barra inferior são sempre navy */
+  --chrome-bg: linear-gradient(180deg, #0b1a30 0%, #14284a 100%);
+  --chrome-ink: #f1e7d6;
+  --chrome-mute: #9eabc0;
+  --chrome-line: rgba(159, 181, 224, 0.18);
 
   /* Cores de membros (defaults — editáveis em Configurações) */
   --member-casa:    #6B5544;
@@ -128,18 +146,18 @@
   --member-tiago:   #4A6741;
 
   /* Tipografia */
-  --font-display: 'Fraunces', 'Times New Roman', serif;
-  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Marcellus', 'Times New Roman', serif;
+  --font-body: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
 
   /* Espaços, raios, sombras */
-  --r-sm: 8px;
-  --r: 14px;
-  --r-lg: 20px;
+  --r-sm: 10px;
+  --r: 18px;
+  --r-lg: 22px;
   --r-xl: 28px;
-  --shadow-sm: 0 1px 2px rgba(20, 18, 14, 0.04);
-  --shadow: 0 2px 12px rgba(20, 18, 14, 0.06), 0 1px 3px rgba(20, 18, 14, 0.04);
-  --shadow-lg: 0 8px 32px rgba(20, 18, 14, 0.10), 0 2px 8px rgba(20, 18, 14, 0.05);
+  --shadow-sm: 0 2px 8px rgba(11, 26, 48, 0.05);
+  --shadow: 0 8px 24px rgba(11, 26, 48, 0.08), 0 1px 3px rgba(11, 26, 48, 0.04);
+  --shadow-lg: 0 12px 32px rgba(11, 26, 48, 0.14), 0 2px 8px rgba(11, 26, 48, 0.06);
 
   /* Safe areas iOS */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -148,6 +166,31 @@
   /* Layout */
   --nav-h: 68px;
 }
+
+/* v0.60.0 — modo escuro: navy inteiro (Config › Aparência) */
+html[data-theme="escuro"] {
+  --bg: #0b1a30;
+  --bg-elevated: #11243f;
+  --bg-sunken: #0f2139;
+  --bg-overlay: rgba(3, 10, 24, 0.7);
+  --ink: #f1e7d6;
+  --ink-soft: #c9d3e6;
+  --ink-mute: #9eabc0;
+  --ink-faint: #5b6b85;
+  --line: rgba(159, 181, 224, 0.14);
+  --line-strong: rgba(159, 181, 224, 0.28);
+  --flow-in: #6cc59d;
+  --flow-in-soft: rgba(108, 197, 157, 0.16);
+  --flow-out: #e48c77;
+  --flow-out-soft: rgba(228, 140, 119, 0.16);
+  --flow-invest: #4f8df7;
+  --flow-invest-soft: rgba(79, 141, 247, 0.16);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --chrome-bg: #071226;
+}
+html[data-theme="escuro"] body { background: linear-gradient(180deg, #071226 0%, #0b1a30 38%, #0f2139 100%) fixed; }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -423,29 +466,35 @@ label {
 
 .app-header {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
-  padding: 18px 20px 10px;
+  padding: 16px 20px 16px;
   gap: 12px;
+  background: var(--chrome-bg);
+  color: var(--chrome-ink);
+  border-radius: 0 0 28px 28px;
+  margin-bottom: 8px;
 }
+html[data-theme="escuro"] .app-header { border-radius: 0; margin-bottom: 0; background: transparent; }
 
 .app-header .eyebrow {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 13px;
-  color: var(--ink-mute);
-  letter-spacing: 0.02em;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--chrome-mute);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .app-header h1 {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 28px;
-  letter-spacing: -0.02em;
+  font-size: 26px;
+  letter-spacing: 0.01em;
   line-height: 1.1;
-  color: var(--ink);
+  color: var(--chrome-ink);
 }
+.app-header .icon-btn { background: rgba(159,181,224,0.1); border-color: var(--chrome-line); color: var(--chrome-ink); }
 
 .app-header .h-actions {
   display: flex;
@@ -714,10 +763,10 @@ label {
   bottom: 0; left: 0; right: 0;
   height: calc(var(--nav-h) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: rgba(250, 250, 245, 0.85);
-  backdrop-filter: saturate(1.6) blur(20px);
-  -webkit-backdrop-filter: saturate(1.6) blur(20px);
-  border-top: 1px solid var(--line);
+  background: rgba(7, 18, 38, 0.92);
+  backdrop-filter: saturate(1.4) blur(20px);
+  -webkit-backdrop-filter: saturate(1.4) blur(20px);
+  border-top: 1px solid var(--chrome-line);
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   z-index: 50;
@@ -731,7 +780,7 @@ label {
   gap: 2px;
   font-size: 9.5px;
   font-weight: 500;
-  color: var(--ink-mute);
+  color: var(--chrome-mute);
   transition: color .15s;
   padding: 4px 1px;
   letter-spacing: -0.01em;
@@ -742,7 +791,7 @@ label {
   display: flex; align-items: center; justify-content: center;
 }
 
-.nav-item.active { color: var(--ink); }
+.nav-item.active { color: var(--chrome-ink); }
 .nav-item.active .ico svg { stroke-width: 2; }
 .nav-item:active { opacity: 0.6; }
 
@@ -897,12 +946,11 @@ label {
 
 /* Cabeçalho de seção em config */
 .section-title {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 13px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 11.5px;
   color: var(--ink-mute);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   padding: 18px 4px 8px;
 }
@@ -2602,12 +2650,12 @@ label {
   bottom: calc(var(--nav-h) + var(--safe-bottom) + 18px);
   width: 56px; height: 56px;
   border-radius: 50%;
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--gold);
+  color: var(--navy-900);
   display: flex; align-items: center; justify-content: center;
   font-size: 28px;
-  font-weight: 300;
-  box-shadow: 0 8px 24px rgba(20,18,14,0.22), 0 2px 6px rgba(20,18,14,0.12);
+  font-weight: 400;
+  box-shadow: 0 10px 30px rgba(217,176,106,0.35), 0 2px 6px rgba(7,18,38,0.2);
   z-index: 40;
   transition: transform .14s, box-shadow .14s;
 }
@@ -4824,6 +4872,74 @@ label {
   }
 }
 
+
+/* ============== v0.60.0 — INÍCIO (dashboard por tipo de gasto) ============== */
+.ini {
+  margin: -4px -20px 18px;
+  padding: 22px 16px 20px;
+  background: var(--navy-600);
+  color: var(--cream);
+  border-radius: 0 0 32px 32px;
+  position: relative;
+  overflow: hidden;
+}
+html[data-theme="escuro"] .ini { background: transparent; border-radius: 0; padding-top: 10px; }
+.ini-hero { text-align: center; padding: 6px 4px 0; animation: iniRise .6s ease both; }
+.ini-eyebrow { font-size: 11.5px; letter-spacing: .18em; text-transform: uppercase; color: #9eabc0; font-weight: 600; }
+.ini-total { font-family: var(--font-display); font-size: 46px; line-height: 1.05; margin-top: 8px; letter-spacing: -.01em; }
+.ini-total.hidden-val { letter-spacing: .1em; }
+.ini-vs { margin-top: 8px; font-size: 12.5px; color: #9eabc0; display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ini-vs b { font-weight: 600; }
+.ini-vs .ok { color: var(--mint); } .ini-vs .alerta { color: var(--coral); }
+.ini-spark { display: block; width: 100%; height: 72px; margin-top: 10px; }
+.ini-status {
+  margin-top: 12px; background: rgba(241,231,214,.07); border: 1px solid rgba(241,231,214,.14);
+  border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 14px;
+  animation: iniRise .6s ease .08s both;
+}
+.ini-status .txt { font-size: 13px; line-height: 1.45; color: #c9d3e6; }
+.ini-status .txt b { color: var(--cream); font-weight: 600; }
+.ini-sec { display: flex; align-items: baseline; justify-content: space-between; padding: 22px 4px 10px; }
+.ini-sec h3 { font-family: var(--font-display); font-weight: 400; font-size: 19px; color: var(--cream); margin: 0; }
+.ini-sec button { font-size: 12.5px; font-weight: 600; color: #9eb8e8; background: none; border: 0; font-family: var(--font-body); }
+.ini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ini-card {
+  background: var(--bg-elevated); color: var(--ink); border-radius: 22px; padding: 14px 14px 14px;
+  display: flex; flex-direction: column; gap: 10px; text-align: left; border: 1px solid var(--line);
+  box-shadow: 0 12px 32px rgba(3,10,24,.28); font-family: var(--font-body); width: 100%;
+  animation: iniRise .6s ease both;
+}
+html[data-theme="escuro"] .ini-card { box-shadow: none; }
+.ini-card:active { transform: scale(.985); }
+.ini-ring { position: relative; width: 52px; height: 52px; }
+.ini-ring svg { width: 52px; height: 52px; display: block; }
+.ini-ring .ico { position: absolute; left: 16px; top: 16px; width: 20px; height: 20px; }
+.ini-ring .ico svg { width: 20px; height: 20px; stroke-width: 1.9; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.ini-ring circle.track { fill: none; stroke-width: 7; opacity: .16; }
+.ini-ring circle.val { fill: none; stroke-width: 7; stroke-linecap: round; stroke-dasharray: 226; animation: iniRing 1.1s cubic-bezier(.2,.7,.2,1) both; }
+.ini-card .nome { font-size: 14.5px; font-weight: 600; }
+.ini-card .val { font-size: 18px; font-weight: 700; letter-spacing: -.02em; }
+.ini-card .sub { font-size: 11.5px; color: var(--ink-mute); margin-top: 2px; }
+.ini-quem {
+  margin-top: 14px; background: var(--bg-elevated); color: var(--ink); border-radius: 22px; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--line);
+  box-shadow: 0 12px 32px rgba(3,10,24,.28); animation: iniRise .6s ease .3s both;
+}
+html[data-theme="escuro"] .ini-quem { box-shadow: none; }
+.ini-quem .hd { display: flex; justify-content: space-between; align-items: baseline; }
+.ini-quem .hd h3 { font-family: var(--font-display); font-weight: 400; font-size: 17px; margin: 0; }
+.ini-quem .hd span { font-size: 11.5px; color: var(--ink-mute); }
+.ini-row { display: flex; align-items: center; gap: 12px; }
+.ini-row .lbl { width: 58px; font-size: 13px; color: var(--ink-soft); }
+.ini-row .trk { flex: 1; height: 8px; border-radius: 99px; background: var(--bg-sunken); overflow: hidden; }
+.ini-row .bar { height: 100%; border-radius: 99px; transform-origin: left; animation: iniBar .9s cubic-bezier(.2,.7,.2,1) both; }
+.ini-row .v { width: 78px; text-align: right; font-size: 13px; font-weight: 600; }
+.ini-empty { font-size: 13px; color: #9eabc0; text-align: center; padding: 20px 10px; }
+@keyframes iniRing { from { stroke-dashoffset: 226; } }
+@keyframes iniBar { from { transform: scaleX(0); } }
+@keyframes iniRise { from { opacity: 0; transform: translateY(10px); } }
+.ini-d1 { animation-delay: .1s !important; } .ini-d2 { animation-delay: .18s !important; }
+.ini-d3 { animation-delay: .26s !important; } .ini-d4 { animation-delay: .34s !important; }
 </style>
 
 </head>
@@ -4945,7 +5061,8 @@ label {
   <!-- FAMÍLIA -->
 
   <section class="view" data-view="familia">
-    <div id="familiaTotalConsolidado"></div>
+    <div id="inicioDash"></div>
+    <div id="familiaTotalConsolidado" style="display:none;"></div>
     <button class="compromissos-btn" data-compromissos="familia">📋 Contas do mês</button>
     <div class="subtabs" id="familiaSubtabs"></div>
     <div id="familiaContent"></div>
@@ -5151,6 +5268,16 @@ label {
   <div class="mi-chev">›</div>
 </button>
 
+<div class="section-title">Aparência</div>
+<button class="menu-item" data-cfg="tema">
+  <div class="mi-ico">◐</div>
+  <div class="mi-body">
+    <div class="mi-title">Tema</div>
+    <div class="mi-sub" id="temaSub">Padrão · fundo claro, cartões brancos</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+
 <div class="section-title">Backup &amp; dados</div>
 <button class="menu-item" data-cfg="export">
   <div class="mi-ico">⬇</div>
@@ -5196,7 +5323,7 @@ label {
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.59.2 · Extrato Itaú: débito "FATURA ITAU PERSON VS INFIN" reconhecido como pagamento de fatura · trava anti-duplicidade ao incluir saída com "FATURA" · chip de duplicatas mostra quantas já foram ignoradas</div>
+  Finança · v0.60.0 · Novo visual (fatia 1): identidade azul com Marcellus + Montserrat, cabeçalho e barra navy · tela Início com dashboard por tipo de gasto (Alimentação, Escola, Saúde, Moradia), projeção do mês e quem gastou · tema escuro em Config › Aparência · inclui a v0.59.2 (fatura Itaú Infinite)</div>
 
   </section>
 
@@ -5208,8 +5335,8 @@ label {
       Entradas
     </button>
     <button class="nav-item" data-go="familia">
-      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c.5-3 3-5 6-5s5.5 2 6 5M14 20c.4-2.4 2-4 4-4s3.5 1.5 3.5 4"/></svg></span>
-      Família
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></span>
+      Início
     </button>
     <button class="nav-item" data-go="tiago">
       <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span>
@@ -6075,7 +6202,7 @@ function askChoice({ title, message, options }) {
 /* ====== Roteamento (bottom nav) ====== */
 const VIEW_LABELS = {
   entradas:   { eyebrow: 'módulo · 02', title: 'Entradas' },
-  familia:    { eyebrow: 'módulo · 03', title: 'Família' },
+  familia:    { eyebrow: 'Finança', title: 'Início' },
   tiago:      { eyebrow: 'módulo · 04 · isolado', title: 'Meus Gastos' },
   cartoes:    { eyebrow: 'módulo · 05', title: 'Cartões' },
   relatorios: { eyebrow: 'módulo · 06', title: 'Relatórios' },
@@ -6132,6 +6259,7 @@ document.querySelectorAll('[data-extrato]').forEach(btn => {
 
 /* ====== Família — sub-tabs (Casa/Marina/Heitor/Juliana) ====== */
 function renderFamiliaTotalConsolidado() {
+  try { renderInicioDash(); } catch (e) { console.warn('[inicio] dashboard:', e); } /* v0.60.0 */
   const host = document.getElementById('familiaTotalConsolidado');
   if (!host) return;
   const reveal = !!state.uiPrefs.revealFamiliaTotal;
@@ -6271,6 +6399,213 @@ function renderFamiliaSubtabs() {
   _atualizaBotaoExtratoFamilia();
 }
 
+
+/* =========================================================================
+   v0.60.0 — TEMA (padrão × escuro) e INÍCIO (dashboard por tipo de gasto)
+   ========================================================================= */
+const TEMAS = {
+  padrao: { label: 'Padrão', sub: 'fundo claro, cartões brancos', meta: '#0b1a30' },
+  escuro: { label: 'Escuro', sub: 'navy inteiro', meta: '#071226' }
+};
+function temaAtual() {
+  const t = state && state.uiPrefs && state.uiPrefs.tema;
+  return TEMAS[t] ? t : 'padrao';
+}
+function aplicarTema(t) {
+  const tema = TEMAS[t] ? t : 'padrao';
+  if (tema === 'padrao') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = tema;
+  const meta = document.getElementById('metaThemeColor');
+  if (meta) meta.setAttribute('content', TEMAS[tema].meta);
+  const sub = document.getElementById('temaSub');
+  if (sub) sub.textContent = TEMAS[tema].label + ' · ' + TEMAS[tema].sub;
+}
+async function escolherTema() {
+  const atual = temaAtual();
+  const escolha = await askChoice({
+    title: 'Tema do app',
+    message: 'Vale em todos os aparelhos — a escolha fica salva na nuvem.',
+    options: Object.keys(TEMAS).map(k => ({
+      value: k, label: TEMAS[k].label + (k === atual ? '  ✓' : ''), desc: TEMAS[k].sub, primary: k === atual
+    }))
+  });
+  if (!escolha || escolha === atual) return;
+  if (!state.uiPrefs) state.uiPrefs = {};
+  state.uiPrefs.tema = escolha;
+  aplicarTema(escolha);
+  saveState(state);
+  toast('Tema ' + TEMAS[escolha].label.toLowerCase() + ' aplicado', 'success');
+}
+
+/* Subgrupos em destaque na tela inicial (os demais ficam em "ver tudo") */
+const INI_DESTAQUES = [
+  { nome: 'Alimentação', cor: '#d66b54', corEsc: '#e48c77', ico: '<svg viewBox="0 0 24 24"><path d="M7 3v8"/><path d="M4 3v5a3 3 0 0 0 6 0V3"/><path d="M7 11v10"/><path d="M17 3c-2 2-2 6-2 9h3v9"/></svg>' },
+  { nome: 'Escola',      cor: '#2e6ee0', corEsc: '#4f8df7', ico: '<svg viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/><path d="M22 9v6"/></svg>' },
+  { nome: 'Saúde',       cor: '#1f8f60', corEsc: '#6cc59d', ico: '<svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.4-9 9-9 9z"/></svg>' },
+  { nome: 'Moradia',     cor: '#b88c38', corEsc: '#d9b06a', ico: '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>' }
+];
+const INI_HIST_MESES = 6; /* média = até 6 meses fechados anteriores */
+
+function _iniFmt(v) { return fmtBRL(Math.round(Number(v) || 0)).replace(',00', ''); }
+function _iniDiasNoMes(ym) { const [y, m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); }
+
+/* consumo da família (sem o Tiago) por mês e por pessoa, com o mesmo filtro do relatório */
+function _iniConsumoFamilia(yms) {
+  const porYm = {}; const porCat = {};
+  yms.forEach(y => { porYm[y] = 0; });
+  (state.gastos || []).forEach(g => {
+    if (REL_TIPO_CATS.indexOf(g.categoria) < 0) return;
+    if (!_relGastoConta(g)) return;
+    if (!(g.ym in porYm)) return;
+    const v = Number(g.valor) || 0;
+    porYm[g.ym] += v;
+    if (g.ym === yms[yms.length - 1]) porCat[g.categoria] = (porCat[g.categoria] || 0) + v;
+  });
+  return { porYm, porCat };
+}
+
+function renderInicioDash() {
+  const host = document.getElementById('inicioDash');
+  if (!host) return;
+  const ym = famCurrentYM;
+  const ymAtual = currentYM();
+  const ehAtual = ym === ymAtual;
+  const yms = relYmsHistorico(ym, INI_HIST_MESES + 1); /* 6 anteriores + o mês */
+  const fechados = yms.filter(y => y < ymAtual && y !== ym);
+  const { porYm, porCat } = _iniConsumoFamilia(yms);
+  const total = porYm[ym] || 0;
+  const comDados = fechados.filter(y => (porYm[y] || 0) > 0);
+  const media = comDados.length ? comDados.reduce((a, y) => a + porYm[y], 0) / comDados.length : null;
+  const mesLabel = MESES_PT[Number(ym.split('-')[1]) - 1];
+  const reveal = !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal);
+
+  /* comparação e projeção */
+  let vsHtml = '';
+  let statusHtml = '';
+  const diasMes = _iniDiasNoMes(ym);
+  const hoje = new Date();
+  const diaHoje = ehAtual ? Math.min(hoje.getDate(), diasMes) : diasMes;
+  if (media && media > 0) {
+    const var_ = (total - media) / media;
+    if (ehAtual) {
+      const proj = total + media * (diasMes - diaHoje) / diasMes;
+      const vp = (proj - media) / media;
+      const cls = vp > 0.05 ? 'alerta' : 'ok';
+      vsHtml = `<span>projeção <b class="${cls}">${_iniFmt(proj)}</b> · média ${_iniFmt(media)}</span>`;
+      const pctMes = Math.round(diaHoje / diasMes * 100);
+      const off = Math.round(226 * (1 - diaHoje / diasMes));
+      statusHtml = `
+        <div class="ini-status">
+          <svg width="52" height="52" viewBox="0 0 84 84" role="img" aria-label="${pctMes}% do mês">
+            <circle cx="42" cy="42" r="36" fill="none" stroke="rgba(241,231,214,.16)" stroke-width="9"></circle>
+            <circle cx="42" cy="42" r="36" fill="none" stroke="${vp > 0.05 ? 'var(--coral)' : 'var(--mint)'}" stroke-width="9" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="${off}" transform="rotate(-90 42 42)" style="animation:iniRing 1.1s cubic-bezier(.2,.7,.2,1) both"></circle>
+            <text x="42" y="47" text-anchor="middle" font-family="Montserrat" font-weight="700" font-size="17" fill="#f1e7d6">${pctMes}%</text>
+          </svg>
+          <div class="txt">Dia ${diaHoje} de ${diasMes}. Projeção de fechamento <b>${_iniFmt(proj)}</b> (realizado + média para os dias que faltam) — ${vp > 0.05 ? '<b style="color:var(--coral)">' + Math.round(vp * 100) + '% acima</b>' : (vp < -0.05 ? '<b style="color:var(--mint)">' + Math.round(-vp * 100) + '% abaixo</b>' : 'na linha')} da média de ${comDados.length} ${comDados.length === 1 ? 'mês fechado' : 'meses fechados'}.</div>
+        </div>`;
+    } else {
+      const cls = var_ > 0.05 ? 'alerta' : (var_ < -0.05 ? 'ok' : '');
+      vsHtml = `<span><b class="${cls}">${var_ > 0 ? '+' : '−'}${Math.round(Math.abs(var_) * 100)}%</b> vs média dos meses fechados (${_iniFmt(media)})</span>`;
+    }
+  } else {
+    vsHtml = '<span>sem meses fechados para comparar</span>';
+  }
+
+  /* sparkline: consumo dos meses do histórico (fechados + atual) */
+  const serie = yms.map(y => porYm[y] || 0);
+  const maxS = Math.max(1, ...serie);
+  const W = 390, H = 72;
+  const pts = serie.map((v, i) => [Math.round(i * (W / (serie.length - 1))), Math.round(H - 8 - (v / maxS) * (H - 16))]);
+  const linha = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ');
+  const area = linha + ` L${W} ${H} L0 ${H} Z`;
+  const sparkHtml = serie.filter(v => v > 0).length >= 2 ? `
+    <svg class="ini-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="iniG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f8df7" stop-opacity=".35"></stop><stop offset="1" stop-color="#4f8df7" stop-opacity="0"></stop></linearGradient></defs>
+      <path d="${area}" fill="url(#iniG)"></path>
+      <path d="${linha}" fill="none" stroke="#f1e7d6" stroke-width="2" stroke-linejoin="round"></path>
+    </svg>` : '';
+
+  /* cartões por tipo de gasto */
+  const linhas = relCalcTipoGastoPorMembro(ym, yms);
+  const escuro = temaAtual() === 'escuro';
+  const cards = INI_DESTAQUES.map((d, i) => {
+    const b = linhas.find(l => l.nome === d.nome);
+    const v = b ? b.total : 0;
+    const m = b && b.media ? b.media : null;
+    const frac = m && m > 0 ? Math.min(1, v / m) : (v > 0 ? 1 : 0);
+    const off = Math.round(226 * (1 - frac));
+    const cor = escuro ? d.corEsc : d.cor;
+    const sub = m && m > 0 ? `${Math.round(v / m * 100)}% da média · ${_iniFmt(m)}` : (v > 0 ? 'sem média ainda' : 'nada este mês');
+    return `
+      <button class="ini-card ini-d${i + 1}" data-ini-sub="${escapeHtml(d.nome)}">
+        <div class="ini-ring">
+          <svg viewBox="0 0 84 84" aria-hidden="true">
+            <circle class="track" cx="42" cy="42" r="36" stroke="${cor}"></circle>
+            <circle class="val" cx="42" cy="42" r="36" stroke="${cor}" stroke-dashoffset="${off}" transform="rotate(-90 42 42)"></circle>
+          </svg>
+          <span class="ico" style="color:${cor};stroke:${cor};">${d.ico}</span>
+        </div>
+        <div class="nome">${escapeHtml(d.nome)}</div>
+        <div><div class="val">${reveal ? _iniFmt(v) : 'R$ ••••'}</div><div class="sub">${sub}</div></div>
+      </button>`;
+  }).join('');
+
+  /* quem gastou */
+  const ordem = REL_TIPO_CATS.slice().sort((a, b) => (porCat[b] || 0) - (porCat[a] || 0));
+  const maxCat = Math.max(1, ...ordem.map(k => porCat[k] || 0));
+  const rows = ordem.map((k, i) => {
+    const m = state.members[k] || {}; const v = porCat[k] || 0;
+    return `<div class="ini-row">
+      <div class="lbl">${escapeHtml(m.nome || k)}</div>
+      <div class="trk"><div class="bar ini-d${Math.min(4, i + 1)}" style="width:${(v / maxCat * 100).toFixed(1)}%;background:${m.cor || 'var(--blue)'};"></div></div>
+      <div class="v">${reveal ? _iniFmt(v) : '••••'}</div>
+    </div>`;
+  }).join('');
+
+  host.innerHTML = `
+    <div class="ini">
+      <div class="ini-hero">
+        <div class="ini-eyebrow">Família · ${mesLabel}${ehAtual ? '' : ' · fechado'}</div>
+        <button class="ini-total ${reveal ? '' : 'hidden-val'}" id="iniTotal" style="background:none;border:0;color:inherit;font:inherit;cursor:pointer;" aria-label="Mostrar ou ocultar valores">${reveal ? _iniFmt(total) : 'R$ ••••••'}</button>
+        <div class="ini-vs">${vsHtml}</div>
+      </div>
+      ${sparkHtml}
+      ${statusHtml}
+      <div class="ini-sec"><h3>Por tipo de gasto</h3><button id="iniVerTudo">ver tudo ›</button></div>
+      ${linhas.length ? '<div class="ini-grid">' + cards + '</div>' : '<div class="ini-empty">Nenhum gasto da família neste mês ainda.</div>'}
+      <div class="ini-quem">
+        <div class="hd"><h3>Quem gastou</h3><span>família · sem o Tiago</span></div>
+        ${rows}
+      </div>
+    </div>`;
+
+  document.getElementById('iniTotal').onclick = () => {
+    if (!state.uiPrefs) state.uiPrefs = {};
+    state.uiPrefs.revealFamiliaTotal = !state.uiPrefs.revealFamiliaTotal;
+    saveState(state);
+    renderInicioDash();
+  };
+  document.getElementById('iniVerTudo').onclick = () => {
+    const html = _relSecaoTipoGastoHtml(ym, yms) || '<div class="ini-empty" style="color:var(--ink-mute)">Nenhum gasto da família neste mês.</div>';
+    sheet.open('Por tipo de gasto · ' + mesLabel, html);
+    document.querySelectorAll('#sheetBody [data-rel-subcat-cons]').forEach(r => {
+      r.onclick = (e) => { e.stopPropagation(); _iniAbrirSubgrupo(r.dataset.relSubcatCons, ym); };
+    });
+  };
+  host.querySelectorAll('[data-ini-sub]').forEach(b => {
+    b.onclick = () => _iniAbrirSubgrupo(b.dataset.iniSub, ym);
+  });
+}
+
+/* lista dos gastos da família de um subgrupo no mês (o detalhe com colunas vem na fatia 2) */
+function _iniAbrirSubgrupo(subc, ym) {
+  const gastos = (state.gastos || []).filter(g =>
+    g.subcategoria === subc && REL_TIPO_CATS.indexOf(g.categoria) >= 0 && g.ym === ym && _relGastoConta(g)
+  );
+  const mesLabel = MESES_PT[Number(ym.split('-')[1]) - 1];
+  sheet.open(subc + ' · ' + mesLabel, gastos.length ? _relDrillListaHtml(gastos) : '<div style="padding:20px;color:var(--ink-mute);text-align:center;">Nenhum gasto da família em ' + escapeHtml(subc) + ' neste mês.</div>');
+}
+
 /* =========================================================================
    CONFIGURAÇÕES — Etapa 1 completa
    ========================================================================= */
@@ -6396,6 +6731,7 @@ function onConfigClick(btn) {
   const cat = btn.dataset.cat;
   switch (cfg) {
     case 'member':    openMemberSheet(btn.dataset.key); break;
+    case 'tema':      escolherTema(); break;
     case 'subcats':   openSubcatsSheet(cat); break;
     case 'grupos':    openGruposSheet(cat); break;
     case 'cards':     openCardsSheet(); break;
@@ -22514,6 +22850,7 @@ function bootApp() {
     try { migrarOrfaosExtratoEmLoteRecovery(); } catch (e) { console.warn('migracao orfaos extrato falhou:', e); }
   }
 
+  aplicarTema(temaAtual()); /* v0.60.0 */
   go('familia');
   renderConfigCounts();
 }
