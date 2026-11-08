@@ -18,15 +18,15 @@
 
 <!-- Ícone SVG inline (usado como favicon e fallback Android) -->
 
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23FAFAF5'/><circle cx='256' cy='256' r='180' fill='none' stroke='%234A6741' stroke-width='12'/><text x='256' y='320' text-anchor='middle' font-family='Georgia,serif' font-style='italic' font-size='220' font-weight='400' fill='%2314120E'>ƒ</text></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23102642'/><stop offset='1' stop-color='%23071226'/></linearGradient></defs><rect width='512' height='512' rx='112' fill='url(%23g)'/><circle cx='256' cy='256' r='178' fill='none' stroke='%23d9b06a' stroke-width='10'/><text x='256' y='318' text-anchor='middle' font-family='Georgia,Times New Roman,serif' font-size='236' font-weight='400' fill='%23f1e7d6'>F</text></svg>">
 
 <!-- Apple Touch Icon (iOS Safari, tela inicial) — usa SVG embarcado renderizado -->
 
-<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23FAFAF5'/><circle cx='256' cy='256' r='180' fill='none' stroke='%234A6741' stroke-width='12'/><text x='256' y='320' text-anchor='middle' font-family='Georgia,serif' font-style='italic' font-size='220' font-weight='400' fill='%2314120E'>ƒ</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23102642'/><stop offset='1' stop-color='%23071226'/></linearGradient></defs><rect width='512' height='512' rx='112' fill='url(%23g)'/><circle cx='256' cy='256' r='178' fill='none' stroke='%23d9b06a' stroke-width='10'/><text x='256' y='318' text-anchor='middle' font-family='Georgia,Times New Roman,serif' font-size='236' font-weight='400' fill='%23f1e7d6'>F</text></svg>">
 
 <!-- Web App Manifest inline (não depende de arquivo externo) -->
 
-<link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Finança · Gestão Familiar","short_name":"Finança","description":"Gestão financeira pessoal e familiar","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%23FAFAF5","theme_color":"%23FAFAF5","lang":"pt-BR","categories":["finance","productivity"],"icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27><rect width=%27512%27 height=%27512%27 rx=%27112%27 fill=%27%23FAFAF5%27/><circle cx=%27256%27 cy=%27256%27 r=%27180%27 fill=%27none%27 stroke=%27%234A6741%27 stroke-width=%2712%27/><text x=%27256%27 y=%27320%27 text-anchor=%27middle%27 font-family=%27Georgia,serif%27 font-style=%27italic%27 font-size=%27220%27 font-weight=%27400%27 fill=%27%2314120E%27>ƒ</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any"}]}'>
+<link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Finança · Gestão Familiar","short_name":"Finança","description":"Gestão financeira pessoal e familiar","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%230b1a30","theme_color":"%23071226","lang":"pt-BR","categories":["finance","productivity"],"icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27><defs><linearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%270%27 y2=%271%27><stop offset=%270%27 stop-color=%27%23102642%27/><stop offset=%271%27 stop-color=%27%23071226%27/></linearGradient></defs><rect width=%27512%27 height=%27512%27 rx=%27112%27 fill=%27url(%23g)%27/><circle cx=%27256%27 cy=%27256%27 r=%27178%27 fill=%27none%27 stroke=%27%23d9b06a%27 stroke-width=%2710%27/><text x=%27256%27 y=%27318%27 text-anchor=%27middle%27 font-family=%27Georgia,Times New Roman,serif%27 font-size=%27236%27 font-weight=%27400%27 fill=%27%23f1e7d6%27>F</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
 
 <title>Finança · Gestão Familiar</title>
 
@@ -5268,6 +5268,30 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 .conta-card .cc-ico:has(.conta-logo) { background: transparent; padding: 0; overflow: hidden; }
 .chd-name .conta-logo { width: 28px; height: 28px; border-radius: 9px; margin-right: 8px; vertical-align: -8px; }
 .chip .conta-logo, .rex-sum-meta .conta-logo { width: 18px; height: 18px; border-radius: 5px; vertical-align: -4px; margin-right: 2px; }
+
+/* ============== v0.69.0 — listas por subcategoria em caixas escuras ============== */
+.subc-group, html:not([data-theme="escuro"]) .subc-group {
+  background: rgba(17,36,63,.85); border: 1px solid rgba(159,181,224,.16); border-radius: 18px; color: var(--cream);
+}
+.subc-group .subc-head:active { background: rgba(159,181,224,.08); }
+.subc-group .sh-name, .subc-group .sh-total { color: var(--cream) !important; }
+.subc-group .sh-count, .subc-group .sh-chev { color: #9eabc0 !important; }
+.subc-group .sh-star { color: var(--member-color, var(--gold)) !important; }
+.subc-group .sh-invest-flag { background: rgba(79,141,247,.18) !important; color: var(--blue) !important; }
+.subc-group .subc-body { color: var(--cream); border-top: 1px solid rgba(159,181,224,.12); }
+.subc-group .gasto-row { border-top-color: rgba(159,181,224,.1); }
+.subc-group .gasto-row:active { background: rgba(159,181,224,.08); }
+.subc-group .gasto-row .gr-name, .subc-group .gasto-row .gr-val, .subc-group .gr-date .gd-day { color: var(--cream) !important; }
+.subc-group .gasto-row .gr-meta, .subc-group .gr-date .gd-mon, .subc-group .gr-flag { color: #9eabc0 !important; }
+.subc-group .gr-date { background: rgba(159,181,224,.1) !important; }
+.subc-group .gr-flag { background: rgba(159,181,224,.12) !important; }
+.subc-group .gr-flag.pendente { color: var(--gold) !important; background: rgba(217,176,106,.14) !important; }
+.subc-group .gr-flag.deb { color: var(--blue) !important; background: rgba(79,141,247,.14) !important; }
+.subc-group .grupo-head, .subc-group .nome-total-row, .subc-group .nt-row, .subc-group .gh-name, .subc-group .nt-name { color: var(--cream) !important; }
+.subc-group .gh-meta, .subc-group .nt-meta, .subc-group .grupo-head small { color: #9eabc0 !important; }
+.subc-group .grupo-head { background: rgba(159,181,224,.06) !important; border-color: rgba(159,181,224,.1) !important; }
+.extrato-btn { background: rgba(17,36,63,.85) !important; border: 1px solid rgba(159,181,224,.16) !important; color: var(--cream) !important; }
+.subc-group .subc-head, html:not([data-theme="escuro"]) .subc-group .subc-head { background: transparent !important; color: var(--cream) !important; }
 </style>
 
 </head>
@@ -5277,23 +5301,24 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 <div id="splash" aria-hidden="true">
   <style>
     #splash{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
-      background:radial-gradient(120% 90% at 50% 38%, #FFFFFF 0%, var(--bg) 62%);
+      background:radial-gradient(120% 90% at 50% 38%, #16294a 0%, #0b1a30 55%, #071226 100%);
       font-family:var(--font-body);opacity:1;transition:opacity .6s ease}
     #splash.sp-hide{opacity:0;pointer-events:none}
     #splash .sp-stage{display:flex;flex-direction:column;align-items:center;gap:26px}
     #splash .sp-bars{display:flex;align-items:flex-end;gap:14px;height:92px}
     #splash .sp-bar{width:22px;border-radius:7px;transform:scaleY(0);transform-origin:bottom;
       animation:sp-grow .7s cubic-bezier(.34,1.56,.64,1) both}
-    #splash .sp-bar-in{height:60px;background:var(--flow-in);animation-delay:0s}
-    #splash .sp-bar-out{height:92px;background:var(--flow-out);animation-delay:.12s}
-    #splash .sp-bar-inv{height:74px;background:var(--flow-invest);animation-delay:.24s}
+    #splash .sp-bar-in{height:60px;background:#6cc59d;animation-delay:0s}
+    #splash .sp-bar-out{height:92px;background:#e48c77;animation-delay:.12s}
+    #splash .sp-bar-inv{height:74px;background:#4f8df7;animation-delay:.24s}
+    #splash .sp-bars{filter:drop-shadow(0 12px 28px rgba(0,0,0,.35))}
     #splash .sp-name{font-family:var(--font-display);font-size:clamp(42px,13vw,88px);font-weight:500;
-      color:var(--ink);letter-spacing:-.02em;line-height:1;opacity:0;
+      color:#f1e7d6;letter-spacing:.01em;line-height:1;opacity:0;font-weight:400;
       animation:sp-rise .6s cubic-bezier(.16,1,.3,1) .65s both}
-    #splash .sp-rule{width:170px;height:2px;background:var(--line);transform:scaleX(0);
+    #splash .sp-rule{width:120px;height:1.5px;background:#d9b06a;transform:scaleX(0);
       animation:sp-draw .5s cubic-bezier(.16,1,.3,1) 1.25s both}
     #splash .sp-tag{font-size:clamp(13px,3.4vw,17px);font-weight:600;letter-spacing:.16em;
-      text-transform:uppercase;color:var(--ink-mute);opacity:0;
+      text-transform:uppercase;color:#9eabc0;opacity:0;
       animation:sp-rise .6s cubic-bezier(.16,1,.3,1) 1.55s both}
     @keyframes sp-grow{to{transform:scaleY(1)}}
     @keyframes sp-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -5651,7 +5676,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.68.1 · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.69.0 · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · novo ícone do app (navy, anel dourado, F creme) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -6702,7 +6727,7 @@ function _atualizaBotaoExtratoFamilia() {
   if (!btn) return;
   const m = (state.members || {})[activeFamiliaTab];
   const nome = (m && m.nome) || 'fam\u00edlia';
-  btn.textContent = '\ud83e\uddfe Ver extrato de ' + nome + ' \u00b7 no m\u00eas';
+  btn.innerHTML = '<span class="ico-i"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"></path><path d="M9 7h6M9 11h6M9 15h4"></path></svg></span>Ver extrato de ' + escapeHtml(nome) + ' \u00b7 no m\u00eas';
 }
 
 function renderFamiliaSubtabs() {
