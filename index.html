@@ -4940,6 +4940,57 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
 @keyframes iniRise { from { opacity: 0; transform: translateY(10px); } }
 .ini-d1 { animation-delay: .1s !important; } .ini-d2 { animation-delay: .18s !important; }
 .ini-d3 { animation-delay: .26s !important; } .ini-d4 { animation-delay: .34s !important; }
+
+/* ============== v0.61.0 — DETALHE DO TIPO DE GASTO (sheet em navy) ============== */
+.sheet.sheet--navy { background: linear-gradient(180deg, #0b1a30 0%, #0f2139 100%); color: var(--cream); }
+.sheet.sheet--navy .sheet-header h2 { color: var(--cream); font-family: var(--font-display); font-weight: 400; }
+.sheet.sheet--navy .sheet-header .close { color: #9eabc0; }
+.sheet.sheet--navy .sheet-handle { background: rgba(159,181,224,.35); }
+.det-eyebrow { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #9eabc0; font-weight: 600; margin: 2px 0 14px; }
+.det-card { background: rgba(17,36,63,.85); border: 1px solid rgba(159,181,224,.14); border-radius: 22px; padding: 16px; color: var(--cream); animation: iniRise .5s ease both; }
+.det-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.det-top .l { font-size: 12px; color: #9eabc0; }
+.det-top .big { font-family: var(--font-display); font-size: 32px; line-height: 1.05; margin-top: 4px; }
+.det-top .proj { font-size: 20px; font-weight: 700; margin-top: 4px; letter-spacing: -.02em; }
+.det-top .proj-pct { font-size: 12px; font-weight: 600; margin-top: 2px; }
+.det-top .r { text-align: right; }
+.det-chart { position: relative; height: 150px; margin-top: 14px; }
+.det-media { position: absolute; left: 0; right: 0; border-top: 1.5px dashed #9eabc0; }
+.det-media-lbl { position: absolute; right: 0; font-size: 10.5px; color: #9eabc0; font-weight: 600; background: #11243f; padding: 0 4px; transform: translateY(-18px); }
+.det-cols { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; height: 100%; }
+.det-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; min-width: 0; }
+.det-col .bar { width: 100%; border-radius: 8px 8px 4px 4px; background: #2f4e80; transform-origin: bottom; animation: iniColIn .9s cubic-bezier(.2,.7,.2,1) both; }
+.det-col .bar.vazio { background: rgba(159,181,224,.12); }
+.det-col .bar.atual { display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; background: transparent; }
+.det-col .bar.atual .real { width: 100%; }
+.det-col .bar.atual .proj { width: 100%; border: 1.5px dashed; border-bottom: 0; border-radius: 8px 8px 0 0; }
+.det-col .lbl { font-size: 11px; color: #9eabc0; white-space: nowrap; }
+.det-col .lbl.atual { color: var(--cream); font-weight: 700; }
+.det-col .val { font-size: 10px; color: #9eabc0; white-space: nowrap; }
+.det-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: #9eabc0; margin-top: 12px; }
+.det-legend span { display: flex; align-items: center; gap: 6px; }
+.det-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.det-note { font-size: 12px; color: #9eabc0; line-height: 1.5; border-top: 1px solid rgba(159,181,224,.14); padding-top: 10px; margin-top: 12px; }
+.det-sec { display: flex; align-items: baseline; justify-content: space-between; padding: 20px 4px 10px; }
+.det-sec h3 { font-family: var(--font-display); font-weight: 400; font-size: 18px; color: var(--cream); margin: 0; }
+.det-sec span { font-size: 12px; color: #9eabc0; }
+.det-pessoas { display: flex; gap: 10px; }
+.det-pessoa { flex: 1; background: rgba(17,36,63,.85); border: 1px solid rgba(159,181,224,.14); border-radius: 18px; padding: 12px; min-width: 0; animation: iniRise .5s ease both; }
+.det-pessoa .n { font-size: 12px; color: #9eabc0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.det-pessoa .v { font-size: 16px; font-weight: 700; margin-top: 4px; letter-spacing: -.02em; }
+.det-pessoa .t { margin-top: 8px; height: 5px; border-radius: 99px; background: rgba(159,181,224,.12); overflow: hidden; }
+.det-pessoa .t div { height: 100%; border-radius: 99px; transform-origin: left; animation: iniBar .9s cubic-bezier(.2,.7,.2,1) both; }
+.det-lista { background: rgba(17,36,63,.85); border: 1px solid rgba(159,181,224,.14); border-radius: 22px; overflow: hidden; animation: iniRise .5s ease .15s both; }
+.det-lista .rel-drill-row { border-bottom: 1px solid rgba(159,181,224,.1); padding: 12px 14px; }
+.det-lista .rel-drill-row:last-child { border-bottom: 0; }
+.det-lista .rdr-name { color: var(--cream); }
+.det-lista .rdr-meta { color: #9eabc0; }
+.det-lista .rdr-val { color: var(--cream); }
+.det-lista .rdr-tag { background: rgba(159,181,224,.14); color: #c9d3e6; }
+.det-lista .rel-drill-total { color: var(--cream); border-top: 1px solid rgba(159,181,224,.14); }
+.det-lista .rel-drill-total span, .det-lista .rel-drill-sub { color: #9eabc0; }
+.det-vazio { padding: 22px 14px; text-align: center; color: #9eabc0; font-size: 13px; }
+@keyframes iniColIn { from { transform: scaleY(0); } }
 </style>
 
 </head>
@@ -5323,7 +5374,7 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.60.0 · Novo visual (fatia 1): identidade azul com Marcellus + Montserrat, cabeçalho e barra navy · tela Início com dashboard por tipo de gasto (Alimentação, Escola, Saúde, Moradia), projeção do mês e quem gastou · tema escuro em Config › Aparência · inclui a v0.59.2 (fatura Itaú Infinite)</div>
+  Finança · v0.61.0 · Novo visual (fatia 2): detalhe do tipo de gasto em navy — colunas dos últimos 6 meses, mês atual com realizado + projeção hachurada, linha da média, divisão por pessoa e lançamentos do mês · abre ao tocar num cartão do Início ou numa linha de "ver tudo"</div>
 
   </section>
 
@@ -6088,6 +6139,7 @@ const sheet = {
   },
   close() {
     this.el.classList.remove('open');
+    this.el.classList.remove('sheet--navy'); /* v0.61.0 */
     this.bd.classList.remove('open');
   }
 };
@@ -6597,13 +6649,113 @@ function renderInicioDash() {
   });
 }
 
-/* lista dos gastos da família de um subgrupo no mês (o detalhe com colunas vem na fatia 2) */
+/* v0.61.0 — DETALHE DO TIPO DE GASTO: colunas mês a mês + projeção + por pessoa + lançamentos */
+function _detCorSubgrupo(subc) {
+  const d = INI_DESTAQUES.find(x => x.nome === subc);
+  return d ? d.corEsc : 'var(--blue)';
+}
 function _iniAbrirSubgrupo(subc, ym) {
-  const gastos = (state.gastos || []).filter(g =>
-    g.subcategoria === subc && REL_TIPO_CATS.indexOf(g.categoria) >= 0 && g.ym === ym && _relGastoConta(g)
-  );
+  const ymAtual = currentYM();
+  const ehAtual = ym === ymAtual;
+  const yms = relYmsHistorico(ym, INI_HIST_MESES + 1);
   const mesLabel = MESES_PT[Number(ym.split('-')[1]) - 1];
-  sheet.open(subc + ' · ' + mesLabel, gastos.length ? _relDrillListaHtml(gastos) : '<div style="padding:20px;color:var(--ink-mute);text-align:center;">Nenhum gasto da família em ' + escapeHtml(subc) + ' neste mês.</div>');
+
+  /* totais do subgrupo por mês e por pessoa (mesmo filtro do relatório) */
+  const porYm = {}; const porCat = {}; const gastosMes = [];
+  yms.forEach(y => { porYm[y] = 0; });
+  (state.gastos || []).forEach(g => {
+    if (g.subcategoria !== subc || REL_TIPO_CATS.indexOf(g.categoria) < 0 || !(g.ym in porYm) || !_relGastoConta(g)) return;
+    const v = Number(g.valor) || 0;
+    porYm[g.ym] += v;
+    if (g.ym === ym) { porCat[g.categoria] = (porCat[g.categoria] || 0) + v; gastosMes.push(g); }
+  });
+  const total = porYm[ym] || 0;
+  const fechados = yms.filter(y => y !== ym && y < ymAtual && (porYm[y] || 0) > 0);
+  const media = fechados.length ? fechados.reduce((a, y) => a + porYm[y], 0) / fechados.length : null;
+
+  const diasMes = _iniDiasNoMes(ym);
+  const diaHoje = ehAtual ? Math.min(new Date().getDate(), diasMes) : diasMes;
+  const proj = (ehAtual && media) ? total + media * (diasMes - diaHoje) / diasMes : null;
+  const vp = (proj && media) ? (proj - media) / media : null;
+  const corProj = vp === null ? 'var(--blue)' : (vp > 0.05 ? 'var(--coral)' : (vp < -0.05 ? 'var(--mint)' : '#9eb8e8'));
+  const corProjHex = vp === null ? '#4f8df7' : (vp > 0.05 ? '#e48c77' : (vp < -0.05 ? '#6cc59d' : '#9eb8e8'));
+  const cor = _detCorSubgrupo(subc);
+
+  /* escala do gráfico: maior entre projeção, meses e média */
+  const topo = Math.max(1, proj || 0, media || 0, ...yms.map(y => porYm[y] || 0)) * 1.08;
+  const pct = v => Math.max(0, Math.min(100, v / topo * 100));
+
+  const cols = yms.map((y, i) => {
+    const v = porYm[y] || 0;
+    const lbl = relYmLabelAbbr(y);
+    if (y === ym && ehAtual) {
+      const hReal = pct(total), hProj = proj ? pct(proj) - hReal : 0;
+      return `<div class="det-col">
+        <div class="val">${total > 0 ? _iniFmt(proj || total).replace('R$ ', '') : ''}</div>
+        <div class="bar atual" style="height:${(hReal + hProj).toFixed(1)}%;animation-delay:${i * 60}ms">
+          ${hProj > 0 ? `<div class="proj" style="height:${(hProj / (hReal + hProj) * 100).toFixed(1)}%;border-color:${corProjHex};background:repeating-linear-gradient(135deg,${corProjHex}99 0 5px,${corProjHex}2e 5px 10px)"></div>` : ''}
+          <div class="real" style="height:${hReal + hProj > 0 ? (hReal / (hReal + hProj) * 100).toFixed(1) : 0}%;background:${corProjHex}"></div>
+        </div>
+        <div class="lbl atual">${lbl} ○</div>
+      </div>`;
+    }
+    return `<div class="det-col">
+      <div class="val">${v > 0 ? _iniFmt(v).replace('R$ ', '') : ''}</div>
+      <div class="bar ${v > 0 ? '' : 'vazio'}" style="height:${v > 0 ? pct(v).toFixed(1) : 2}%;animation-delay:${i * 60}ms${y === ym ? ';background:' + cor : ''}"></div>
+      <div class="lbl ${y === ym ? 'atual' : ''}">${lbl}${y === ym ? ' ●' : ''}</div>
+    </div>`;
+  }).join('');
+
+  const mediaTop = media ? (100 - pct(media)) : null;
+  const topoHtml = `
+    <div class="det-top">
+      <div>
+        <div class="l">${mesLabel}${ehAtual ? ' · até dia ' + diaHoje : ' · fechado'}</div>
+        <div class="big">${_iniFmt(total)}</div>
+      </div>
+      <div class="r">
+        ${proj ? `<div class="l">projeção de fechamento</div><div class="proj" style="color:${corProj}">${_iniFmt(proj)}</div><div class="proj-pct" style="color:${corProj}">${Math.round(proj / media * 100)}% da média</div>`
+               : (media ? `<div class="l">média dos fechados</div><div class="proj">${_iniFmt(media)}</div><div class="proj-pct" style="color:${total > media * 1.05 ? 'var(--coral)' : (total < media * 0.95 ? 'var(--mint)' : '#9eb8e8')}">${Math.round(total / media * 100)}% da média</div>`
+                        : `<div class="l">sem meses fechados</div><div class="proj" style="color:#9eabc0">—</div>`)}
+      </div>
+    </div>`;
+
+  const legenda = ehAtual && proj ? `
+    <div class="det-legend">
+      <span><i style="background:${corProjHex}"></i>realizado ${_iniFmt(total)}</span>
+      <span><i style="border:1.5px dashed ${corProjHex};background:repeating-linear-gradient(135deg,${corProjHex}99 0 3px,${corProjHex}2e 3px 6px)"></i>projeção + ${_iniFmt(proj - total)}</span>
+      ${media ? '<span><i style="width:14px;height:0;border-top:1.5px dashed #9eabc0;border-radius:0"></i>média dos fechados ${_iniFmt(media)}</span>' : ''}
+    </div>
+    <div class="det-note">Projeção = realizado até hoje + média proporcional aos ${diasMes - diaHoje} dias que faltam. Coral acima da média, verde abaixo.</div>` :
+    (media ? '<div class="det-legend"><span><i style="width:14px;height:0;border-top:1.5px dashed #9eabc0;border-radius:0"></i>média dos ' + fechados.length + ' meses fechados</span></div>' : '');
+
+  /* por pessoa */
+  const ordem = REL_TIPO_CATS.filter(k => (porCat[k] || 0) > 0).sort((a, b) => porCat[b] - porCat[a]);
+  const maxCat = Math.max(1, ...ordem.map(k => porCat[k]));
+  const pessoas = ordem.map((k, i) => {
+    const m = state.members[k] || {};
+    return `<div class="det-pessoa" style="animation-delay:${80 + i * 60}ms"><div class="n">${escapeHtml(m.nome || k)}</div><div class="v">${_iniFmt(porCat[k])}</div><div class="t"><div style="width:${(porCat[k] / maxCat * 100).toFixed(1)}%;background:${m.cor || cor};animation-delay:${120 + i * 60}ms"></div></div></div>`;
+  }).join('');
+
+  const listaHtml = gastosMes.length ? _relDrillListaHtml(gastosMes) : `<div class="det-vazio">Nenhum gasto da família em ${escapeHtml(subc)} em ${mesLabel}.</div>`;
+
+  const html = `
+    <div class="det-eyebrow">Tipo de gasto · família</div>
+    <div class="det-card">
+      ${topoHtml}
+      <div class="det-chart">
+        ${mediaTop !== null ? `<div class="det-media" style="top:${mediaTop.toFixed(1)}%"></div>` : ''}
+        <div class="det-cols">${cols}</div>
+      </div>
+      ${legenda}
+    </div>
+    <div class="det-sec"><h3>Quem gastou</h3><span>${ordem.map(k => escapeHtml((state.members[k] || {}).nome || k)).join(' + ') || 'ninguém este mês'}</span></div>
+    ${ordem.length ? `<div class="det-pessoas">${pessoas}</div>` : ''}
+    <div class="det-sec"><h3>Lançamentos do mês</h3><span>${gastosMes.length} ${gastosMes.length === 1 ? 'item' : 'itens'}</span></div>
+    <div class="det-lista">${listaHtml}</div>`;
+
+  sheet.el.classList.add('sheet--navy');
+  sheet.open(subc, html);
 }
 
 /* =========================================================================
