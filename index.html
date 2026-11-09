@@ -5329,6 +5329,17 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 .ini-media { position: absolute; left: 0; right: 0; height: 0; border-top: 1.5px dashed rgba(241,231,214,.45); pointer-events: none; }
 .ini-media span { position: absolute; right: 0; top: -16px; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: #9eabc0; }
 .ini-hero { padding-bottom: 0; }
+
+/* ============== v0.71.0 — colunas por pessoa ============== */
+.pcols { background: rgba(17,36,63,.85); border: 1px solid rgba(159,181,224,.16); border-radius: 22px; padding: 16px 14px 12px; margin: 0 0 14px; color: var(--cream); animation: iniRise .5s ease both; }
+.pcols-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.pcols-hd .l { font-size: 11.5px; color: #9eabc0; letter-spacing: .02em; }
+.pcols-hd .v { font-family: var(--font-display); font-size: 24px; line-height: 1.1; margin-top: 3px; color: var(--cream); }
+.pcols-hd .r { text-align: right; }
+.pcols-hd .r .v { font-family: var(--font-body); font-weight: 700; font-size: 18px; letter-spacing: -.02em; }
+.pcols-hd .s { font-size: 11px; color: #9eabc0; margin-top: 2px; font-weight: 600; }
+.pcols-chart { height: 118px; margin: 14px 2px 0; }
+.pcols-chart .ini-cols-in { height: 92px; }
 </style>
 
 </head>
@@ -5713,7 +5724,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.70.3 · Ícone do app: o ƒ original (mesmo desenho e proporções), círculo e letra em dourado sobre navy · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.71.0 · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -6798,6 +6809,60 @@ const TEMAS = {
   padrao: { label: 'Padrão', sub: 'navy com cartões claros', meta: '#071226' },
   escuro: { label: 'Escuro', sub: 'navy inteiro', meta: '#071226' }
 };
+
+/* v0.71.0 — colunas dos últimos meses por pessoa (abaixo das abas do Início) */
+function _pessoaColsHtml(cat, ym) {
+  const member = state.members[cat] || {};
+  const ymAtual = currentYM();
+  const ehAtual = ym === ymAtual;
+  const yms = relYmsHistorico(ym, INI_HIST_MESES + 1);
+  const porYm = {}; yms.forEach(y => { porYm[y] = 0; });
+  (state.gastos || []).forEach(g => {
+    if (g.categoria !== cat || !(g.ym in porYm) || !_relGastoConta(g)) return;
+    porYm[g.ym] += Number(g.valor) || 0;
+  });
+  const total = porYm[ym] || 0;
+  const fechados = yms.filter(y => y !== ym && y < ymAtual && (porYm[y] || 0) > 0);
+  const media = fechados.length ? fechados.reduce((a, y) => a + porYm[y], 0) / fechados.length : null;
+  if (yms.filter(y => (porYm[y] || 0) > 0).length < 2) return '';
+  const diasMes = _iniDiasNoMes(ym);
+  const diaHoje = ehAtual ? Math.min(new Date().getDate(), diasMes) : diasMes;
+  const proj = (ehAtual && media) ? total + media * (diasMes - diaHoje) / diasMes : null;
+  const vp = (proj && media) ? (proj - media) / media : null;
+  const corAtual = vp === null ? (member.cor || '#4f8df7') : (vp > 0.05 ? '#e48c77' : (vp < -0.05 ? '#6cc59d' : '#9eb8e8'));
+  const vals = yms.map(y => porYm[y] || 0);
+  const topo = Math.max(1, proj || 0, media || 0, ...vals) * 1.1;
+  const pct = v => Math.max(0, Math.min(100, v / topo * 100));
+  const cols = yms.map((y, i) => {
+    const v = vals[i]; const lbl = relYmLabelAbbr(y).replace('/', '');
+    if (y === ym && ehAtual) {
+      const hReal = pct(total), hProj = proj ? pct(proj) - hReal : 0, hTot = hReal + hProj;
+      return `<div class="ini-col"><div class="ini-col-bar atual" style="height:${hTot.toFixed(1)}%;animation-delay:${i * 70}ms">
+        ${hProj > 0 ? `<div class="proj" style="height:${(hProj / hTot * 100).toFixed(1)}%;border-color:${corAtual};background:repeating-linear-gradient(135deg,${corAtual}99 0 4px,${corAtual}2e 4px 8px)"></div>` : ''}
+        <div class="real" style="height:${hTot > 0 ? (hReal / hTot * 100).toFixed(1) : 0}%;background:${corAtual}"></div></div>
+        <div class="ini-col-lbl atual">${lbl}</div></div>`;
+    }
+    return `<div class="ini-col"><div class="ini-col-bar ${v > 0 ? '' : 'vazio'}" style="height:${v > 0 ? pct(v).toFixed(1) : 3}%;animation-delay:${i * 70}ms;${v > 0 ? `background:linear-gradient(180deg, ${member.cor || '#3e6396'} 0%, color-mix(in srgb, ${member.cor || '#2a4a7a'} 70%, #0b1a30) 100%)` : ''}${y === ym ? ';opacity:.85' : ''}"></div>
+      <div class="ini-col-lbl ${y === ym ? 'atual' : ''}">${lbl}</div></div>`;
+  }).join('');
+  const mediaTop = media ? (100 - pct(media)) : null;
+  const reveal = !!(state.uiPrefs.revealCategoria && state.uiPrefs.revealCategoria[cat]);
+  const f = v => reveal ? _iniFmt(v) : 'R$ ••••';
+  const dir = vp === null ? '' : (vp > 0.05 ? 'acima' : (vp < -0.05 ? 'abaixo' : 'na linha'));
+  return `
+    <div class="pcols" style="--member-color:${member.cor || '#4f8df7'}">
+      <div class="pcols-hd">
+        <div><div class="l">${escapeHtml(member.nome || cat)} · ${ehAtual ? 'até dia ' + diaHoje : 'mês fechado'}</div><div class="v">${f(total)}</div>${media ? `<div class="s">média ${f(media)} <span style="display:inline-block;width:14px;border-top:1.5px dashed rgba(241,231,214,.45);vertical-align:middle;margin-left:4px"></span></div>` : ''}</div>
+        ${proj ? `<div class="r"><div class="l">projeção</div><div class="v" style="color:${corAtual}">${f(proj)}</div><div class="s" style="color:${corAtual}">${Math.round(proj / media * 100)}% da média${dir ? ' · ' + dir : ''}</div></div>`
+               : (media ? `<div class="r"><div class="l">média dos fechados</div><div class="v">${f(media)}</div><div class="s">${Math.round(total / media * 100)}% da média</div></div>` : '')}
+      </div>
+      <div class="ini-cols pcols-chart">
+        ${mediaTop !== null ? `<div class="ini-media" style="top:${mediaTop.toFixed(1)}%"></div>` : ''}
+        <div class="ini-cols-in">${cols}</div>
+      </div>
+    </div>`;
+}
+
 /* v0.67.0: emoji padrão de pessoa vira ícone de traço; emoji escolhido pelo usuário continua */
 const MEMBER_ICONES_TRACO = {"🏠": "<svg viewBox=\"0 0 24 24\"><path d=\"M3 11l9-7 9 7\"/><path d=\"M5 10v10h14V10\"/><path d=\"M10 20v-6h4v6\"/></svg>", "👧🏻": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/><path d=\"M8 6c0-2 2-3 4-3s4 1 4 3\"/></svg>", "👦🏻": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/></svg>", "👩🏻": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/><path d=\"M8 9c-1 3-1 5 0 7M16 9c1 3 1 5 0 7\"/></svg>", "👤": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/></svg>", "👨🏻": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/></svg>", "🧑🏻": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M5 21c0-4 3-6 7-6s7 2 7 6\"/></svg>", "👨‍👩‍👧‍👦": "<svg viewBox=\"0 0 24 24\"><circle cx=\"8\" cy=\"7\" r=\"3\"/><circle cx=\"16\" cy=\"8\" r=\"2.5\"/><path d=\"M2 20c.5-3 3-5 6-5s5.5 2 6 5\"/><path d=\"M13 20c.4-2.4 2-4 4-4s3.5 1.5 3.5 4\"/></svg>"};
 function memberIconeHtml(m) {
@@ -16272,7 +16337,8 @@ function renderFamiliaContent() {
     </div>
   `;
 
-  host.innerHTML = monthNavHtml + quickLaunchHtml + heroHtml + banner + filtersHtml + bodyHtml;
+  const pessoaColsHtml = (() => { try { return _pessoaColsHtml(cat, famCurrentYM); } catch (e) { console.warn('[pcols]', e); return ''; } })(); /* v0.71.0 */
+  host.innerHTML = monthNavHtml + quickLaunchHtml + pessoaColsHtml + heroHtml + banner + filtersHtml + bodyHtml;
 
   /* Banner: toque pra filtrar por pendentes */
   const _pendBanner = document.getElementById('pendBanner');
