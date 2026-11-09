@@ -18,15 +18,15 @@
 
 <!-- Ícone SVG inline (usado como favicon e fallback Android) -->
 
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23102642'/><stop offset='1' stop-color='%23071226'/></linearGradient></defs><rect width='512' height='512' rx='112' fill='url(%23g)'/><circle cx='256' cy='256' r='178' fill='none' stroke='%23d9b06a' stroke-width='10'/><text x='256' y='318' text-anchor='middle' font-family='Georgia,Times New Roman,serif' font-size='236' font-weight='400' fill='%23f1e7d6'>F</text></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23FAFAF5'/><circle cx='256' cy='256' r='180' fill='none' stroke='%234A6741' stroke-width='12'/><text x='256' y='320' text-anchor='middle' font-family='Georgia,serif' font-style='italic' font-size='220' font-weight='400' fill='%2314120E'>ƒ</text></svg>">
 
 <!-- Apple Touch Icon (iOS Safari, tela inicial) — usa SVG embarcado renderizado -->
 
-<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23102642'/><stop offset='1' stop-color='%23071226'/></linearGradient></defs><rect width='512' height='512' rx='112' fill='url(%23g)'/><circle cx='256' cy='256' r='178' fill='none' stroke='%23d9b06a' stroke-width='10'/><text x='256' y='318' text-anchor='middle' font-family='Georgia,Times New Roman,serif' font-size='236' font-weight='400' fill='%23f1e7d6'>F</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23FAFAF5'/><circle cx='256' cy='256' r='180' fill='none' stroke='%234A6741' stroke-width='12'/><text x='256' y='320' text-anchor='middle' font-family='Georgia,serif' font-style='italic' font-size='220' font-weight='400' fill='%2314120E'>ƒ</text></svg>">
 
 <!-- Web App Manifest inline (não depende de arquivo externo) -->
 
-<link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Finança · Gestão Familiar","short_name":"Finança","description":"Gestão financeira pessoal e familiar","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%230b1a30","theme_color":"%23071226","lang":"pt-BR","categories":["finance","productivity"],"icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27><defs><linearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%270%27 y2=%271%27><stop offset=%270%27 stop-color=%27%23102642%27/><stop offset=%271%27 stop-color=%27%23071226%27/></linearGradient></defs><rect width=%27512%27 height=%27512%27 rx=%27112%27 fill=%27url(%23g)%27/><circle cx=%27256%27 cy=%27256%27 r=%27178%27 fill=%27none%27 stroke=%27%23d9b06a%27 stroke-width=%2710%27/><text x=%27256%27 y=%27318%27 text-anchor=%27middle%27 font-family=%27Georgia,Times New Roman,serif%27 font-size=%27236%27 font-weight=%27400%27 fill=%27%23f1e7d6%27>F</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
+<link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Finança · Gestão Familiar","short_name":"Finança","description":"Gestão financeira pessoal e familiar","start_url":".","scope":".","display":"standalone","orientation":"portrait","background_color":"%230b1a30","theme_color":"%23071226","lang":"pt-BR","categories":["finance","productivity"],"icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27><rect width=%27512%27 height=%27512%27 rx=%27112%27 fill=%27%23FAFAF5%27/><circle cx=%27256%27 cy=%27256%27 r=%27180%27 fill=%27none%27 stroke=%27%234A6741%27 stroke-width=%2712%27/><text x=%27256%27 y=%27320%27 text-anchor=%27middle%27 font-family=%27Georgia,serif%27 font-style=%27italic%27 font-size=%27220%27 font-weight=%27400%27 fill=%27%2314120E%27>ƒ</text></svg>","sizes":"any","type":"image/svg+xml","purpose":"any"}]}'>
 
 <title>Finança · Gestão Familiar</title>
 
@@ -5292,6 +5292,43 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 .subc-group .grupo-head { background: rgba(159,181,224,.06) !important; border-color: rgba(159,181,224,.1) !important; }
 .extrato-btn { background: rgba(17,36,63,.85) !important; border: 1px solid rgba(159,181,224,.16) !important; color: var(--cream) !important; }
 .subc-group .subc-head, html:not([data-theme="escuro"]) .subc-group .subc-head { background: transparent !important; color: var(--cream) !important; }
+
+/* ============== v0.70.0 — listas cronológicas (extrato) dentro de sheets ============== */
+.sheet .rel-det-day-sep { color: #9eabc0 !important; border-color: rgba(159,181,224,.14) !important; }
+.sheet .rel-det-row { border-color: rgba(159,181,224,.1) !important; }
+.sheet .rel-det-row:hover, .sheet .rel-det-row:active { background: rgba(159,181,224,.08) !important; }
+.sheet .rel-det-row-data { color: #9eabc0 !important; }
+.sheet .rel-det-row-nome { color: var(--cream) !important; }
+.sheet .rel-det-row-identif { color: #c9d3e6 !important; }
+.sheet .rel-det-row-identif em, .sheet .rel-det-meta-item { color: #9eabc0 !important; }
+.sheet .rel-det-meta-item .mico, .sheet .rel-det-badge .mico { margin-right: 3px; }
+.sheet .rel-det-bdg-fixo { background: rgba(159,181,224,.14) !important; color: #c9d3e6 !important; }
+.sheet .rel-det-bdg-invest { background: rgba(79,141,247,.18) !important; color: var(--blue) !important; }
+.sheet .rel-det-bdg-parc { background: rgba(108,197,157,.16) !important; color: var(--mint) !important; }
+.sheet .extrato-sheet-total { color: var(--cream) !important; }
+.sheet .extrato-sheet-count, .sheet .rel-det-filtro-label, .sheet .rel-det-filtro-titulo { color: #9eabc0 !important; }
+.sheet .rel-det-summary-card, .sheet .rel-det-filtros { background: rgba(17,36,63,.85) !important; border-color: rgba(159,181,224,.16) !important; color: var(--cream) !important; }
+.sheet .rel-det-sum-total, .sheet .rel-det-sum-value, .sheet .rel-det-bd-name, .sheet .rel-det-bd-val { color: var(--cream) !important; }
+.sheet .rel-det-sum-label, .sheet .rel-det-sum-count, .sheet .rel-det-bd-label, .sheet .rel-det-bd-resto, .sheet .rel-det-bd-val em { color: #9eabc0 !important; }
+.sheet .month-nav { background: rgba(241,231,214,.06) !important; border-color: rgba(159,181,224,.22) !important; color: var(--cream) !important; }
+.sheet .month-nav .month-label, .sheet .month-nav button { color: var(--cream) !important; }
+.sheet .rel-empty, .sheet .empty { color: #9eabc0 !important; }
+.sheet .conta-logo { width: 16px; height: 16px; border-radius: 4px; vertical-align: -3px; margin-right: 3px; }
+
+/* v0.70.0 — colunas do Início */
+.ini-cols { position: relative; height: 132px; margin: 18px 4px 0; }
+.ini-cols-in { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; height: 104px; }
+.ini-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; min-width: 0; }
+.ini-col-bar { width: 100%; max-width: 34px; border-radius: 7px 7px 3px 3px; background: linear-gradient(180deg, #3e6396 0%, #2a4a7a 100%); transform-origin: bottom; animation: iniColIn .9s cubic-bezier(.2,.7,.2,1) both; }
+.ini-col-bar.vazio { background: rgba(159,181,224,.14); }
+.ini-col-bar.atual { display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; background: transparent; }
+.ini-col-bar.atual .real { width: 100%; }
+.ini-col-bar.atual .proj { width: 100%; border: 1.5px dashed; border-bottom: 0; border-radius: 7px 7px 0 0; box-sizing: border-box; }
+.ini-col-lbl { font-size: 10.5px; color: #9eabc0; letter-spacing: .04em; text-transform: lowercase; }
+.ini-col-lbl.atual { color: var(--cream); font-weight: 700; }
+.ini-media { position: absolute; left: 0; right: 0; height: 0; border-top: 1.5px dashed rgba(241,231,214,.45); pointer-events: none; }
+.ini-media span { position: absolute; right: 0; top: -16px; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: #9eabc0; }
+.ini-hero { padding-bottom: 0; }
 </style>
 
 </head>
@@ -5676,7 +5713,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.69.0 · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · novo ícone do app (navy, anel dourado, F creme) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.70.1 · Ícone do app: volta o ƒ original · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -6898,19 +6935,43 @@ function renderInicioDash(forcar) {
     vsHtml = '<span>sem meses fechados para comparar</span>';
   }
 
-  /* sparkline: consumo dos meses do histórico (fechados + atual) */
-  const serie = yms.map(y => porYm[y] || 0);
-  const maxS = Math.max(1, ...serie);
-  const W = 390, H = 72;
-  const pts = serie.map((v, i) => [Math.round(i * (W / (serie.length - 1))), Math.round(H - 8 - (v / maxS) * (H - 16))]);
-  const linha = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ');
-  const area = linha + ` L${W} ${H} L0 ${H} Z`;
-  const sparkHtml = serie.filter(v => v > 0).length >= 2 ? `
-    <svg class="ini-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-      <defs><linearGradient id="iniG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f8df7" stop-opacity=".35"></stop><stop offset="1" stop-color="#4f8df7" stop-opacity="0"></stop></linearGradient></defs>
-      <path d="${area}" fill="url(#iniG)"></path>
-      <path d="${linha}" fill="none" stroke="#f1e7d6" stroke-width="2" stroke-linejoin="round"></path>
-    </svg>` : '';
+  /* v0.70.0: colunas dos últimos meses — fechados em azul, atual com realizado + projeção hachurada, média tracejada */
+  let sparkHtml = '';
+  {
+    const projTotal = (ehAtual && media) ? total + media * (diasMes - diaHoje) / diasMes : null;
+    const vals = yms.map(y => porYm[y] || 0);
+    const topo = Math.max(1, projTotal || 0, media || 0, ...vals) * 1.1;
+    const pct = v => Math.max(0, Math.min(100, v / topo * 100));
+    const vpT = (projTotal && media) ? (projTotal - media) / media : null;
+    const corAtual = vpT === null ? '#4f8df7' : (vpT > 0.05 ? '#e48c77' : (vpT < -0.05 ? '#6cc59d' : '#9eb8e8'));
+    const temDados = vals.filter(v => v > 0).length >= 2;
+    if (temDados) {
+      const cols = yms.map((y, i) => {
+        const v = vals[i];
+        const lbl = relYmLabelAbbr(y).replace('/', '');
+        if (y === ym && ehAtual) {
+          const hReal = pct(total), hProj = projTotal ? pct(projTotal) - hReal : 0, hTot = hReal + hProj;
+          return `<div class="ini-col">
+            <div class="ini-col-bar atual" style="height:${hTot.toFixed(1)}%;animation-delay:${i * 70}ms">
+              ${hProj > 0 ? `<div class="proj" style="height:${(hProj / hTot * 100).toFixed(1)}%;border-color:${corAtual};background:repeating-linear-gradient(135deg,${corAtual}99 0 4px,${corAtual}2e 4px 8px)"></div>` : ''}
+              <div class="real" style="height:${hTot > 0 ? (hReal / hTot * 100).toFixed(1) : 0}%;background:${corAtual}"></div>
+            </div>
+            <div class="ini-col-lbl atual">${lbl}</div>
+          </div>`;
+        }
+        return `<div class="ini-col">
+          <div class="ini-col-bar ${v > 0 ? '' : 'vazio'}" style="height:${v > 0 ? pct(v).toFixed(1) : 3}%;animation-delay:${i * 70}ms${y === ym ? ';background:#9eb8e8' : ''}"></div>
+          <div class="ini-col-lbl ${y === ym ? 'atual' : ''}">${lbl}</div>
+        </div>`;
+      }).join('');
+      const mediaTop = media ? (100 - pct(media)) : null;
+      sparkHtml = `
+        <div class="ini-cols">
+          ${mediaTop !== null ? `<div class="ini-media" style="top:${mediaTop.toFixed(1)}%"><span>média</span></div>` : ''}
+          <div class="ini-cols-in">${cols}</div>
+        </div>`;
+    }
+  }
 
   /* cartões por tipo de gasto */
   const linhas = relCalcTipoGastoPorMembro(ym, yms);
@@ -14796,7 +14857,7 @@ function _rel3SecaoSmallMultiplesSubcatsHtml(ym, periodo) {
 
   return `
     <div class="rel-section">
-      <div class="rel-section-title"><span class="rst-icon">🔍</span> histórico por subcategoria (top 4)</div>
+      <div class="rel-section-title"><span class="rst-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span> histórico por subcategoria (top 4)</div>
       <div class="rel-smalls">${cardsHtml}</div>
     </div>
   `;
@@ -15230,12 +15291,12 @@ function _rel4RenderRow(g) {
   let metodo = '';
   if (g.pagamento === 'cartao' && g.cardId) {
     const card = (state.cards || []).find(c => c.id === g.cardId);
-    metodo = card ? `💳 ${escapeHtml(card.nome)}` : '💳 cartão';
+    metodo = card ? `<span class="mico"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M7 15h3"/></svg></span> ${escapeHtml(card.nome)}` : '<span class="mico"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M7 15h3"/></svg></span> cartão';
   } else if (g.contaId) {
     const conta = (state.contas || []).find(c => c.id === g.contaId);
-    metodo = conta ? `🏦 ${escapeHtml(conta.nome)}` : '🏦 conta';
+    metodo = conta ? `${contaIconeHtml(conta)} ${escapeHtml(conta.nome)}` : '<span class="mico"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M10 10v8M14 10v8M19 10v8"/><path d="M3 20h18"/></svg></span> conta';
   } else if (g.pagamento) {
-    metodo = `📌 ${escapeHtml(g.pagamento)}`;
+    metodo = `<span class="mico"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/></svg></span> ${escapeHtml(g.pagamento)}`;
   }
 
   /* Identificação: categoria › subcategoria (› grupo) */
@@ -15247,8 +15308,8 @@ function _rel4RenderRow(g) {
 
   /* Badges */
   const badges = [];
-  if (g.isFixo) badges.push('<span class="rel-det-badge rel-det-bdg-fixo">🔁 fixo</span>');
-  if (g.isInvest || _isInvestRuntime(g)) badges.push('<span class="rel-det-badge rel-det-bdg-invest">💎 invest</span>');
+  if (g.isFixo) badges.push('<span class="rel-det-badge rel-det-bdg-fixo"><span class="mico"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M4 20v-5h5"/></svg></span>fixo</span>');
+  if (g.isInvest || _isInvestRuntime(g)) badges.push('<span class="rel-det-badge rel-det-bdg-invest"><span class="mico"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>invest</span>');
   if (g.parcelaTotal && g.parcelaAtual) {
     badges.push(`<span class="rel-det-badge rel-det-bdg-parc">${g.parcelaAtual}/${g.parcelaTotal}</span>`);
   }
@@ -15399,7 +15460,7 @@ function _extratoChipsHtml() {
   const onGeral = (esc === 'familia') ? ' on' : '';
   return '<div class="extrato-chips">' + chips +
     '<button class="extrato-chip geral' + onGeral + '" data-extrato-esc="familia">' +
-    '\ud83c\udfe6 Todos</button></div>';
+    '<span class="mico"><svg viewBox="0 0 24 24"><circle cx="8" cy="7" r="3"/><circle cx="16" cy="8" r="2.5"/><path d="M2 20c.5-3 3-5 6-5s5.5 2 6 5"/><path d="M13 20c.4-2.4 2-4 4-4s3.5 1.5 3.5 4"/></svg></span> Todos</button></div>';
 }
 
 /* Todos os gastos do escopo+mês corrente do extrato (exclui só ajustes
@@ -15449,7 +15510,7 @@ function _extratoBodyHtml() {
       <div class="extrato-sheet-count" id="extratoCount">${filtrados.length} de ${todos.length} lançamento${plural}</div>
     </div>
     <input type="text" class="extrato-search" id="extratoBusca"
-           placeholder="🔎 buscar por nome, categoria ou valor (ex: 47,90)"
+           placeholder="buscar por nome, categoria ou valor (ex: 47,90)"
            value="${escapeHtml(extratoSheetState.busca)}"
            autocomplete="off" autocorrect="off" autocapitalize="none">
     <div id="extratoLista">${_relListaCronologicaHtml(filtrados)}</div>
