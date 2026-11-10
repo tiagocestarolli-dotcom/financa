@@ -48,7 +48,7 @@
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, doc, setDoc, getDoc, getDocFromServer, onSnapshot, serverTimestamp,
-    enableIndexedDbPersistence
+    enableIndexedDbPersistence, deleteDoc
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   /* Config do projeto Tiago */
@@ -80,7 +80,7 @@
     app: fbApp, auth: fbAuth, db: fbDb,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
     signOut, onAuthStateChanged,
-    doc, setDoc, getDoc, getDocFromServer, onSnapshot, serverTimestamp
+    doc, setDoc, getDoc, getDocFromServer, onSnapshot, serverTimestamp, deleteDoc
   };
 
   /* Sinaliza que Firebase está pronto */
@@ -5722,6 +5722,14 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 </button>
 
 <div class="section-title">Backup &amp; dados</div>
+<button class="menu-item" data-cfg="backupNuvem">
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.2 4.5 4.5 0 0 0 7 18z"/><path d="M12 15V10"/><path d="M9.5 12.5L12 10l2.5 2.5"/></svg></div>
+  <div class="mi-body">
+    <div class="mi-title">Cópias de segurança na nuvem</div>
+    <div class="mi-sub" id="backupNuvemSub">Cópia automática semanal · últimas 8</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 <button class="menu-item" data-cfg="export">
   <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M12 4v13"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg></div>
   <div class="mi-body">
@@ -5766,7 +5774,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.74.1 · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.75.0 · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -7565,6 +7573,7 @@ function onConfigClick(btn) {
     case 'fixed':     openFixedSheet(); break;
     case 'reminders': openRemindersSheet(); break;
     case 'historicoImportacoes': openHistoricoImportacoesSheet(); break;
+    case 'backupNuvem': BackupNuvem.abrir(); break;
     case 'export':    doExport(); break;
     case 'import':    doImport(); break;
     case 'reset':     doReset(); break;
@@ -8926,6 +8935,152 @@ function openRemindersSheet() {
     saveState(state); openRemindersSheet();
   });
 }
+
+/* ===== v0.75.0 — Cópias de segurança na nuvem =====
+   Uma cópia datada do estado inteiro em users/{uid}/backups/{id}, guardada como
+   texto JSON (um campo só, para não esbarrar em limite de campos). Um índice
+   pequeno (users/{uid}/backups/indice) lista as cópias — assim o app sabe a data
+   da última sem baixar nenhuma cópia grande, e dois aparelhos não duplicam a
+   cópia da semana. Mantém as últimas 8. Automática: no boot logado, se a última
+   tiver mais de 7 dias. Precisa da regra de backups no Firestore (firestore.rules). */
+const BackupNuvem = {
+  MAX: 8,
+  DIAS: 7,
+  _status: null,          /* null | 'ok' | 'sem-permissao' | 'erro' */
+  _indice: null,
+  _rodando: false,
+
+  _ref(id) { return window.FB.doc(window.FB.db, 'users', StorageAdapter.userId, 'backups', id); },
+  disponivel() { return !!(window.FB && window.FB.deleteDoc && StorageAdapter.mode === 'cloud' && StorageAdapter.userId); },
+
+  async lerIndice() {
+    const snap = await window.FB.getDoc(this._ref('indice'));
+    const itens = (snap.exists() && Array.isArray(snap.data().itens)) ? snap.data().itens : [];
+    this._indice = itens.slice().sort((a, b) => (b.em || '').localeCompare(a.em || ''));
+    return this._indice;
+  },
+
+  ultima() { return (this._indice && this._indice[0]) || null; },
+
+  diasDesdeUltima() {
+    const u = this.ultima();
+    if (!u) return null;
+    return Math.floor((Date.now() - new Date(u.em).getTime()) / 86400000);
+  },
+
+  _erroPermissao(e) { return e && (e.code === 'permission-denied' || /permission/i.test(e.message || '')); },
+
+  async criar(origem) {
+    if (!this.disponivel()) throw new Error('Entre com sua conta para guardar cópias na nuvem.');
+    const agora = new Date();
+    const id = 'b' + agora.toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
+    const dados = JSON.stringify(state);
+    const kb = Math.round(new Blob([dados]).size / 1024);
+    if (kb > 1000) throw new Error(`Os dados (${kb} KB) passaram do limite de uma cópia (1 MB).`);
+    const itens = await this.lerIndice();
+    await window.FB.setDoc(this._ref(id), { em: agora.toISOString(), origem, kb, versao: _appVersionShort(), dados });
+    const novo = [{ id, em: agora.toISOString(), origem, kb }].concat(itens.filter(i => i.id !== id));
+    const manter = novo.slice(0, this.MAX), sobra = novo.slice(this.MAX);
+    await window.FB.setDoc(this._ref('indice'), { itens: manter });
+    this._indice = manter;
+    for (const v of sobra) { try { await window.FB.deleteDoc(this._ref(v.id)); } catch (e) { console.warn('[backup] não apagou cópia antiga', v.id, e); } }
+    this._status = 'ok';
+    this.atualizarSub();
+    return manter[0];
+  },
+
+  /* chamada no boot logado; silenciosa, nunca bloqueia o app */
+  async autoSeNecessario() {
+    if (this._rodando || !this.disponivel() || (typeof navigator !== 'undefined' && navigator.onLine === false)) return;
+    this._rodando = true;
+    try {
+      await this.lerIndice();
+      const d = this.diasDesdeUltima();
+      this._status = 'ok';
+      if (d === null || d >= this.DIAS) {
+        await this.criar('automática');
+        console.info('[backup] cópia semanal criada');
+      }
+    } catch (e) {
+      this._status = this._erroPermissao(e) ? 'sem-permissao' : 'erro';
+      console.warn('[backup] automático falhou', e);
+    } finally {
+      this._rodando = false;
+      this.atualizarSub();
+    }
+  },
+
+  atualizarSub() {
+    const el = document.getElementById('backupNuvemSub');
+    if (!el) return;
+    if (this._status === 'sem-permissao') { el.textContent = 'Inativo: falta atualizar as regras do Firestore'; el.style.color = 'var(--coral, #e07a5f)'; return; }
+    el.style.color = '';
+    const d = this.diasDesdeUltima();
+    if (d === null) { el.textContent = this._indice ? 'Nenhuma cópia ainda' : 'Cópia automática semanal · últimas 8'; return; }
+    const quando = d === 0 ? 'hoje' : (d === 1 ? 'ontem' : `há ${d} dias`);
+    el.textContent = `Última cópia ${quando} · ${this._indice.length} guardada${this._indice.length !== 1 ? 's' : ''}`;
+    if (d > this.DIAS + 3) el.style.color = 'var(--coral, #e07a5f)';
+  },
+
+  async abrir() {
+    if (!this.disponivel()) { toast('Entre com sua conta para usar as cópias na nuvem', 'error'); return; }
+    sheet.open('Cópias de segurança', '<div class="empty" style="padding:28px;">Carregando…</div>');
+    try { await this.lerIndice(); this._status = 'ok'; }
+    catch (e) {
+      this._status = this._erroPermissao(e) ? 'sem-permissao' : 'erro';
+      this.atualizarSub();
+      sheet.open('Cópias de segurança', `<div class="rex-microcopy"><em>${this._status === 'sem-permissao'
+        ? 'As cópias na nuvem ainda não estão liberadas. Falta publicar a regra de backups no Firestore (Firebase Console › Firestore › Regras).'
+        : 'Não foi possível ler as cópias agora. Verifique a conexão e tente de novo.'}</em></div>`);
+      return;
+    }
+    this.atualizarSub();
+    const itens = this._indice || [];
+    const lista = itens.length ? itens.map(i => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:8px;border-radius:14px;background:rgba(241,231,214,.06);border:1px solid rgba(241,231,214,.12);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;color:var(--cream,#f1e7d6);font-variant-numeric:tabular-nums;white-space:nowrap;">${escapeHtml(_fmtDataHora(i.em))}</div>
+          <div style="font-size:12px;color:#9eabc0;margin-top:2px;white-space:nowrap;">${escapeHtml(i.origem || '')} · ${Number(i.kb) || 0} KB</div>
+        </div>
+        <button data-bk-restaurar="${escapeHtml(i.id)}" style="flex:none;width:auto;padding:8px 14px;font-size:12.5px;font-weight:600;border-radius:10px;background:transparent;color:var(--gold,#d6ae6a);border:1px solid var(--gold,#d6ae6a);cursor:pointer;">restaurar</button>
+      </div>`).join('') : '<div class="empty" style="padding:24px;">Nenhuma cópia ainda.</div>';
+    sheet.open('Cópias de segurança', `
+      <div class="rex-microcopy"><em>O app guarda sozinho uma cópia completa dos dados por semana, na sua conta, e mantém as últimas ${this.MAX}. Restaurar substitui os dados atuais — antes disso, o app guarda uma cópia do estado atual, então dá para voltar atrás.</em></div>
+      <button class="btn btn-primary" id="bkCriarAgora" style="width:100%;margin:6px 0 14px;">fazer uma cópia agora</button>
+      <div>${lista}</div>`);
+    const btn = document.getElementById('bkCriarAgora');
+    if (btn) btn.addEventListener('click', async () => {
+      btn.disabled = true; btn.textContent = 'guardando…';
+      try { await this.criar('manual'); toast('Cópia guardada na nuvem', 'success'); this.abrir(); }
+      catch (e) { toast(this._erroPermissao(e) ? 'Falta liberar a regra de backups no Firestore' : (e.message || 'Não foi possível guardar a cópia'), 'error'); btn.disabled = false; btn.textContent = 'fazer uma cópia agora'; }
+    });
+    document.querySelectorAll('[data-bk-restaurar]').forEach(b => b.addEventListener('click', () => this.restaurar(b.dataset.bkRestaurar)));
+  },
+
+  async restaurar(id) {
+    const item = (this._indice || []).find(i => i.id === id);
+    const ok = await askConfirm({
+      title: 'Restaurar esta cópia?',
+      message: `Os dados atuais serão substituídos pela cópia de ${item ? _fmtDataHora(item.em) : id}. Antes disso, o app guarda uma cópia do estado atual.`,
+      confirmLabel: 'Restaurar', danger: true
+    });
+    if (!ok) return;
+    try {
+      const snap = await window.FB.getDoc(this._ref(id));
+      if (!snap.exists()) throw new Error('Cópia não encontrada');
+      const parsed = JSON.parse(snap.data().dados || 'null');
+      if (!parsed || !parsed.members) throw new Error('Cópia inválida');
+      await this.criar('antes de restaurar');
+      state = Object.assign(defaultState(), parsed);
+      saveState(state);
+      renderConfigCounts();
+      sheet.close && sheet.close();
+      toast('Cópia restaurada', 'success');
+    } catch (e) {
+      toast(e.message || 'Não foi possível restaurar', 'error');
+    }
+  }
+};
 
 /* ===== Backup ===== */
 function doExport() {
@@ -23866,6 +24021,8 @@ async function initFirebaseAuth() {
 
       bootApp();
       if (_pushAposBoot) StorageAdapter.save(state);
+      /* v0.75.0: cópia semanal na nuvem — depois do boot e da primeira gravação */
+      setTimeout(() => { try { BackupNuvem.autoSeNecessario(); } catch (e) {} }, 8000);
 
       StorageAdapter.startRealtimeSync((remoteState) => {
         /* v0.58.1: toda versão do servidor é MESCLADA (3 vias), nunca
