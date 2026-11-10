@@ -5382,6 +5382,17 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 .venc-meta i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
 .venc-val { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
 .venc-pagar { height: 32px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--gold); color: var(--navy-900); font-family: var(--font-body); font-weight: 700; font-size: 12px; flex: 0 0 auto; }
+
+/* ============== v0.76.1 — olho único da família ============== */
+.ini-hero { position: relative; }
+.ini-olho { position: absolute; top: -8px; right: 0; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border-radius: 99px; border: 1px solid rgba(241,231,214,.22); background: rgba(241,231,214,.08); color: var(--cream, #f1e7d6); font: 600 11.5px/1 var(--font-body); letter-spacing: .04em; cursor: pointer; z-index: 2; }
+.ini-olho svg { width: 16px; height: 16px; }
+.ht-eye-ico { display: inline-flex; align-items: center; gap: 5px; }
+.ht-eye-ico svg { width: 15px; height: 15px; }
+.view[data-view="familia"].ocultar-valores .sh-total,
+.view[data-view="familia"].ocultar-valores .gr-value,
+.view[data-view="familia"].ocultar-valores .pb-sub,
+.view[data-view="familia"].ocultar-valores .ch-prev-val { filter: blur(7px); user-select: none; }
 </style>
 
 </head>
@@ -5712,6 +5723,14 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 </button>
 
 <div class="section-title">Aparência</div>
+<button class="menu-item" data-cfg="mediaDesde">
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg></div>
+  <div class="mi-body">
+    <div class="mi-title">Médias a partir de</div>
+    <div class="mi-sub" id="mediaDesdeSub">maio de 2026 · meses anteriores ficam fora das médias</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
 <button class="menu-item" data-cfg="tema">
   <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg></div>
   <div class="mi-body">
@@ -5774,7 +5793,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.75.0 · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.76.1 · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -6720,6 +6739,27 @@ document.querySelectorAll('[data-extrato]').forEach(btn => {
   });
 });
 
+/* v0.76.1 — um olho só para a página Início: esconde/mostra TODOS os valores da
+   família (total do topo, pago × a pagar, colunas, cartões por tipo, cartão da
+   pessoa, listas e lançamentos). A aba Tiago continua com o olho próprio. */
+const _OLHO_ABERTO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c2-4 6-7 10-7s8 3 10 7c-2 4-6 7-10 7S4 16 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const _OLHO_FECHADO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2L22 22"/><path d="M6.7 6.7C4.6 8.1 3 10 2 12c2 4 6 7 10 7 1.7 0 3.3-.4 4.7-1.1"/><path d="M9.9 4.2C10.6 4.1 11.3 4 12 4c4 0 8 3 10 7-.8 1.5-1.9 2.9-3.2 4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+function _revealFamilia() { return !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal); }
+function _aplicarPrivFamilia() {
+  const v = document.querySelector('.view[data-view="familia"]');
+  if (v) v.classList.toggle('ocultar-valores', !_revealFamilia());
+}
+function _setRevealFamilia(rev) {
+  if (!state.uiPrefs) state.uiPrefs = {};
+  state.uiPrefs.revealFamiliaTotal = !!rev;
+  if (!state.uiPrefs.revealCategoria) state.uiPrefs.revealCategoria = {};
+  ['casa', 'marina', 'heitor', 'juliana'].forEach(k => { state.uiPrefs.revealCategoria[k] = !!rev; });
+  saveState(state);
+  _aplicarPrivFamilia();
+  try { renderInicioDash(true); } catch (e) {}
+  try { renderFamiliaContent(); } catch (e) {}
+}
+
 /* ====== Família — sub-tabs (Casa/Marina/Heitor/Juliana) ====== */
 function renderFamiliaTotalConsolidado() {
   try { renderInicioDash(); } catch (e) { console.warn('[inicio] dashboard:', e); } /* v0.60.0 */
@@ -6938,7 +6978,7 @@ function _pessoaColsHtml(cat, ym) {
     if (!_ehPrevisivel(g)) porYmVar[g.ym] += Number(g.valor) || 0;
   });
   const total = porYm[ym] || 0;
-  const fechados = yms.filter(y => y !== ym && y < ymAtual && (porYm[y] || 0) > 0);
+  const fechados = yms.filter(y => y !== ym && y < ymAtual && _ymNaMedia(y) && (porYm[y] || 0) > 0); /* v0.76.0 */
   const media = fechados.length ? fechados.reduce((a, y) => a + porYm[y], 0) / fechados.length : null;
   if (yms.filter(y => (porYm[y] || 0) > 0).length < 2) return '';
   const diasMes = _iniDiasNoMes(ym);
@@ -6949,7 +6989,7 @@ function _pessoaColsHtml(cat, ym) {
   const vals = yms.map(y => porYm[y] || 0);
   const topo = Math.max(1, proj || 0, media || 0, ...vals) * 1.1;
   const pct = v => Math.max(0, Math.min(100, v / topo * 100));
-  const _rv = !!(state.uiPrefs.revealCategoria && state.uiPrefs.revealCategoria[cat]);
+  const _rv = _revealFamilia(); /* v0.76.1 */
   const cols = yms.map((y, i) => {
     const v = vals[i]; const lbl = relYmLabelAbbr(y).replace('/', '');
     if (y === ym && ehAtual) {
@@ -6963,7 +7003,7 @@ function _pessoaColsHtml(cat, ym) {
       <div class="ini-col-lbl ${y === ym ? 'atual' : ''}">${lbl}</div></div>`;
   }).join('');
   const mediaTop = media ? (100 - pct(media)) : null;
-  const reveal = !!(state.uiPrefs.revealCategoria && state.uiPrefs.revealCategoria[cat]);
+  const reveal = _revealFamilia(); /* v0.76.1 */
   const f = v => reveal ? _iniFmt(v) : 'R$ ••••';
   const dir = vp === null ? '' : (vp > 0.05 ? 'acima' : (vp < -0.05 ? 'abaixo' : 'na linha'));
   return `
@@ -7146,13 +7186,13 @@ function renderInicioDash(forcar) {
       for (let i = 0; i < t.length; i++) { _sig ^= t.charCodeAt(i); _sig = Math.imul(_sig, 0x01000193); }
     }
   }
-  const chave = [ym, _n, _soma.toFixed(2), _pend.toFixed(3), (_sig >>> 0).toString(36), !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal), temaAtual(), new Date().getDate()].join('|');
+  const chave = [ym, _n, _soma.toFixed(2), _pend.toFixed(3), _mediaDesde(), (_sig >>> 0).toString(36), !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal), temaAtual(), new Date().getDate()].join('|');
   if (!forcar && chave === _iniUltimaChave && host.firstElementChild) return;
   _iniUltimaChave = chave;
   const ymAtual = currentYM();
   const ehAtual = ym === ymAtual;
   const yms = relYmsHistorico(ym, INI_HIST_MESES + 1); /* 6 anteriores + o mês */
-  const fechados = yms.filter(y => y < ymAtual && y !== ym);
+  const fechados = yms.filter(y => y < ymAtual && y !== ym && _ymNaMedia(y)); /* v0.76.0 */
   const { porYm, porCat, porYmVar } = _iniConsumoFamilia(yms);
   const total = porYm[ym] || 0;
   const comDados = fechados.filter(y => (porYm[y] || 0) > 0);
@@ -7161,6 +7201,7 @@ function renderInicioDash(forcar) {
   const reveal = !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal);
 
   /* comparação e projeção */
+  const _fvO = v => reveal ? _iniFmt(v) : 'R$ ••••'; /* v0.76.1 */
   let vsHtml = '';
   let statusHtml = '';
   const diasMes = _iniDiasNoMes(ym);
@@ -7172,7 +7213,7 @@ function renderInicioDash(forcar) {
       const proj = total + (_mediaDe(porYmVar, comDados) ?? media) * (diasMes - diaHoje) / diasMes;
       const vp = (proj - media) / media;
       const cls = vp > 0.05 ? 'alerta' : 'ok';
-      vsHtml = `<span>projeção <b class="${cls}">${_iniFmt(proj)}</b> · média ${_iniFmt(media)}</span>`;
+      vsHtml = `<span>projeção <b class="${cls}">${_fvO(proj)}</b> · média ${_fvO(media)}</span>`;
       const pctMes = Math.round(diaHoje / diasMes * 100);
       const off = Math.round(226 * (1 - diaHoje / diasMes));
       statusHtml = `
@@ -7182,11 +7223,11 @@ function renderInicioDash(forcar) {
             <circle cx="42" cy="42" r="36" fill="none" stroke="${vp > 0.05 ? 'var(--coral)' : 'var(--mint)'}" stroke-width="9" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="${off}" transform="rotate(-90 42 42)" style="animation:iniRing 1.1s cubic-bezier(.2,.7,.2,1) both"></circle>
             <text x="42" y="47" text-anchor="middle" font-family="Montserrat" font-weight="700" font-size="17" fill="#f1e7d6">${pctMes}%</text>
           </svg>
-          <div class="txt">Dia ${diaHoje} de ${diasMes}. Projeção de fechamento <b>${_iniFmt(proj)}</b> (contas fixas do mês + gastos variáveis no ritmo da média) — ${vp > 0.05 ? '<b style="color:var(--coral)">' + Math.round(vp * 100) + '% acima</b>' : (vp < -0.05 ? '<b style="color:var(--mint)">' + Math.round(-vp * 100) + '% abaixo</b>' : 'na linha')} da média de ${comDados.length} ${comDados.length === 1 ? 'mês fechado' : 'meses fechados'}.</div>
+          <div class="txt">Dia ${diaHoje} de ${diasMes}. Projeção de fechamento <b>${_fvO(proj)}</b> (contas fixas do mês + gastos variáveis no ritmo da média) — ${vp > 0.05 ? '<b style="color:var(--coral)">' + Math.round(vp * 100) + '% acima</b>' : (vp < -0.05 ? '<b style="color:var(--mint)">' + Math.round(-vp * 100) + '% abaixo</b>' : 'na linha')} da média de ${comDados.length} ${comDados.length === 1 ? 'mês fechado' : 'meses fechados'}.</div>
         </div>`;
     } else {
       const cls = var_ > 0.05 ? 'alerta' : (var_ < -0.05 ? 'ok' : '');
-      vsHtml = `<span><b class="${cls}">${var_ > 0 ? '+' : '−'}${Math.round(Math.abs(var_) * 100)}%</b> vs média dos meses fechados (${_iniFmt(media)})</span>`;
+      vsHtml = `<span><b class="${cls}">${var_ > 0 ? '+' : '−'}${Math.round(Math.abs(var_) * 100)}%</b> vs média dos meses fechados (${_fvO(media)})</span>`;
     }
   } else {
     vsHtml = '<span>sem meses fechados para comparar</span>';
@@ -7241,7 +7282,7 @@ function renderInicioDash(forcar) {
     const frac = m && m > 0 ? Math.min(1, v / m) : (v > 0 ? 1 : 0);
     const off = Math.round(226 * (1 - frac));
     const cor = escuro ? d.corEsc : d.cor;
-    const sub = m && m > 0 ? `${Math.round(v / m * 100)}% da média · ${_iniFmt(m)}` : (v > 0 ? 'sem média ainda' : 'nada este mês');
+    const sub = m && m > 0 ? `${Math.round(v / m * 100)}% da média${reveal ? ' · ' + _iniFmt(m) : ''}` : (v > 0 ? 'sem média ainda' : 'nada este mês');
     return `
       <button class="ini-card ini-d${i + 1}" data-ini-sub="${escapeHtml(d.nome)}">
         <div class="ini-ring">
@@ -7272,6 +7313,7 @@ function renderInicioDash(forcar) {
     <div class="ini">
       <div class="ini-hero">
         <div class="ini-eyebrow">Gasto da família · ${mesLabel}</div>
+        <button class="ini-olho" id="iniOlho" aria-label="${reveal ? 'Ocultar valores' : 'Mostrar valores'}">${reveal ? _OLHO_FECHADO : _OLHO_ABERTO}</button>
         <button class="ini-total ${reveal ? '' : 'hidden-val'}" id="iniTotal" style="background:none;border:0;color:inherit;font-family:var(--font-display);line-height:1.05;cursor:pointer;padding:0;" aria-label="Mostrar ou ocultar valores">${reveal ? _iniFmt(total) : 'R$ ••••••'}</button>
         <div class="ini-vs">${vsHtml}</div>
         ${_iniSplitHtml(ym, reveal)}
@@ -7295,12 +7337,9 @@ function renderInicioDash(forcar) {
   const _iniMes = (fn) => { famCurrentYM = fn(famCurrentYM); renderFamiliaTotalConsolidado(); renderFamiliaContent(); };
   document.getElementById('iniMesPrev').onclick = () => _iniMes(ymPrev);
   document.getElementById('iniMesNext').onclick = () => _iniMes(ymNext);
-  document.getElementById('iniTotal').onclick = () => {
-    if (!state.uiPrefs) state.uiPrefs = {};
-    state.uiPrefs.revealFamiliaTotal = !state.uiPrefs.revealFamiliaTotal;
-    saveState(state);
-    renderInicioDash();
-  };
+  document.getElementById('iniTotal').onclick = () => _setRevealFamilia(!_revealFamilia());
+  document.getElementById('iniOlho').onclick = () => _setRevealFamilia(!_revealFamilia());
+  _aplicarPrivFamilia();
   /* v0.74.0 */
   const _spl = document.getElementById('iniSplit');
   if (_spl) _spl.onclick = () => openCompromissosSheet('familia');
@@ -7348,7 +7387,7 @@ function _iniAbrirSubgrupo(subc, ym) {
     if (g.ym === ym) { porCat[g.categoria] = (porCat[g.categoria] || 0) + v; gastosMes.push(g); }
   });
   const total = porYm[ym] || 0;
-  const fechados = yms.filter(y => y !== ym && y < ymAtual && (porYm[y] || 0) > 0);
+  const fechados = yms.filter(y => y !== ym && y < ymAtual && _ymNaMedia(y) && (porYm[y] || 0) > 0); /* v0.76.0 */
   const media = fechados.length ? fechados.reduce((a, y) => a + porYm[y], 0) / fechados.length : null;
 
   const diasMes = _iniDiasNoMes(ym);
@@ -7441,6 +7480,7 @@ function _iniAbrirSubgrupo(subc, ym) {
    ========================================================================= */
 
 function renderConfigCounts() {
+  try { atualizarMediaDesdeSub(); } catch (e) {}
   /* Membros */
   const cm = document.getElementById('cfgMembers');
   cm.innerHTML = Object.entries(state.members).map(([key, m]) => `
@@ -7562,6 +7602,7 @@ function onConfigClick(btn) {
   switch (cfg) {
     case 'member':    openMemberSheet(btn.dataset.key); break;
     case 'tema':      escolherTema(); break;
+    case 'mediaDesde': escolherMediaDesde(); break;
     case 'subcats':   openSubcatsSheet(cat); break;
     case 'grupos':    openGruposSheet(cat); break;
     case 'cards':     openCardsSheet(); break;
@@ -7579,6 +7620,30 @@ function onConfigClick(btn) {
     case 'reset':     doReset(); break;
     case 'logout':    doLogout(); break;
   }
+}
+
+/* ===== v0.76.0 — Médias a partir de ===== */
+function _mediaDesdeLabel() {
+  const [a, m] = _mediaDesde().split('-');
+  const nomes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  return `${nomes[Number(m) - 1]} de ${a}`;
+}
+function atualizarMediaDesdeSub() {
+  const el = document.getElementById('mediaDesdeSub');
+  if (el) el.textContent = `${_mediaDesdeLabel()} · meses anteriores ficam fora das médias`;
+}
+async function escolherMediaDesde() {
+  const [a, m] = _mediaDesde().split('-');
+  const v = await askText({ title: 'Médias a partir de', label: 'Mês e ano (MM/AAAA). Meses anteriores continuam nos gráficos, mas não entram em médias, tendências e projeções.', defaultValue: `${m}/${a}`, placeholder: '05/2026', maxLength: 7 });
+  if (v === null || v === undefined) return;
+  const mm = String(v).trim().match(/^(\d{1,2})\s*[\/\-.]\s*(\d{4})$/);
+  if (!mm || Number(mm[1]) < 1 || Number(mm[1]) > 12) { toast('Use o formato MM/AAAA, ex.: 05/2026', 'error'); return; }
+  state.settings = state.settings || {};
+  state.settings.mediaDesde = `${mm[2]}-${String(Number(mm[1])).padStart(2, '0')}`;
+  saveState(state);
+  atualizarMediaDesdeSub();
+  if (typeof _iniUltimaChave !== 'undefined') _iniUltimaChave = null;
+  toast(`Médias a partir de ${_mediaDesdeLabel()}`, 'success');
 }
 
 /* ===== Logout ===== */
@@ -10154,6 +10219,16 @@ function relYmLabelAbbr(ym) {
   const m = Number(ym.split('-')[1]);
   return MESES_PT_ABBR[m - 1];
 }
+/* v0.76.0 — início das médias. Meses anteriores a este têm só entradas (provisão
+   de IR) e gastos de teste: aparecem nos gráficos, mas NUNCA entram em média,
+   mediana, tendência ou projeção. Ajustável em Config › Médias a partir de. */
+const MEDIA_DESDE_PADRAO = '2026-05';
+function _mediaDesde() {
+  const v = state && state.settings && state.settings.mediaDesde;
+  return (typeof v === 'string' && /^\d{4}-\d{2}$/.test(v)) ? v : MEDIA_DESDE_PADRAO;
+}
+function _ymNaMedia(ym) { return !!ym && ym >= _mediaDesde(); }
+
 function relMediana(arr) {
   if (!arr || !arr.length) return 0;
   const s = [...arr].sort((a, b) => a - b);
@@ -10283,7 +10358,7 @@ function relCalcSubcatsConsolidadas(ym, cats, limit) {
 const REL_TIPO_CATS = ['casa', 'marina', 'heitor', 'juliana'];
 function relCalcTipoGastoPorMembro(ym, ymsHist) {
   const ymAtual = (typeof currentYM === 'function') ? currentYM() : null;
-  const fechados = (ymsHist || []).filter(y => !ymAtual || y < ymAtual);
+  const fechados = (ymsHist || []).filter(y => (!ymAtual || y < ymAtual) && _ymNaMedia(y)); /* v0.76.0 */
   const mapa = new Map();
   const pega = (sc) => {
     if (!mapa.has(sc)) mapa.set(sc, { nome: sc, total: 0, pago: 0, previsto: 0, porCat: {}, n: 0, porYm: {} });
@@ -12012,7 +12087,7 @@ window.relatorioElegante = {
        so meses fechados entram no calculo, senao o mes em curso (parcial)
        puxaria a media pra baixo e faria meses normais parecerem altos. */
     const ymHoje = (typeof currentYM === 'function') ? currentYM() : '9999-99';
-    const fechados = dados.filter(d => d.ym < ymHoje);
+    const fechados = dados.filter(d => d.ym < ymHoje && _ymNaMedia(d.ym)); /* v0.76.0 */
     const temMedia = fechados.length > 0;
     const medC = temMedia ? fechados.reduce((a, d) => a + d.consumo, 0) / fechados.length : 0;
     const medI = temMedia ? fechados.reduce((a, d) => a + d.invest, 0) / fechados.length : 0;
@@ -13358,7 +13433,7 @@ function _relSecaoMultiMesHtml(historico, cats, periodo) {
     topPts.push({ x: x + colW / 2, total: h.total });
   });
 
-  const med = relMediana(totais);
+  const med = relMediana(historico.filter(h => _ymNaMedia(h.ym)).map(h => h.total)); /* v0.76.0 */
   const medY = H - padBot - (med / maxTotal) * usableH;
 
   const mmValores = relMediaMovel(totais, 3);
@@ -13399,14 +13474,14 @@ function _relSecaoMultiMesHtml(historico, cats, periodo) {
 function _relPainelDados(serie, ymHoje) {
   const meses = (serie || []).map(p => {
     const valor = Number(p.valor) || 0;
-    return { ym: p.ym, valor: valor, parcial: p.ym >= ymHoje };
+    return { ym: p.ym, valor: valor, parcial: p.ym >= ymHoje, foraMedia: !_ymNaMedia(p.ym) };
   });
-  const fechados = meses.filter(m => !m.parcial);
+  const fechados = meses.filter(m => !m.parcial && !m.foraMedia); /* v0.76.0 */
   const media = fechados.length
     ? fechados.reduce((sum, m) => sum + m.valor, 0) / fechados.length
     : null;
   meses.forEach(m => {
-    m.acima = (media === null || m.parcial) ? null : (m.valor > media);
+    m.acima = (media === null || m.parcial || m.foraMedia) ? null : (m.valor > media);
   });
   const cand = meses.map(m => Math.max(0, m.valor));
   if (media !== null) cand.push(media);
@@ -13529,7 +13604,7 @@ function _relSecaoPainelMesAMesHtml(historico, cats) {
     const emMil = d.max >= 1000;
     if (emMil) algumEmMil = true;
 
-    const fechados = d.meses.filter(x => !x.parcial).map(x => x.valor);
+    const fechados = d.meses.filter(x => !x.parcial && !x.foraMedia).map(x => x.valor);
     let trendCls = 'flat', trendTxt = '';
     if (fechados.length >= 3) {
       const mm = relMediaMovel(fechados, 3);
@@ -14287,8 +14362,8 @@ function _rel2HeroHtml(entradas, saidas, invest, ym, cats) {
   const histE = yms6.map(y => rel2CalcEntradas(y));
   const histS = yms6.map(y => rel2CalcSaidas(y, cats));
   const histI = yms6.map(y => rel2CalcInvestimentos(y, cats));
-  const trend = (atual, hist) => {
-    const med = relMediana(hist.slice(0, -1));
+  const trend = (atual, hist, soDesde) => {
+    const med = relMediana(hist.slice(0, -1).filter((v, i) => !soDesde || _ymNaMedia(yms6[i]))); /* v0.76.0 */
     if (!med) return '';
     const delta = (atual - med) / med;
     if (Math.abs(delta) < 0.05) return '→ próximo da mediana';
@@ -14312,12 +14387,12 @@ function _rel2HeroHtml(entradas, saidas, invest, ym, cats) {
         <div class="rh3-col saidas">
           <div class="rh3-col-label"><span class="rh3-dot"></span>saídas</div>
           <div class="rh3-val">${_relFmtBR(saidas)}</div>
-          <div class="rh3-trend">${escapeHtml(trend(saidas, histS))}</div>
+          <div class="rh3-trend">${escapeHtml(trend(saidas, histS, true))}</div>
         </div>
         <div class="rh3-col invest">
           <div class="rh3-col-label"><span class="rh3-dot"></span>invest.</div>
           <div class="rh3-val">${_relFmtBR(invest)}</div>
-          <div class="rh3-trend">${escapeHtml(trend(invest, histI))}</div>
+          <div class="rh3-trend">${escapeHtml(trend(invest, histI, true))}</div>
         </div>
       </div>
       <div class="rh3-saldo">
@@ -15119,7 +15194,7 @@ function _rel3SecaoMultiMesSoloHtml(historico, periodo) {
     topPts.push({ x: x + colW / 2, total: h.total });
   });
 
-  const med = relMediana(totais);
+  const med = relMediana(historico.filter(h => _ymNaMedia(h.ym)).map(h => h.total)); /* v0.76.0 */
   const medY = H - padBot - (med / maxTotal) * usableH;
   const mmValores = relMediaMovel(totais, 3);
   const mmPontos = mmValores.map((v, i) => ({
@@ -15229,7 +15304,7 @@ function _rel3SecaoSmallMultiplesSubcatsHtml(ym, periodo) {
       return tot;
     });
     const maxSerie = Math.max.apply(null, serie.concat([1]));
-    const med = relMediana(serie);
+    const med = relMediana(serie.filter((v, i) => _ymNaMedia(yms[i]))); /* v0.76.0 */
     const mm = relMediaMovel(serie, 3);
 
     let bars = '';
@@ -16557,7 +16632,7 @@ function renderFamiliaContent() {
   else if (delta < -0.5)                      { deltaCls = 'down'; deltaTxt = `↓ ${Math.abs(delta).toFixed(1)}%`; }
   else if (totalAnt > 0)                      { deltaCls = 'flat'; deltaTxt = '≈ estável'; }
 
-  const revealCat = !!(state.uiPrefs.revealCategoria && state.uiPrefs.revealCategoria[cat]);
+  const revealCat = _revealFamilia(); /* v0.76.1: olho único da família */
 
   const heroHtml = revealCat ? `
     <div class="cat-hero" id="catHero" style="--member-color:${member.cor};">
@@ -16587,7 +16662,7 @@ function renderFamiliaContent() {
       <div class="ht-label">gastos · ${MESES_PT[Number(famCurrentYM.split('-')[1]) - 1]}</div>
       <div class="ht-value-wrap">
         <span class="ht-value hidden">R$ ●●●●,●●</span>
-        <span class="ht-eye">tocar para ver</span>
+        <span class="ht-eye ht-eye-ico">${_OLHO_ABERTO} mostrar</span>
       </div>
     </div>
   `;
@@ -16714,19 +16789,11 @@ function renderFamiliaContent() {
       const hideHit = ev.target.closest && ev.target.closest('#catHeroHide');
       if (hideHit) {
         ev.stopPropagation();
-        if (!state.uiPrefs.revealCategoria) state.uiPrefs.revealCategoria = {};
-        state.uiPrefs.revealCategoria[cat] = false;
-        saveState(state);
-        renderFamiliaContent();
+        _setRevealFamilia(false); /* v0.76.1 */
         return;
       }
       /* Caso contrário, se está oculto, revela */
-      if (!revealCat) {
-        if (!state.uiPrefs.revealCategoria) state.uiPrefs.revealCategoria = {};
-        state.uiPrefs.revealCategoria[cat] = true;
-        saveState(state);
-        renderFamiliaContent();
-      }
+      if (!revealCat) _setRevealFamilia(true);
     };
   }
 
