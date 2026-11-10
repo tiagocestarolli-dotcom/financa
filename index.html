@@ -32,13 +32,10 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- Bibliotecas via CDN (carregadas para módulos futuros) -->
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+<!-- v0.74.1: Chart.js removido (nenhum gráfico usava — todos são SVG próprio).
+     PDF.js passou a carregar só na hora de importar um PDF (_carregarPdfJs). -->
 
 <!-- ========== Firebase v10 (modular) — Auth + Firestore ========== -->
 
@@ -5769,7 +5766,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.74.0 · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.74.1 · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -7130,12 +7127,18 @@ function renderInicioDash(forcar) {
   const _g = state.gastos || [];
   let _soma = 0, _n = 0;
   const _ym0 = relYmsHistorico(ym, INI_HIST_MESES + 1)[0];
-  let _pend = 0;
+  let _pend = 0, _sig = 0x811c9dc5;
   for (const g of _g) {
     if (g.ym >= _ym0 && g.ym <= ym && g.pago === false) _pend += (Number(g.valor) || 0) + 0.001; /* v0.74.0: baixa muda a chave */
-    if (REL_TIPO_CATS.indexOf(g.categoria) >= 0 && g.ym >= _ym0 && g.ym <= ym) { _soma += Number(g.valor) || 0; _n++; }
+    if (REL_TIPO_CATS.indexOf(g.categoria) >= 0 && g.ym >= _ym0 && g.ym <= ym) {
+      _soma += Number(g.valor) || 0; _n++;
+      /* v0.74.1: reclassificar (subgrupo, pessoa, invest/ajuste) muda a chave —
+         antes o painel só atualizava ao reabrir o app */
+      const t = (g.id || '') + '|' + g.categoria + '|' + (g.subcategoria || '') + '|' + g.ym + '|' + (_relGastoConta(g) ? 1 : 0);
+      for (let i = 0; i < t.length; i++) { _sig ^= t.charCodeAt(i); _sig = Math.imul(_sig, 0x01000193); }
+    }
   }
-  const chave = [ym, _n, _soma.toFixed(2), _pend.toFixed(3), !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal), temaAtual(), new Date().getDate()].join('|');
+  const chave = [ym, _n, _soma.toFixed(2), _pend.toFixed(3), (_sig >>> 0).toString(36), !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal), temaAtual(), new Date().getDate()].join('|');
   if (!forcar && chave === _iniUltimaChave && host.firstElementChild) return;
   _iniUltimaChave = chave;
   const ymAtual = currentYM();
@@ -9606,7 +9609,7 @@ function renderCompromissosSheet() {
 
   const faturasSec = faturas.length === 0 ? '' :
     `<div class="cm-section-title">Faturas de cartão</div>
-     <div class="cm-fatura-note">As compras já contam como gasto na data da compra; aqui você confere o pagamento da fatura.</div>
+     <div class="cm-fatura-note">As compras do cartão já contam como gasto no mês da fatura; aqui você só confere o pagamento.</div>
      ${faturas.map(fatRow).join('')}`;
 
   const fixosSec = c.fixos.length === 0
@@ -12889,7 +12892,7 @@ function _relHeaderHtml(ym, periodo, hero) {
         <span class="rh-pago">${_relFmtBR(hero.consumo)}</span> em consumo${hero.invest > 0 ? '&nbsp;+&nbsp;<span style="color:var(--flow-invest);font-weight:500;">' + _relFmtBR(hero.invest) + ' investimentos</span>' : ''}
         ${hero.prev > 0 ? '<span class="rh-comp" style="margin-top:1px;">dos R$ do consumo, ' + _relFmtBR(hero.pago) + ' pago + ' + _relFmtBR(hero.prev) + ' previsto</span>' : ''}
         ${hero.consumo > 0 ? '<span class="rh-comp">' + hero.pctFixos.toFixed(0) + '% do consumo comprometido em fixos</span>' : ''}
-        <span class="rh-comp" style="opacity:0.7;font-style:italic;">regime econômico: gastos contam no mês em que aconteceram</span>
+        <span class="rh-comp" style="opacity:0.7;font-style:italic;">cartão conta no mês da fatura; demais gastos, na data do lançamento</span>
       </div>
     </div>
   `;
@@ -19268,7 +19271,20 @@ function openImportarFaturaSheet(cardId) {
 
 /* Extrai texto cru de um PDF usando PDF.js (carregado via CDN no head).
    Tenta preservar quebras de linha baseando-se na coordenada Y dos itens. */
+/* v0.74.1: PDF.js sob demanda (antes vinha em toda abertura do app, ~320 KB) */
+async function _carregarPdfJs() {
+  if (typeof pdfjsLib !== 'undefined') return;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Não foi possível carregar o leitor de PDF. Verifique a conexão e tente novamente.'));
+    document.head.appendChild(s);
+  });
+}
+
 async function extrairTextoDoPDF(file) {
+  await _carregarPdfJs();
   if (typeof pdfjsLib === 'undefined') {
     throw new Error('PDF.js não carregado. Recarregue a página.');
   }
@@ -19370,7 +19386,7 @@ function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
   let lancs;
   /* v0.56.1: debug zerado a cada importação (evita exibir o de uma fatura anterior) */
   if (typeof window !== 'undefined') window.__faturaDebug = null;
-  const meta = String(banco).startsWith('itau') ? extrairMetaFaturaItau(textoBruto) : null;
+  let meta = String(banco).startsWith('itau') ? extrairMetaFaturaItau(textoBruto) : null;
   switch (banco) {
     case 'itau-mc-black':
       lancs = parserItauMCBlack(textoBruto, pdfItems, meta ? meta.lancamentosAtuais : null);
@@ -19390,8 +19406,11 @@ function parseFatura(textoBruto, hintBanco = null, pdfItems = null) {
       lancs = parserGenericoFatura(textoBruto);
       break;
   }
+  /* v0.74.1: Sicoob/BTG também anulam estorno pareado — as notas vão para a revisão */
+  if (!meta && lancs && lancs.notasImport && lancs.notasImport.length) meta = { vencimento: null, notas: [] };
   if (meta) meta.notas = (lancs && lancs.notasImport) ? lancs.notasImport.slice() : [];
   if (meta && meta.vencimento) ajustarAnoPorVencimento(lancs, meta.vencimento);
+  else ajustarAnoPorHoje(lancs);
   return { banco, lancs, meta };
 }
 
@@ -19776,6 +19795,8 @@ function parserSicoob(textoBruto, pdfItems) {
   }
 
   const currentYear = new Date().getFullYear();
+  /* v0.74.1: créditos (estornos) coletados pelo modo em execução */
+  let _credSicoob = null;
 
   /* ---------- MODO A: com coordenadas X/Y dos items ---------- */
   function modoA(items) {
@@ -19817,11 +19838,12 @@ function parserSicoob(textoBruto, pdfItems) {
         const valorItem = grupo.find(it => it.x >= X_CIDADE_MAX);
         if (!valorItem) continue;
         const valor = parseValorSicoob(valorItem.text);
-        if (valor === null || valor <= 0) continue;
+        if (valor === null || valor === 0) continue;
 
         let descricao = descItems.map(it => it.text.trim()).join(' ').replace(/\s+/g, ' ').trim();
         if (!descricao) continue;
         if (FILTRO_DESC.test(descricao)) continue;
+        if (valor < 0) { if (_credSicoob) _credSicoob.push({ descricao, valor: -valor }); continue; }
 
         const { parcela, descricaoLimpa } = extrairParcela(descricao);
         descricao = descricaoLimpa.replace(/\s+R\$\s*$/i, '').trim();
@@ -19909,10 +19931,11 @@ function parserSicoob(textoBruto, pdfItems) {
   }
 
   function processarLanc(diaRaw, mes, descricaoRaw, valor, out) {
-    if (valor <= 0) return;
+    if (!valor) return;
     let descricao = descricaoRaw.replace(/\s+/g, ' ').trim();
     if (!descricao) return;
     if (FILTRO_DESC.test(descricao)) return;
+    if (valor < 0) { if (_credSicoob) _credSicoob.push({ descricao, valor: -valor }); return; }
     const { parcela, descricaoLimpa } = extrairParcela(descricao);
     descricao = descricaoLimpa.replace(/\s+R\$\s*$/i, '').trim();
     if (!descricao || descricao.length < 2) return;
@@ -19941,17 +19964,21 @@ function parserSicoob(textoBruto, pdfItems) {
   let lancsB = [];
   const itemsCount = (pdfItems && pdfItems.length) ? pdfItems.length : 0;
 
+  let credA = [], credB = [];
   if (itemsCount > 0) {
-    try { lancsA = modoA(pdfItems); } catch (e) { lancsA = []; }
+    _credSicoob = credA;
+    try { lancsA = modoA(pdfItems); } catch (e) { lancsA = []; credA.length = 0; }
   }
-  try { lancsB = modoB(textoBruto); } catch (e) { lancsB = []; }
+  _credSicoob = credB;
+  try { lancsB = modoB(textoBruto); } catch (e) { lancsB = []; credB.length = 0; }
+  _credSicoob = null;
 
   let lancs, modo;
   if (lancsA.length >= lancsB.length && lancsA.length > 0) {
-    lancs = lancsA;
+    lancs = cancelarEstornosPareados(lancsA, credA);
     modo = `A[${lancsA.length}vs${lancsB.length}]`;
   } else if (lancsB.length > 0) {
-    lancs = lancsB;
+    lancs = cancelarEstornosPareados(lancsB, credB);
     modo = `B[${lancsB.length}vs${lancsA.length}]`;
   } else {
     lancs = [];
@@ -20044,11 +20071,13 @@ function parserBTG(textoBruto, pdfItems) {
 
   const currentYear = new Date().getFullYear();
 
+  let _credBtg = null; /* v0.74.1 */
   function montarLanc(diaRaw, mes, descricaoRaw, valor) {
-    if (valor <= 0) return null;
+    if (!valor) return null;
     let descricao = descricaoRaw.replace(/\s+/g, ' ').trim();
     if (!descricao) return null;
     if (FILTRO_DESC.test(descricao)) return null;
+    if (valor < 0) { if (_credBtg) _credBtg.push({ descricao, valor: -valor }); return null; }
     const { parcela, descricaoLimpa } = extrairParcela(descricao);
     descricao = descricaoLimpa.replace(/\s+R\$\s*$/i, '').trim();
     if (!descricao || descricao.length < 2) return null;
@@ -20144,16 +20173,19 @@ function parserBTG(textoBruto, pdfItems) {
 
   /* Decisão best-of-N (mesmo padrão do parserSicoob v0.12.2) */
   let lancsA = [], lancsB = [];
+  const credA = [], credB = []; /* v0.74.1: estornos por modo */
   const itemsCount = (pdfItems && pdfItems.length) ? pdfItems.length : 0;
-  if (itemsCount > 0) { try { lancsA = modoA(pdfItems); } catch (e) { lancsA = []; } }
-  try { lancsB = modoB(textoBruto); } catch (e) { lancsB = []; }
+  if (itemsCount > 0) { _credBtg = credA; try { lancsA = modoA(pdfItems); } catch (e) { lancsA = []; credA.length = 0; } }
+  _credBtg = credB;
+  try { lancsB = modoB(textoBruto); } catch (e) { lancsB = []; credB.length = 0; }
+  _credBtg = null;
 
   let lancs, modo;
   if (lancsA.length >= lancsB.length && lancsA.length > 0) {
-    lancs = lancsA;
+    lancs = cancelarEstornosPareados(lancsA, credA);
     modo = `A[${lancsA.length}vs${lancsB.length}]`;
   } else if (lancsB.length > 0) {
-    lancs = lancsB;
+    lancs = cancelarEstornosPareados(lancsB, credB);
     modo = `B[${lancsB.length}vs${lancsA.length}]`;
   } else {
     lancs = [];
@@ -20248,6 +20280,50 @@ function extrairMetaFaturaItau(textoBruto) {
 /* v0.56.1: ano da compra derivado do vencimento da fatura, não do relógio.
    Compra com mês > mês do vencimento é do ano anterior (ex.: compra 28/12
    numa fatura que vence 04/01 → ano anterior). */
+/* v0.74.1: faturas sem vencimento lido (Sicoob, BTG, genérico) montavam a data
+   com o ano de HOJE — na fatura de janeiro, compra de 15/dez virava 15/12 do ano
+   seguinte (data no futuro). Compra de fatura nunca é futura: se passar de
+   hoje + 7 dias, é do ano anterior. */
+function ajustarAnoPorHoje(lancs) {
+  if (!lancs || !lancs.length) return;
+  const d = new Date(); d.setDate(d.getDate() + 7);
+  const lim = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  for (const l of lancs) {
+    if (!l || !l.data || l.data <= lim) continue;
+    const [yy, mm, dd] = l.data.split('-');
+    const ano = Number(yy) - 1;
+    l.data = `${ano}-${mm}-${dd}`;
+    l.ym = `${ano}-${mm}`;
+  }
+}
+
+/* v0.74.1: regra do estorno decidida para o Itaú (v0.56.2) estendida ao
+   Sicoob e ao BTG — crédito com compra correspondente NA MESMA FATURA (mesmo
+   valor, descrição compatível) anula o par. Crédito sem par segue ignorado. */
+function cancelarEstornosPareados(lancs, creditos) {
+  const out = (lancs || []).slice();
+  const notas = [];
+  const norm = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+    .replace(/\b\d{1,2}\/\d{1,2}\b/g, ' ').replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const limpa = s => norm(s).replace(/^(ESTORNO|EST|CANCELAMENTO|CANC|CREDITO|CRED)( DE)?( COMPRA)? /, '').trim();
+  for (const c of (creditos || [])) {
+    const v = Math.abs(Number(c.valor) || 0);
+    const dc = limpa(c.descricao);
+    if (!v || dc.length < 3) continue;
+    const idx = out.findIndex(l => {
+      if (Math.abs((l.valor || 0) - v) >= 0.005) return false;
+      const dl = limpa(l.descricao);
+      return dl.length >= 3 && (dl.startsWith(dc) || dc.startsWith(dl));
+    });
+    if (idx >= 0) {
+      notas.push({ tipo: 'estorno', descricao: out[idx].descricao, valor: v });
+      out.splice(idx, 1);
+    }
+  }
+  out.notasImport = notas;
+  return out;
+}
+
 function ajustarAnoPorVencimento(lancs, vencISO) {
   const [vY, vM] = vencISO.split('-').map(Number);
   if (!vY || !vM) return;
