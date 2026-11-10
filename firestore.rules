@@ -15,11 +15,15 @@
 //                     Validado via Laboratório de Testes do console
 //                     (4 cenários: get dono OK, get estranho NEG,
 //                     delete dono NEG, path fora /users NEG).
+//   2026-11-10  v1.1  Subcoleção users/{uid}/backups liberada só para o dono
+//                     (cópias de segurança semanais do app, v0.75.0).
 //
 // Modelo de dados protegido por estas regras:
 //   /users/{uid}  — documento único com o estado inteiro do app
 //                   (state.familia, state.cartoes, state.gastos, etc.)
-//   Sem subcoleções. Sem outras coleções no projeto.
+//   /users/{uid}/backups/{id}  — cópias de segurança datadas (até 8) +
+//                   o documento "indice" que lista as cópias (v0.75.0).
+//   Sem outras subcoleções. Sem outras coleções no projeto.
 //
 // Como o app conversa com o Firestore (StorageAdapter):
 //   - setDoc('users/{uid}', state)        → create/update
@@ -64,6 +68,12 @@ service cloud.firestore {
       // Para excluir conta de verdade, faça via Firebase Console
       // (autenticação separada e intencional do administrador).
       allow delete: if false;
+
+      // v1.1 (2026-11-10): cópias de segurança do próprio usuário.
+      // Ler, criar, atualizar (o índice) e apagar (cópias além das 8).
+      match /backups/{backupId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
 
       // Bloqueio explícito de subcoleções dentro de users/{userId}.
       // O app não usa subcoleções hoje. Se um dia precisar (ex.: histórico
