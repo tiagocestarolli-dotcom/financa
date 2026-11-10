@@ -5355,6 +5355,36 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 .ini-col-bar { position: relative; z-index: 1; }
 .ini-cols-in.has-sel .ini-col:not(.sel) { opacity: .4; }
 .ini-col-tip { position: absolute; top: -26px; transform: translateX(-50%); background: var(--cream); color: var(--navy-900); font-size: 11.5px; font-weight: 600; padding: 6px 10px; border-radius: 10px; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,.35); z-index: 5; pointer-events: none; animation: iniRise .18s ease both; }
+
+/* ============== v0.74.0 — pago × a pagar e vencimentos ============== */
+.ini-split { display: block; width: 100%; max-width: 340px; margin: 14px auto 0; background: none; border: 0; padding: 0; color: inherit; font-family: var(--font-body); cursor: pointer; text-align: left; }
+.ini-split-bar { height: 6px; border-radius: 99px; background: rgba(217,176,106,.28); overflow: hidden; }
+.ini-split-bar span { display: block; height: 100%; border-radius: 99px; background: var(--mint); transform-origin: left; animation: iniBar .9s cubic-bezier(.2,.7,.2,1) .2s both; }
+.ini-split-row { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: 12px; color: #9eabc0; flex-wrap: wrap; }
+.ini-split-row b { color: var(--cream); font-weight: 600; }
+.ini-split-row .pend b { color: var(--gold); }
+.ini-split-row .ok { color: var(--mint); font-weight: 600; }
+.ini-split-row .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.ini-split-row .dot.pago { background: var(--mint); }
+.ini-split-row .dot.pend { background: var(--gold); }
+.venc-card { margin-top: 14px; background: rgba(17,36,63,.85); border: 1px solid rgba(217,176,106,.3); border-radius: 22px; padding: 14px 12px 6px; color: var(--cream); animation: iniRise .5s ease .12s both; }
+.venc-hd { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 17px; color: var(--cream); padding: 0 4px 6px; }
+.venc-hd .ico-i { color: var(--gold); width: 18px; height: 18px; margin: 0; }
+.venc-t { display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; padding: 10px 4px 6px; color: #9eabc0; }
+.venc-t span { font-size: 11px; letter-spacing: 0; padding: 1px 8px; border-radius: 99px; background: rgba(159,181,224,.14); }
+.venc-grp.atr .venc-t { color: var(--coral); } .venc-grp.atr .venc-t span { background: rgba(228,140,119,.18); }
+.venc-grp.hj .venc-t { color: var(--gold); } .venc-grp.hj .venc-t span { background: rgba(217,176,106,.18); }
+.venc-row { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-top: 1px solid rgba(159,181,224,.1); cursor: pointer; }
+.venc-dia { width: 38px; height: 40px; border-radius: 11px; background: rgba(159,181,224,.1); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; flex: 0 0 auto; }
+.venc-dia b { font-size: 15px; } .venc-dia small { font-size: 9.5px; color: #9eabc0; margin-top: 3px; text-transform: lowercase; }
+.venc-grp.atr .venc-dia { background: rgba(228,140,119,.16); color: var(--coral); }
+.venc-grp.hj .venc-dia { background: rgba(217,176,106,.16); color: var(--gold); }
+.venc-body { flex: 1; min-width: 0; }
+.venc-nome { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.venc-meta { font-size: 11.5px; color: #9eabc0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.venc-meta i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.venc-val { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+.venc-pagar { height: 32px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--gold); color: var(--navy-900); font-family: var(--font-body); font-weight: 700; font-size: 12px; flex: 0 0 auto; }
 </style>
 
 </head>
@@ -5739,7 +5769,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.72.0 · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.74.0 · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -5918,8 +5948,18 @@ function defaultState() {
    ===================================================================== */
 const SyncGuard = {
   _skip(k) { return k === '_updatedAt' || k === '_syncBaseTs'; },
+  /* v0.73.0: serialização canônica (chaves em ordem alfabética). O Firestore devolve os
+     campos em ordem alfabética; o app grava na ordem em que cria. Sem isso, a MESMA versão
+     parecia diferente, o app "mesclava" o próprio eco, trocava os objetos, regravava —
+     loop de "Dados atualizados de outro dispositivo" e baixas de pagamento perdidas. */
+  _canon(v) {
+    return JSON.stringify(v === undefined ? null : v, (k, val) =>
+      (val && typeof val === 'object' && !Array.isArray(val))
+        ? Object.keys(val).sort().reduce((o, kk) => { o[kk] = val[kk]; return o; }, {})
+        : val);
+  },
   _hash(v) {
-    const str = JSON.stringify(v === undefined ? null : v);
+    const str = this._canon(v);
     let h = 0x811c9dc5;
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
     return (h >>> 0).toString(36) + ':' + str.length;
@@ -5938,7 +5978,7 @@ const SyncGuard = {
     }
     return { keys, items, ts: Number(st && st._updatedAt) || 0 };
   },
-  _baseKey(uid) { return `financa.v1.user.${uid}.syncBase`; },
+  _baseKey(uid) { return `financa.v1.user.${uid}.syncBase2`; }, /* v0.73.0: base nova (hash canônico) */
   loadBase(uid) {
     try { const r = localStorage.getItem(this._baseKey(uid)); return r ? JSON.parse(r) : null; } catch (e) { return null; }
   },
@@ -6047,7 +6087,7 @@ const SyncGuard = {
     }
     out._updatedAt = Math.max(tsL, tsR);
     if (remote._syncBaseTs != null) out._syncBaseTs = remote._syncBaseTs;
-    const semTs = (o) => { const c = Object.assign({}, o); delete c._updatedAt; delete c._syncBaseTs; return JSON.stringify(c); };
+    const semTs = (o) => { const c = Object.assign({}, o); delete c._updatedAt; delete c._syncBaseTs; return this._canon(c); };
     const igualRemoto = semTs(out) === semTs(remote);
     const igualLocal = semTs(out) === semTs(local);
     return { state: out, igualRemoto, igualLocal, stats };
@@ -6197,6 +6237,7 @@ const StorageAdapter = {
         }
       });
       SyncGuard.setBaseSnap(this.userId, snapEscrito);
+      this.lastWrittenTs = this.inflightTs; /* v0.73.0: reconhece o eco mesmo se chegar depois */
       this.inflightTs = null;
       this.pendingWrite = false;
       this.pendingChanges = 0;
@@ -6885,10 +6926,11 @@ function _pessoaColsHtml(cat, ym) {
   const ymAtual = currentYM();
   const ehAtual = ym === ymAtual;
   const yms = relYmsHistorico(ym, INI_HIST_MESES + 1);
-  const porYm = {}; yms.forEach(y => { porYm[y] = 0; });
+  const porYm = {}; const porYmVar = {}; yms.forEach(y => { porYm[y] = 0; porYmVar[y] = 0; });
   (state.gastos || []).forEach(g => {
     if (g.categoria !== cat || !(g.ym in porYm) || !_relGastoConta(g)) return;
     porYm[g.ym] += Number(g.valor) || 0;
+    if (!_ehPrevisivel(g)) porYmVar[g.ym] += Number(g.valor) || 0;
   });
   const total = porYm[ym] || 0;
   const fechados = yms.filter(y => y !== ym && y < ymAtual && (porYm[y] || 0) > 0);
@@ -6896,7 +6938,7 @@ function _pessoaColsHtml(cat, ym) {
   if (yms.filter(y => (porYm[y] || 0) > 0).length < 2) return '';
   const diasMes = _iniDiasNoMes(ym);
   const diaHoje = ehAtual ? Math.min(new Date().getDate(), diasMes) : diasMes;
-  const proj = (ehAtual && media) ? total + media * (diasMes - diaHoje) / diasMes : null;
+  const proj = (ehAtual && media) ? total + (_mediaDe(porYmVar, fechados) ?? media) * (diasMes - diaHoje) / diasMes : null;
   const vp = (proj && media) ? (proj - media) / media : null;
   const corAtual = vp === null ? (member.cor || '#4f8df7') : (vp > 0.05 ? '#e48c77' : (vp < -0.05 ? '#6cc59d' : '#9eb8e8'));
   const vals = yms.map(y => porYm[y] || 0);
@@ -6998,19 +7040,85 @@ const INI_HIST_MESES = 6; /* média = até 6 meses fechados anteriores */
 function _iniFmt(v) { return fmtBRL(Math.round(Number(v) || 0)).replace(',00', ''); }
 function _iniDiasNoMes(ym) { const [y, m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); }
 
+
+/* ============== v0.74.0 — pago × a pagar e avisos de vencimento ============== */
+/* mesmo recorte do total do topo: consumo da família (sem o Tiago), sem invest/ajuste/fatura */
+function _iniSplitHtml(ym, reveal) {
+  let pago = 0, pend = 0, n = 0;
+  (state.gastos || []).forEach(g => {
+    if (g.ym !== ym || REL_TIPO_CATS.indexOf(g.categoria) < 0 || !_relGastoConta(g)) return;
+    const v = Number(g.valor) || 0;
+    if (g.pago === false) { pend += v; n++; } else pago += v;
+  });
+  const tot = pago + pend;
+  if (tot <= 0) return '';
+  const pPago = (pago / tot * 100).toFixed(1);
+  const f = v => reveal ? _iniFmt(v) : 'R$ ••••';
+  return `
+    <button class="ini-split" id="iniSplit" aria-label="Ver contas a pagar do mês">
+      <div class="ini-split-bar"><span style="width:${pPago}%"></span></div>
+      <div class="ini-split-row">
+        <span><i class="dot pago"></i>pago <b>${f(pago)}</b></span>
+        ${n > 0 ? `<span class="pend"><i class="dot pend"></i>a pagar <b>${f(pend)}</b> · ${n} ${n === 1 ? 'conta' : 'contas'} ›</span>`
+                : `<span class="ok">tudo pago ✓</span>`}
+      </div>
+    </button>`;
+}
+
+/* contas pendentes por vencimento: atrasadas, hoje e próximos 3 dias — todas as pessoas, Tiago incluído */
+function _iniVencimentosHtml(reveal) {
+  const hoje = todayISO();
+  const lim = new Date(hoje + 'T12:00:00'); lim.setDate(lim.getDate() + 3);
+  const limISO = lim.toISOString().slice(0, 10);
+  const ini = new Date(hoje + 'T12:00:00'); ini.setDate(ini.getDate() - 60);
+  const iniISO = ini.toISOString().slice(0, 10);
+  const itens = (state.gastos || []).filter(g =>
+    g.pago === false && !g.isAjuste && !g.isFixoProjetado && g.data && g.data >= iniISO && g.data <= limISO
+  ).sort((a, b) => a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
+  if (!itens.length) return '';
+  const grupos = [
+    { k: 'atrasadas', t: 'Atrasadas', cls: 'atr', f: g => g.data < hoje },
+    { k: 'hoje', t: 'Vence hoje', cls: 'hj', f: g => g.data === hoje },
+    { k: 'prox', t: 'Próximos 3 dias', cls: 'px', f: g => g.data > hoje }
+  ];
+  const fv = v => reveal ? fmtBRL(Number(v) || 0) : 'R$ ••••';
+  const linhas = grupos.map(gr => {
+    const l = itens.filter(gr.f);
+    if (!l.length) return '';
+    return `<div class="venc-grp ${gr.cls}"><div class="venc-t">${gr.t}<span>${l.length}</span></div>` + l.map(g => {
+      const m = state.members[g.categoria] || {};
+      const [, mm, dd] = g.data.split('-');
+      return `<div class="venc-row" data-venc-abrir="${g.id}">
+        <div class="venc-dia"><b>${dd}</b><small>${MESES_PT[Number(mm) - 1].slice(0, 3)}</small></div>
+        <div class="venc-body"><div class="venc-nome">${escapeHtml(g.nome || g.subcategoria || 'conta')}</div>
+          <div class="venc-meta"><i style="background:${m.cor || '#9eabc0'}"></i>${escapeHtml(m.nome || g.categoria)} · ${escapeHtml(g.subcategoria || '')}</div></div>
+        <div class="venc-val">${fv(g.valor)}</div>
+        <button class="venc-pagar" data-venc-pagar="${g.id}" aria-label="Marcar como pago">pagar</button>
+      </div>`;
+    }).join('') + `</div>`;
+  }).join('');
+  return `<div class="venc-card"><div class="venc-hd"><span class="ico-i"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2"/><path d="M5 3L2 6M19 3l3 3"/></svg></span>Contas a vencer</div>${linhas}</div>`;
+}
+
+/* v0.73.0: gasto previsível = fixo do mês ou parcela — já entra lançado no começo do mês,
+   então a projeção não pode somá-lo de novo pela média */
+function _ehPrevisivel(g) { return !!(g && (g.isFixo || g.parentFixoId || g.parcelaChave)); }
+function _mediaDe(obj, meses) { return meses.length ? meses.reduce((a, y) => a + (obj[y] || 0), 0) / meses.length : null; }
+
 /* consumo da família (sem o Tiago) por mês e por pessoa, com o mesmo filtro do relatório */
 function _iniConsumoFamilia(yms) {
-  const porYm = {}; const porCat = {};
-  yms.forEach(y => { porYm[y] = 0; });
+  const porYm = {}; const porCat = {}; const porYmVar = {};
+  yms.forEach(y => { porYm[y] = 0; porYmVar[y] = 0; });
   (state.gastos || []).forEach(g => {
     if (REL_TIPO_CATS.indexOf(g.categoria) < 0) return;
     if (!_relGastoConta(g)) return;
     if (!(g.ym in porYm)) return;
     const v = Number(g.valor) || 0;
     porYm[g.ym] += v;
+    if (!_ehPrevisivel(g)) porYmVar[g.ym] += v;
     if (g.ym === yms[yms.length - 1]) porCat[g.categoria] = (porCat[g.categoria] || 0) + v;
   });
-  return { porYm, porCat };
+  return { porYm, porCat, porYmVar };
 }
 
 let _iniUltimaChave = null;
@@ -7022,15 +7130,19 @@ function renderInicioDash(forcar) {
   const _g = state.gastos || [];
   let _soma = 0, _n = 0;
   const _ym0 = relYmsHistorico(ym, INI_HIST_MESES + 1)[0];
-  for (const g of _g) { if (REL_TIPO_CATS.indexOf(g.categoria) >= 0 && g.ym >= _ym0 && g.ym <= ym) { _soma += Number(g.valor) || 0; _n++; } }
-  const chave = [ym, _n, _soma.toFixed(2), !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal), temaAtual(), new Date().getDate()].join('|');
+  let _pend = 0;
+  for (const g of _g) {
+    if (g.ym >= _ym0 && g.ym <= ym && g.pago === false) _pend += (Number(g.valor) || 0) + 0.001; /* v0.74.0: baixa muda a chave */
+    if (REL_TIPO_CATS.indexOf(g.categoria) >= 0 && g.ym >= _ym0 && g.ym <= ym) { _soma += Number(g.valor) || 0; _n++; }
+  }
+  const chave = [ym, _n, _soma.toFixed(2), _pend.toFixed(3), !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal), temaAtual(), new Date().getDate()].join('|');
   if (!forcar && chave === _iniUltimaChave && host.firstElementChild) return;
   _iniUltimaChave = chave;
   const ymAtual = currentYM();
   const ehAtual = ym === ymAtual;
   const yms = relYmsHistorico(ym, INI_HIST_MESES + 1); /* 6 anteriores + o mês */
   const fechados = yms.filter(y => y < ymAtual && y !== ym);
-  const { porYm, porCat } = _iniConsumoFamilia(yms);
+  const { porYm, porCat, porYmVar } = _iniConsumoFamilia(yms);
   const total = porYm[ym] || 0;
   const comDados = fechados.filter(y => (porYm[y] || 0) > 0);
   const media = comDados.length ? comDados.reduce((a, y) => a + porYm[y], 0) / comDados.length : null;
@@ -7046,7 +7158,7 @@ function renderInicioDash(forcar) {
   if (media && media > 0) {
     const var_ = (total - media) / media;
     if (ehAtual) {
-      const proj = total + media * (diasMes - diaHoje) / diasMes;
+      const proj = total + (_mediaDe(porYmVar, comDados) ?? media) * (diasMes - diaHoje) / diasMes;
       const vp = (proj - media) / media;
       const cls = vp > 0.05 ? 'alerta' : 'ok';
       vsHtml = `<span>projeção <b class="${cls}">${_iniFmt(proj)}</b> · média ${_iniFmt(media)}</span>`;
@@ -7059,7 +7171,7 @@ function renderInicioDash(forcar) {
             <circle cx="42" cy="42" r="36" fill="none" stroke="${vp > 0.05 ? 'var(--coral)' : 'var(--mint)'}" stroke-width="9" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="${off}" transform="rotate(-90 42 42)" style="animation:iniRing 1.1s cubic-bezier(.2,.7,.2,1) both"></circle>
             <text x="42" y="47" text-anchor="middle" font-family="Montserrat" font-weight="700" font-size="17" fill="#f1e7d6">${pctMes}%</text>
           </svg>
-          <div class="txt">Dia ${diaHoje} de ${diasMes}. Projeção de fechamento <b>${_iniFmt(proj)}</b> (realizado + média para os dias que faltam) — ${vp > 0.05 ? '<b style="color:var(--coral)">' + Math.round(vp * 100) + '% acima</b>' : (vp < -0.05 ? '<b style="color:var(--mint)">' + Math.round(-vp * 100) + '% abaixo</b>' : 'na linha')} da média de ${comDados.length} ${comDados.length === 1 ? 'mês fechado' : 'meses fechados'}.</div>
+          <div class="txt">Dia ${diaHoje} de ${diasMes}. Projeção de fechamento <b>${_iniFmt(proj)}</b> (contas fixas do mês + gastos variáveis no ritmo da média) — ${vp > 0.05 ? '<b style="color:var(--coral)">' + Math.round(vp * 100) + '% acima</b>' : (vp < -0.05 ? '<b style="color:var(--mint)">' + Math.round(-vp * 100) + '% abaixo</b>' : 'na linha')} da média de ${comDados.length} ${comDados.length === 1 ? 'mês fechado' : 'meses fechados'}.</div>
         </div>`;
     } else {
       const cls = var_ > 0.05 ? 'alerta' : (var_ < -0.05 ? 'ok' : '');
@@ -7072,7 +7184,7 @@ function renderInicioDash(forcar) {
   /* v0.70.0: colunas dos últimos meses — fechados em azul, atual com realizado + projeção hachurada, média tracejada */
   let sparkHtml = '';
   {
-    const projTotal = (ehAtual && media) ? total + media * (diasMes - diaHoje) / diasMes : null;
+    const projTotal = (ehAtual && media) ? total + (_mediaDe(porYmVar, comDados) ?? media) * (diasMes - diaHoje) / diasMes : null;
     const vals = yms.map(y => porYm[y] || 0);
     const topo = Math.max(1, projTotal || 0, media || 0, ...vals) * 1.1;
     const pct = v => Math.max(0, Math.min(100, v / topo * 100));
@@ -7151,9 +7263,11 @@ function renderInicioDash(forcar) {
         <div class="ini-eyebrow">Gasto da família · ${mesLabel}</div>
         <button class="ini-total ${reveal ? '' : 'hidden-val'}" id="iniTotal" style="background:none;border:0;color:inherit;font-family:var(--font-display);line-height:1.05;cursor:pointer;padding:0;" aria-label="Mostrar ou ocultar valores">${reveal ? _iniFmt(total) : 'R$ ••••••'}</button>
         <div class="ini-vs">${vsHtml}</div>
+        ${_iniSplitHtml(ym, reveal)}
       </div>
       ${sparkHtml}
       ${statusHtml}
+      ${ehAtual ? _iniVencimentosHtml(reveal) : ''}
       <div class="ini-mes">
         <button id="iniMesPrev" aria-label="Mês anterior">‹</button>
         <div class="lbl">${mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)}<small>${ym.split('-')[0]}</small>${ehAtual ? '' : '<span class="fechado">mês fechado</span>'}</div>
@@ -7176,6 +7290,19 @@ function renderInicioDash(forcar) {
     saveState(state);
     renderInicioDash();
   };
+  /* v0.74.0 */
+  const _spl = document.getElementById('iniSplit');
+  if (_spl) _spl.onclick = () => openCompromissosSheet('familia');
+  host.querySelectorAll('[data-venc-pagar]').forEach(b => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const g = (state.gastos || []).find(x => x.id === b.dataset.vencPagar);
+      if (g) abrirDialogoCheckin(g, { keepSheet: true });
+    };
+  });
+  host.querySelectorAll('[data-venc-abrir]').forEach(r => {
+    r.onclick = () => openGastoForm(r.dataset.vencAbrir);
+  });
   document.getElementById('iniVerTudo').onclick = () => {
     const html = _relSecaoTipoGastoHtml(ym, yms) || '<div class="ini-empty" style="color:var(--ink-mute)">Nenhum gasto da família neste mês.</div>';
     sheet.open('Por tipo de gasto · ' + mesLabel, html);
@@ -7200,12 +7327,13 @@ function _iniAbrirSubgrupo(subc, ym) {
   const mesLabel = MESES_PT[Number(ym.split('-')[1]) - 1];
 
   /* totais do subgrupo por mês e por pessoa (mesmo filtro do relatório) */
-  const porYm = {}; const porCat = {}; const gastosMes = [];
-  yms.forEach(y => { porYm[y] = 0; });
+  const porYm = {}; const porCat = {}; const gastosMes = []; const porYmVar = {};
+  yms.forEach(y => { porYm[y] = 0; porYmVar[y] = 0; });
   (state.gastos || []).forEach(g => {
     if (g.subcategoria !== subc || REL_TIPO_CATS.indexOf(g.categoria) < 0 || !(g.ym in porYm) || !_relGastoConta(g)) return;
     const v = Number(g.valor) || 0;
     porYm[g.ym] += v;
+    if (!_ehPrevisivel(g)) porYmVar[g.ym] += v;
     if (g.ym === ym) { porCat[g.categoria] = (porCat[g.categoria] || 0) + v; gastosMes.push(g); }
   });
   const total = porYm[ym] || 0;
@@ -7214,7 +7342,7 @@ function _iniAbrirSubgrupo(subc, ym) {
 
   const diasMes = _iniDiasNoMes(ym);
   const diaHoje = ehAtual ? Math.min(new Date().getDate(), diasMes) : diasMes;
-  const proj = (ehAtual && media) ? total + media * (diasMes - diaHoje) / diasMes : null;
+  const proj = (ehAtual && media) ? total + (_mediaDe(porYmVar, fechados) ?? media) * (diasMes - diaHoje) / diasMes : null;
   const vp = (proj && media) ? (proj - media) / media : null;
   const corProj = vp === null ? 'var(--blue)' : (vp > 0.05 ? 'var(--coral)' : (vp < -0.05 ? 'var(--mint)' : '#9eb8e8'));
   const corProjHex = vp === null ? '#4f8df7' : (vp > 0.05 ? '#e48c77' : (vp < -0.05 ? '#6cc59d' : '#9eb8e8'));
@@ -7265,7 +7393,7 @@ function _iniAbrirSubgrupo(subc, ym) {
       <span><i style="border:1.5px dashed ${corProjHex};background:repeating-linear-gradient(135deg,${corProjHex}99 0 3px,${corProjHex}2e 3px 6px)"></i>projeção + ${_iniFmt(proj - total)}</span>
       ${media ? '<span><i style="width:14px;height:0;border-top:1.5px dashed #9eabc0;border-radius:0"></i>média dos fechados ${_iniFmt(media)}</span>' : ''}
     </div>
-    <div class="det-note">Projeção = realizado até hoje + média proporcional aos ${diasMes - diaHoje} dias que faltam. Coral acima da média, verde abaixo.</div>` :
+    <div class="det-note">Projeção = o que já está lançado (inclui fixos do mês) + gastos variáveis no ritmo da média para os ${diasMes - diaHoje} dias que faltam. Coral acima da média, verde abaixo.</div>` :
     (media ? '<div class="det-legend"><span><i style="width:14px;height:0;border-top:1.5px dashed #9eabc0;border-radius:0"></i>média dos ' + fechados.length + ' meses fechados</span></div>' : '');
 
   /* por pessoa */
@@ -16646,7 +16774,7 @@ function renderGastoRow(g) {
    ========================================================================= */
 function openGastoForm(id, defaultCategoria, opts) {
   opts = opts || {};
-  const editing = id ? state.gastos.find(g => g.id === id) : null;
+  let editing = id ? state.gastos.find(g => g.id === id) : null; /* v0.73.0: let — revalidado ao salvar */
   const g = editing || {
     categoria: defaultCategoria || activeFamiliaTab || 'casa',
     subcategoria: '',
@@ -16863,8 +16991,7 @@ function openGastoForm(id, defaultCategoria, opts) {
         confirmLabel: 'Desfazer'
       });
       if (!ok) return;
-      editing.pago = false;
-      editing.dataPagamento = null;
+      { const _ed = _vivo(editing, state.gastos); _ed.pago = false; _ed.dataPagamento = null; } /* v0.73.0 */
       saveState(state);
       sheet.close();
       if (activeView === 'tiago') renderTiagoView();
@@ -17187,6 +17314,7 @@ function openGastoForm(id, defaultCategoria, opts) {
       }
       /* v0.15.0: captura cardId/ym ANTES da edição pra recalcular pagamento das
          faturas afetadas (a antiga, se mudou de cartão/mês, E a nova). */
+      editing = _vivo(editing, state.gastos); /* v0.73.0 */
       const cardIdAntigo = editing.cardId;
       const ymAntigo = editing.ym;
 
@@ -17511,6 +17639,12 @@ function openFixedEditor(id) {
    Diálogo customizado: pergunta data do pagamento e conta utilizada.
    Default: data = hoje; conta = a configurada no fixo (ou principal).
    ========================================================================= */
+/* v0.73.0: devolve o objeto VIVO da lista pelo id (o formulário pode estar segurando
+   uma cópia antiga se a sincronização trocou a lista enquanto ele estava aberto) */
+function _vivo(obj, lista) {
+  if (!obj || obj.id == null || !Array.isArray(lista)) return obj;
+  return lista.find(x => x.id === obj.id) || obj;
+}
 function abrirDialogoCheckin(gasto, opts = {}) {
   return new Promise((resolve) => {
     const contasAtivas = (state.contas || []).filter(c => !c.arquivado);
@@ -17567,6 +17701,7 @@ function abrirDialogoCheckin(gasto, opts = {}) {
       const dataPagto = overlay.querySelector('#__chkData').value;
       if (!dataPagto) { toast('Informe a data', 'error'); return; }
       if (!selectedConta) { toast('Selecione uma conta', 'error'); return; }
+      gasto = _vivo(gasto, state.gastos); /* v0.73.0 */
       gasto.pago = true;
       gasto.dataPagamento = dataPagto;
       gasto.contaId = selectedConta;
@@ -17574,7 +17709,7 @@ function abrirDialogoCheckin(gasto, opts = {}) {
       overlay.remove();
       if (!opts.keepSheet) sheet.close();
       if (activeView === 'tiago') renderTiagoView();
-      else if (activeView === 'familia') renderFamiliaContent();
+      else if (activeView === 'familia') { renderFamiliaContent(); try { renderInicioDash(); } catch (e) {} } /* v0.74.0: topo e vencimentos atualizam */
       if (activeView === 'contas') renderContas();
       if (activeView === 'cartoes') renderCartoes();
       toast('Pagamento confirmado', 'success');
@@ -23662,6 +23797,7 @@ async function initFirebaseAuth() {
         StorageAdapter.serverFresh = true;
         const tsRemote = Number(remoteState._updatedAt) || 0;
         if (StorageAdapter.inflightTs && tsRemote === StorageAdapter.inflightTs) return;
+        if (StorageAdapter.lastWrittenTs && tsRemote === StorageAdapter.lastWrittenTs) return; /* v0.73.0: eco da própria gravação */
         const r = StorageAdapter.mesclarRemoto(remoteState, { origem: 'outro aparelho' });
         if (r.igualLocal) return;
         if (typeof activeView !== 'undefined') {
