@@ -5827,7 +5827,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.78.0 · Projeção do mês usa as faturas: com a fatura do cartão já importada, o cartão entra pelo valor real e só o débito é projetado pela média; cartão sem fatura ainda soma a média dele · Faturas futuras: na aba Cartões, quanto cada fatura vai custar nos próximos 12 meses (parcelas e fixos registrados + assinaturas estimadas), detalhe por mês e parcelamentos em curso com o mês em que terminam · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.80.0 · Relatórios na identidade navy: capa navy com fios dourados, títulos em Marcellus sem emoji, valores em cor neutra (coral só para alerta), texto secundário com contraste adequado; Fluxo de Caixa abre com o Tiago incluído; coluna Média preenchida no quem gastou · Relatório da família abre com o painel do Início: total com média, projeção e pago × a pagar, colunas dos 6 meses + o mês com valores, painéis por pessoa e por tipo de gasto (com quem gastou); capa com os mesmos rótulos da tela · Projeção do mês usa as faturas: com a fatura do cartão já importada, o cartão entra pelo valor real e só o débito é projetado pela média; cartão sem fatura ainda soma a média dele · Faturas futuras: na aba Cartões, quanto cada fatura vai custar nos próximos 12 meses (parcelas e fixos registrados + assinaturas estimadas), detalhe por mês e parcelamentos em curso com o mês em que terminam · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -11694,6 +11694,138 @@ window.relatorioElegante = {
 
   /* ================= HTML dos relatórios ================= */
 
+  /* ================= v0.79.0 — o painel do Início no relatório =================
+     Mesmos números e regras da tela Início: família sem o Tiago e sem investimentos,
+     6 meses + o mês, média só de meses fechados (desde _mediaDesde), projeção do mês
+     corrente pelo _projRestante (faturas importadas entram pelo valor real). */
+  _iniResumo(ym, filtro, nome, cor) {
+    const ymAtual = currentYM(), ehAtual = ym === ymAtual;
+    const yms = relYmsHistorico(ym, INI_HIST_MESES + 1);
+    const porYm = {}; yms.forEach(y => { porYm[y] = 0; });
+    let pago = 0, aPagar = 0;
+    (state.gastos || []).forEach(g => {
+      if (!(g.ym in porYm) || !filtro(g)) return;
+      const v = Number(g.valor) || 0;
+      porYm[g.ym] += v;
+      if (g.ym === ym) { if (g.pago === false) aPagar += v; else pago += v; }
+    });
+    const fechados = yms.filter(y => y < ymAtual && y !== ym && _ymNaMedia(y) && porYm[y] > 0);
+    const media = fechados.length ? fechados.reduce((a, y) => a + porYm[y], 0) / fechados.length : null;
+    const total = porYm[ym] || 0;
+    const diasMes = _iniDiasNoMes(ym), dia = ehAtual ? Math.min(new Date().getDate(), diasMes) : diasMes;
+    const proj = (ehAtual && media) ? total + _projRestante(filtro, fechados, ym, diasMes, dia, media) : null;
+    const ref = proj !== null ? proj : total;
+    return { nome, cor, ym, yms, serie: yms.map(y => porYm[y]), total, media, proj, pago, aPagar, ehAtual, dia, diasMes,
+             variacao: media ? (ref - media) / media : null, nFechados: fechados.length };
+  },
+
+  _iniCorVar(v) { return v === null ? '#1f3b63' : (v > 0.05 ? '#c4553b' : (v < -0.05 ? '#2f7d57' : '#1f3b63')); },
+
+  _iniVarTxt(r) {
+    if (r.variacao === null) return 'sem meses fechados para comparar';
+    const p = Math.round(Math.abs(r.variacao) * 100);
+    const base = r.proj !== null ? 'projeção' : 'o mês';
+    if (p <= 5) return base + ' na linha da média';
+    return base + ' ' + p + '% ' + (r.variacao > 0 ? 'acima' : 'abaixo') + ' da média';
+  },
+
+  /* colunas: 6 meses fechados + o mês; valores em cima, média tracejada,
+     projeção hachurada sobre o realizado do mês corrente */
+  _iniSvgColunas(r, opt) {
+    opt = opt || {};
+    const W = opt.w || 520, H = opt.h || 170, n = r.serie.length;
+    const padT = 18, padB = 20, area = H - padT - padB;
+    const topo = Math.max(1, r.proj || 0, r.media || 0, ...r.serie) * 1.08;
+    const y = v => padT + area - (v / topo) * area;
+    const slot = W / n, bw = Math.min(opt.mini ? 22 : 44, slot * 0.62);
+    const corAtual = this._iniCorVar(r.variacao);
+    const corFech = opt.corFech || '#8ea6c8';
+    const pid = 'h' + Math.random().toString(36).slice(2, 8);
+    const fs = opt.mini ? 8.5 : 10.5;
+    let g = `<defs><pattern id="${pid}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="${corAtual}" opacity=".18"/><rect width="2.4" height="6" fill="${corAtual}" opacity=".55"/></pattern></defs>`;
+    r.serie.forEach((v, i) => {
+      const x = i * slot + (slot - bw) / 2, atual = i === n - 1;
+      const yv = y(v), hv = padT + area - yv;
+      if (atual && r.proj !== null && r.proj > v) {
+        const yp = y(r.proj);
+        g += `<rect x="${x.toFixed(1)}" y="${yp.toFixed(1)}" width="${bw.toFixed(1)}" height="${(yv - yp).toFixed(1)}" fill="url(#${pid})" stroke="${corAtual}" stroke-dasharray="3 2" stroke-width="1" rx="2"/>`;
+      }
+      if (v > 0) g += `<rect x="${x.toFixed(1)}" y="${yv.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(hv, 0.5).toFixed(1)}" fill="${atual ? corAtual : corFech}" rx="2"/>`;
+      const topoTxt = atual && r.proj !== null ? Math.max(r.proj, v) : v;
+      if (v > 0) g += `<text x="${(x + bw / 2).toFixed(1)}" y="${(y(topoTxt) - 4).toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="${atual ? 700 : 600}" fill="${atual ? corAtual : '#3B4558'}">${_colCompact(atual && r.proj !== null ? r.proj : v)}</text>`;
+      const [aa, mm] = r.yms[i].split('-');
+      g += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 5}" text-anchor="middle" font-size="${fs}" fill="${atual ? '#14213A' : '#5E6676'}" font-weight="${atual ? 700 : 500}">${MESES_PT_ABBR[Number(mm) - 1].toLowerCase()}</text>`;
+    });
+    if (r.media) {
+      const ym_ = y(r.media).toFixed(1);
+      g += `<line x1="0" x2="${W}" y1="${ym_}" y2="${ym_}" stroke="#C9A25E" stroke-width="1.2" stroke-dasharray="5 4"/>`;
+    }
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;font-family:Montserrat,sans-serif;">${g}</svg>`;
+  },
+
+  _iniLegenda(r) {
+    return `<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:9.5px;color:#5E6676;margin-top:6px;">
+      <span><i style="display:inline-block;width:9px;height:9px;background:#8ea6c8;border-radius:2px;margin-right:4px;"></i>meses fechados</span>
+      <span><i style="display:inline-block;width:9px;height:9px;background:${this._iniCorVar(r.variacao)};border-radius:2px;margin-right:4px;"></i>${r.ehAtual ? 'realizado até dia ' + r.dia : 'o mês'}</span>
+      ${r.proj !== null ? '<span><i style="display:inline-block;width:9px;height:9px;border:1px dashed ' + this._iniCorVar(r.variacao) + ';border-radius:2px;margin-right:4px;"></i>projeção</span>' : ''}
+      ${r.media ? '<span><i style="display:inline-block;width:14px;border-top:1.5px dashed #C9A25E;margin-right:4px;vertical-align:3px;"></i>média dos ' + r.nFechados + ' meses fechados</span>' : ''}
+    </div>`;
+  },
+
+  _iniMini(r, extra) {
+    const cor = this._iniCorVar(r.variacao);
+    return `<div class="pdf-card no-break" style="padding:12px 14px;border-left:4px solid ${r.cor};">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+        <div style="font-weight:700;font-size:12px;color:#14213A;">${this._esc(r.nome)}</div>
+        <div style="font-weight:700;font-size:13px;color:#14213A;white-space:nowrap;">${this._fmt(r.total)}</div>
+      </div>
+      <div style="font-size:9.5px;color:${cor};margin:2px 0 4px;">${this._esc(this._iniVarTxt(r))}${r.media ? ' · média ' + this._fmt(r.media) : ''}${r.proj !== null ? ' · proj. ' + this._fmt(r.proj) : ''}</div>
+      ${this._iniSvgColunas(r, { w: 240, h: 96, mini: true })}
+      ${extra || ''}
+    </div>`;
+  },
+
+  _secaoPainelInicio(ctx) {
+    const ym = ctx.ym;
+    const fam = this._iniResumo(ym, _iniFiltroFamilia, 'Família', '#1f3b63');
+    if (!fam.serie.some(v => v > 0)) return '';
+    const corV = this._iniCorVar(fam.variacao);
+    const destaque = (lbl, val, cor) => `<div><div class="pdf-section-eyebrow" style="margin-bottom:3px;">${lbl}</div><div style="font-size:17px;font-weight:700;color:${cor || '#14213A'};white-space:nowrap;">${val}</div></div>`;
+    const topo = `<div class="pdf-card no-break" style="padding:16px 18px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">
+        ${destaque('GASTO DA FAMÍLIA', this._fmt(fam.total))}
+        ${destaque('MÉDIA DOS FECHADOS', fam.media ? this._fmt(fam.media) : '—')}
+        ${fam.proj !== null ? destaque('PROJEÇÃO DO MÊS', this._fmt(fam.proj), corV) : destaque('VS. MÉDIA', fam.variacao === null ? '—' : (fam.variacao > 0 ? '+' : '−') + Math.round(Math.abs(fam.variacao) * 100) + '%', corV)}
+        ${destaque('PAGO · A PAGAR', this._fmt(fam.pago) + '<span style="font-size:11px;color:#5E6676;font-weight:600;"> · ' + this._fmt(fam.aPagar) + '</span>')}
+      </div>
+      <div style="font-size:10.5px;color:${corV};font-weight:600;margin-bottom:6px;">${this._esc(this._iniVarTxt(fam))}${fam.ehAtual ? ' · dia ' + fam.dia + ' de ' + fam.diasMes : ''}</div>
+      ${this._iniSvgColunas(fam, { w: 520, h: 170 })}
+      ${this._iniLegenda(fam)}
+      <div class="pnl-nota" style="margin-top:8px;">Família sem o Tiago e sem investimentos — o mesmo número da tela Início.${fam.proj !== null ? ' Projeção = realizado + faturas de cartão ainda não importadas (pela média de cada cartão) + gastos no débito no ritmo da média.' : ''}</div>
+    </div>`;
+
+    const cats = REL_TIPO_CATS.slice();
+    if ((ctx.cats || []).indexOf('tiago') >= 0) cats.push('tiago');
+    const pessoas = cats.map(k => {
+      const m = (state.members && state.members[k]) || {};
+      return this._iniResumo(ym, g => g.categoria === k && _relGastoConta(g), (m.nome || k) + (k === 'tiago' ? ' · à parte' : ''), m.cor || '#7A6450');
+    }).filter(r => r.serie.some(v => v > 0));
+    const gridP = pessoas.length ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">${pessoas.map(r => this._iniMini(r)).join('')}</div>` : '';
+
+    const tipos = relCalcTipoGastoPorMembro(ym, fam.yms).filter(b => b.total > 0 || (b.media || 0) > 0).slice(0, 8);
+    const corSub = ['#3A6991', '#C9A25E', '#2f7d57', '#8a5a9c', '#c4553b', '#5A7A9C', '#B85C7A', '#6b7f3a'];
+    const minis = tipos.map((b, i) => {
+      const r = this._iniResumo(ym, g => g.subcategoria === b.nome && _iniFiltroFamilia(g), b.nome, corSub[i % corSub.length]);
+      const quem = b.partes.length ? `<div style="font-size:9px;color:#3B4558;margin-top:4px;line-height:1.45;">${b.partes.map(p => '<span style="color:' + ((state.members[p.cat] || {}).cor || '#7A6450') + ';">●</span> ' + this._esc(this._nomeMembro(p.cat)) + ' ' + this._fmt(p.valor)).join(' · ')}</div>` : '';
+      return this._iniMini(r, quem);
+    }).join('');
+    const gridT = minis ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">${minis}</div>` : '';
+
+    return this._secao('', 'Gasto da família · o painel do Início', topo) +
+      (gridP ? this._secao('', 'Por pessoa · últimos 6 meses e o mês', gridP) : '') +
+      (gridT ? this._secao('', 'Por tipo de gasto · total da família e quem gastou', gridT) : '');
+  },
+
   _gerarRel1(d, ctx) {
     /* Fatia 5f.1 — documento em tres blocos, na ordem que responde
        as perguntas na sequencia certa:
@@ -11707,10 +11839,15 @@ window.relatorioElegante = {
     const mesLabel = MESES_PT[Number(ctx.ym.split('-')[1]) - 1] + ' de ' + ctx.ym.split('-')[0];
     const m = d.mes;
 
+    const _famCapa = (ctx.view !== 'rel3') ? this._iniResumo(ctx.ym, _iniFiltroFamilia, 'Família', '') : null;
     const capa = this._capa({
       titulo: ctx.titulo, sub: ctx.sub,
       periodoLabel: multi ? (mesLabel + ' \u00b7 com hist\u00f3rico de ' + periodoLabel) : mesLabel,
-      colunas: [
+      colunas: _famCapa ? [
+        { label: 'GASTO DA FAM\u00cdLIA', valor: _famCapa.total, cor: '#fff' },
+        { label: 'M\u00c9DIA DOS FECHADOS', valor: _famCapa.media || 0, cor: '#fff' },
+        { label: 'SA\u00cdDAS TOTAIS (C/ INVEST.' + ((ctx.cats || []).indexOf('tiago') >= 0 ? ' E TIAGO' : '') + ')', valor: m.totalSaidas, cor: '#fff' }
+      ] : [
         { label: 'SA\u00cdDAS NO M\u00caS', valor: m.totalSaidas, cor: '#fff' },
         { label: 'CONSUMO', valor: m.consumo, cor: '#fff' },
         { label: 'INVESTIMENTOS', valor: m.investimento, cor: '#fff' }
@@ -11743,7 +11880,13 @@ window.relatorioElegante = {
           '<div class="pdf-card no-break">' + this._chCompromissos(d.comp.fixos, d.comp.parcelas) + '</div>')
       : '';
     const b1Top = this._secaoTopAgrupado(m.topAgrupado, 'Maiores lan\u00e7amentos do m\u00eas');
-    const bloco1 = b1Titulo + b1Cards + b1Membro + b1Subcat + b1Tipo + b1Comp + b1Top;
+    /* v0.79.0: no relatório da família o bloco do mês abre com o painel do Início
+       (total, por pessoa, por tipo de gasto) e deixa de repetir cards, barras por
+       membro e colunas por categoria, que o painel já cobre */
+    const painel = (ctx.view !== 'rel3') ? this._secaoPainelInicio(ctx) : '';
+    const bloco1 = painel
+      ? b1Titulo + painel + b1Tipo + b1Comp + b1Top
+      : b1Titulo + b1Cards + b1Membro + b1Subcat + b1Tipo + b1Comp + b1Top;
 
     /* ---------- bloco 2: o periodo, mes a mes ---------- */
     let bloco2 = '';
@@ -11753,8 +11896,12 @@ window.relatorioElegante = {
          por membro e por grupo de gasto. */
       bloco2 += this._secao('\ud83d\udcc8', 'Sa\u00eddas da fam\u00edlia \u00b7 hist\u00f3rico mensal',
         '<div class="pdf-card no-break">' + this._chColunasMultiMes(d.historico, ctx.ym) + '</div>');
-      bloco2 += this._secaoPainelCategorias(d.historico, d.cats);
-      bloco2 += this._secaoPainelSubcategorias(d.historico, d.subsPainel);
+      /* v0.79.0: com o painel do Início no bloco 1 (6 meses + o mês), os painéis por
+         categoria e por grupo só aparecem quando o período pedido é mais longo */
+      if (!painel || ctx.periodo.months > INI_HIST_MESES + 1) {
+        bloco2 += this._secaoPainelCategorias(d.historico, d.cats);
+        bloco2 += this._secaoPainelSubcategorias(d.historico, d.subsPainel);
+      }
     }
 
     /* ---------- bloco 3: consolidado do periodo ---------- */
@@ -11946,7 +12093,10 @@ window.relatorioElegante = {
 
   /* v0.59.1 — por tipo de gasto, quem gastou (família sem o Tiago) */
   _secaoTipoGasto(ym, yms) {
-    const linhas = relCalcTipoGastoPorMembro(ym, yms || [ym]).filter(b => b.total > 0);
+    /* v0.80.0: com período de um mês só não havia meses fechados e a coluna Média
+       saía vazia; usa a mesma janela do Início (6 meses + o mês) */
+    const _jan = (yms && yms.length > 1) ? yms : relYmsHistorico(ym, INI_HIST_MESES + 1);
+    const linhas = relCalcTipoGastoPorMembro(ym, _jan).filter(b => b.total > 0);
     if (!linhas.length) return '';
     const cats = REL_TIPO_CATS.filter(k => linhas.some(b => b.partes.some(p => p.cat === k)));
     const seta = { up: '▲', down: '▼', flat: '●' };
@@ -12940,7 +13090,7 @@ ${toolbar}
 
   _css() {
     return `
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Marcellus&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 :root{
   --pdf-in:#1F6F54;--pdf-out:#A8462C;--pdf-invest:#2B5F86;
   --pdf-bg:#FBF8F1;--pdf-surface:#FFFFFF;--pdf-border:#E6DFCD;
@@ -13127,7 +13277,49 @@ text{font-family:'Montserrat',sans-serif;}
 .ent-tabela tfoot td,.ent-tabela tr.ent-tfoot td{border-top:1.5px solid var(--pdf-border);border-bottom:none;padding-top:7px;font-weight:700;color:var(--pdf-ink);}
 .ent-tabela tr.ent-tfoot .tg-val{color:var(--pdf-ink);font-weight:700;}
 .ent-tabela tr.ent-tfoot .tax-cell{color:#9A6526;}
-.ent-tabela .fx-foot-lbl{text-align:left;color:var(--pdf-ink);}`;
+.ent-tabela .fx-foot-lbl{text-align:left;color:var(--pdf-ink);}
+
+/* ===== v0.80.0 — identidade navy no documento (sobrepõe o estilo creme) =====
+   Tokens: navy #13233d · papel #fff · dourado #9A6F2A (texto) / #C9A25E (traço)
+   coral #C4553B só para alerta · verde #2F7D57 · texto 2º #5E6676 (contraste 5,8:1)
+   Marcellus em títulos e valores grandes; Montserrat tabular no corpo. */
+:root{
+  --pdf-navy:#13233d;--pdf-navy-2:#1d3557;--pdf-gold:#9A6F2A;--pdf-gold-line:#C9A25E;
+  --pdf-in:#2F7D57;--pdf-out:#C4553B;--pdf-invest:#2B5F86;
+  --pdf-bg:#FFFFFF;--pdf-surface:#FFFFFF;--pdf-border:#DCE2EC;
+  --pdf-ink:#14213A;--pdf-ink-soft:#3B4558;--pdf-ink-mute:#5E6676;
+  --pdf-display:'Marcellus',Georgia,serif;
+}
+body{background:#E7ECF3;color:var(--pdf-ink);}
+.toolbar{background:var(--pdf-navy);}
+.pdf-container{background:#fff;}
+.pdf-capa{background:linear-gradient(160deg,var(--pdf-navy-2) 0%,var(--pdf-navy) 70%);border-radius:14px;}
+.capa-eyebrow{color:var(--pdf-gold-line);opacity:1;letter-spacing:.16em;}
+.capa-titulo{font-family:var(--pdf-display);font-weight:400;letter-spacing:0;}
+.capa-col-label{opacity:.75;}
+.capa-col-val{font-family:var(--pdf-display);font-weight:400;font-size:22px;letter-spacing:0;}
+.capa-grid > div + div{border-left:1px solid rgba(201,162,94,.35);padding-left:14px;}
+.capa-rodape{opacity:.7;}
+/* títulos de seção: sem emoji, frase normal em Marcellus, marca dourada */
+.pdf-section-icon{display:none;}
+.pdf-section-header{border-bottom:1px solid var(--pdf-border);gap:10px;}
+.pdf-section-header::before{content:"";width:3px;height:15px;border-radius:2px;background:var(--pdf-gold-line);flex:none;}
+.pdf-section-header .pdf-section-eyebrow{font-family:var(--pdf-display);font-size:15px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--pdf-ink);}
+.pdf-card .pdf-section-eyebrow{color:var(--pdf-ink-mute);}
+.pdf-divisor{border-bottom:2px solid var(--pdf-navy);}
+.pdf-divisor-ic{color:var(--pdf-gold-line);font-size:0;}
+.pdf-divisor-ic::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--pdf-gold-line);}
+.pdf-divisor-tx{font-family:var(--pdf-display);font-size:19px;letter-spacing:0;}
+.pdf-card{border-color:var(--pdf-border);border-radius:10px;}
+.pdf-value-xl{font-family:var(--pdf-display);font-weight:400;letter-spacing:0;}
+/* valor em tabela é neutro: vermelho fica reservado para alerta */
+.tg-val{color:var(--pdf-ink);}
+.tg-mute{color:var(--pdf-ink-mute);}
+.color-out{color:var(--pdf-ink);}
+.tt-up{color:var(--pdf-out);}.tt-down{color:var(--pdf-in);}
+.pnl-nota{color:var(--pdf-ink-mute);}
+.ent-tabela{font-size:9px;}.ent-tabela th{font-size:8px;}.ent-tabela tr.ent-sub td{font-size:8.5px;}
+`;
   }
 };
 
@@ -14148,7 +14340,7 @@ let rel2State = {
   ym: null,
   periodo: 'mes',
   periodoCustomN: 6,   /* nº de meses quando periodo === 'custom' */
-  incluiTiago: false
+  incluiTiago: true    /* v0.80.0: Fluxo de Caixa é o relatório do Tiago — renda × tudo que ele gasta */
 };
 
 /* meses efetivos do Rel 2: presets fixos OU custom (qualquer N de 1 a 36) */
