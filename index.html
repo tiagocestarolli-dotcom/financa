@@ -5827,7 +5827,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.77.0 · Faturas futuras: na aba Cartões, quanto cada fatura vai custar nos próximos 12 meses (parcelas e fixos registrados + assinaturas estimadas), detalhe por mês e parcelamentos em curso com o mês em que terminam · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.78.0 · Projeção do mês usa as faturas: com a fatura do cartão já importada, o cartão entra pelo valor real e só o débito é projetado pela média; cartão sem fatura ainda soma a média dele · Faturas futuras: na aba Cartões, quanto cada fatura vai custar nos próximos 12 meses (parcelas e fixos registrados + assinaturas estimadas), detalhe por mês e parcelamentos em curso com o mês em que terminam · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -7017,7 +7017,7 @@ function _pessoaColsHtml(cat, ym) {
   if (yms.filter(y => (porYm[y] || 0) > 0).length < 2) return '';
   const diasMes = _iniDiasNoMes(ym);
   const diaHoje = ehAtual ? Math.min(new Date().getDate(), diasMes) : diasMes;
-  const proj = (ehAtual && media) ? total + (_mediaDe(porYmVar, fechados) ?? media) * (diasMes - diaHoje) / diasMes : null;
+  const proj = (ehAtual && media) ? total + _projRestante(g => g.categoria === cat && _relGastoConta(g), fechados, ym, diasMes, diaHoje, media) : null; /* v0.78.0 */
   const vp = (proj && media) ? (proj - media) / media : null;
   const corAtual = vp === null ? (member.cor || '#4f8df7') : (vp > 0.05 ? '#e48c77' : (vp < -0.05 ? '#6cc59d' : '#9eb8e8'));
   const vals = yms.map(y => porYm[y] || 0);
@@ -7184,6 +7184,33 @@ function _iniVencimentosHtml(reveal) {
 function _ehPrevisivel(g) { return !!(g && (g.isFixo || g.parentFixoId || g.parcelaChave)); }
 function _mediaDe(obj, meses) { return meses.length ? meses.reduce((a, y) => a + (obj[y] || 0), 0) / meses.length : null; }
 
+/* v0.78.0 — o que ainda falta entrar no mês, separando cartão de débito.
+   Cartão conta no mês da fatura: se a fatura do mês já foi importada, o valor
+   do cartão é conhecido e nada mais é somado; se ainda não foi, soma a média
+   variável daquele cartão (fatura inteira, não proporcional aos dias).
+   Débito/PIX/boleto: média variável proporcional aos dias que faltam.
+   Fixos e parcelas (_ehPrevisivel) já estão lançados e nunca são projetados. */
+function _faturaImportada(cardId, ym) {
+  return (state.gastos || []).some(g => g.cardId === cardId && g.ym === ym && _ffEhReal(g));
+}
+function _projRestante(filtro, meses, ym, diasMes, diaHoje, mediaTotal) {
+  const frac = (diasMes - diaHoje) / diasMes;
+  if (!meses || !meses.length) return (mediaTotal || 0) * frac;
+  const set = new Set(meses);
+  const deb = {}, card = {};
+  (state.gastos || []).forEach(g => {
+    if (!set.has(g.ym) || !filtro(g) || _ehPrevisivel(g)) return;
+    const v = Number(g.valor) || 0;
+    if (g.cardId) { const c = card[g.cardId] || (card[g.cardId] = {}); c[g.ym] = (c[g.ym] || 0) + v; }
+    else deb[g.ym] = (deb[g.ym] || 0) + v;
+  });
+  let r = (_mediaDe(deb, meses) || 0) * frac;
+  Object.keys(card).forEach(cid => { if (!_faturaImportada(cid, ym)) r += _mediaDe(card[cid], meses) || 0; });
+  return r;
+}
+
+function _iniFiltroFamilia(g) { return REL_TIPO_CATS.indexOf(g.categoria) >= 0 && _relGastoConta(g); }
+
 /* consumo da família (sem o Tiago) por mês e por pessoa, com o mesmo filtro do relatório */
 function _iniConsumoFamilia(yms) {
   const porYm = {}; const porCat = {}; const porYmVar = {};
@@ -7244,7 +7271,7 @@ function renderInicioDash(forcar) {
   if (media && media > 0) {
     const var_ = (total - media) / media;
     if (ehAtual) {
-      const proj = total + (_mediaDe(porYmVar, comDados) ?? media) * (diasMes - diaHoje) / diasMes;
+      const proj = total + _projRestante(_iniFiltroFamilia, comDados, ym, diasMes, diaHoje, media); /* v0.78.0 */
       const vp = (proj - media) / media;
       const cls = vp > 0.05 ? 'alerta' : 'ok';
       vsHtml = `<span>projeção <b class="${cls}">${_fvO(proj)}</b> · média ${_fvO(media)}</span>`;
@@ -7257,7 +7284,7 @@ function renderInicioDash(forcar) {
             <circle cx="42" cy="42" r="36" fill="none" stroke="${vp > 0.05 ? 'var(--coral)' : 'var(--mint)'}" stroke-width="9" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="${off}" transform="rotate(-90 42 42)" style="animation:iniRing 1.1s cubic-bezier(.2,.7,.2,1) both"></circle>
             <text x="42" y="47" text-anchor="middle" font-family="Montserrat" font-weight="700" font-size="17" fill="#f1e7d6">${pctMes}%</text>
           </svg>
-          <div class="txt">Dia ${diaHoje} de ${diasMes}. Projeção de fechamento <b>${_fvO(proj)}</b> (contas fixas do mês + gastos variáveis no ritmo da média) — ${vp > 0.05 ? '<b style="color:var(--coral)">' + Math.round(vp * 100) + '% acima</b>' : (vp < -0.05 ? '<b style="color:var(--mint)">' + Math.round(-vp * 100) + '% abaixo</b>' : 'na linha')} da média de ${comDados.length} ${comDados.length === 1 ? 'mês fechado' : 'meses fechados'}.</div>
+          <div class="txt">Dia ${diaHoje} de ${diasMes}. Projeção de fechamento <b>${_fvO(proj)}</b> (fixos, parcelas e faturas de cartão já importadas + gastos no débito no ritmo da média) — ${vp > 0.05 ? '<b style="color:var(--coral)">' + Math.round(vp * 100) + '% acima</b>' : (vp < -0.05 ? '<b style="color:var(--mint)">' + Math.round(-vp * 100) + '% abaixo</b>' : 'na linha')} da média de ${comDados.length} ${comDados.length === 1 ? 'mês fechado' : 'meses fechados'}.</div>
         </div>`;
     } else {
       const cls = var_ > 0.05 ? 'alerta' : (var_ < -0.05 ? 'ok' : '');
@@ -7270,7 +7297,7 @@ function renderInicioDash(forcar) {
   /* v0.70.0: colunas dos últimos meses — fechados em azul, atual com realizado + projeção hachurada, média tracejada */
   let sparkHtml = '';
   {
-    const projTotal = (ehAtual && media) ? total + (_mediaDe(porYmVar, comDados) ?? media) * (diasMes - diaHoje) / diasMes : null;
+    const projTotal = (ehAtual && media) ? total + _projRestante(_iniFiltroFamilia, comDados, ym, diasMes, diaHoje, media) : null; /* v0.78.0 */
     const vals = yms.map(y => porYm[y] || 0);
     const topo = Math.max(1, projTotal || 0, media || 0, ...vals) * 1.1;
     const pct = v => Math.max(0, Math.min(100, v / topo * 100));
@@ -7426,7 +7453,7 @@ function _iniAbrirSubgrupo(subc, ym) {
 
   const diasMes = _iniDiasNoMes(ym);
   const diaHoje = ehAtual ? Math.min(new Date().getDate(), diasMes) : diasMes;
-  const proj = (ehAtual && media) ? total + (_mediaDe(porYmVar, fechados) ?? media) * (diasMes - diaHoje) / diasMes : null;
+  const proj = (ehAtual && media) ? total + _projRestante(g => g.subcategoria === subc && REL_TIPO_CATS.indexOf(g.categoria) >= 0 && _relGastoConta(g), fechados, ym, diasMes, diaHoje, media) : null; /* v0.78.0 */
   const vp = (proj && media) ? (proj - media) / media : null;
   const corProj = vp === null ? 'var(--blue)' : (vp > 0.05 ? 'var(--coral)' : (vp < -0.05 ? 'var(--mint)' : '#9eb8e8'));
   const corProjHex = vp === null ? '#4f8df7' : (vp > 0.05 ? '#e48c77' : (vp < -0.05 ? '#6cc59d' : '#9eb8e8'));
