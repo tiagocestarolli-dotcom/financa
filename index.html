@@ -5393,6 +5393,40 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 .view[data-view="familia"].ocultar-valores .gr-value,
 .view[data-view="familia"].ocultar-valores .pb-sub,
 .view[data-view="familia"].ocultar-valores .ch-prev-val { filter: blur(7px); user-select: none; }
+
+/* ============== v0.77.0 — faturas futuras ============== */
+.ff-card { margin: 0 0 18px; padding: 14px 14px 10px; border-radius: 18px; background: rgba(241,231,214,.06); border: 1px solid rgba(241,231,214,.12); color: var(--cream, #f1e7d6); }
+.ff-chart { display: flex; align-items: flex-end; gap: 4px; height: 132px; padding-top: 4px; }
+.ff-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: stretch; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; }
+.ff-val { font-size: 9px; line-height: 12px; height: 12px; text-align: center; color: #c9d3e6; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ff-bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; margin: 3px 1px 0; }
+.ff-kn { background: #6f8fc2; border-radius: 0 0 4px 4px; min-height: 0; }
+.ff-kn.real { background: #9eb8e8; }
+.ff-est { border: 1.5px dashed #d9b06a; border-bottom: 0; border-radius: 4px 4px 0 0; background: repeating-linear-gradient(135deg, rgba(217,176,106,.55) 0 3px, rgba(217,176,106,.15) 3px 6px); }
+.ff-bar > div:first-child { border-top-left-radius: 4px; border-top-right-radius: 4px; }
+.ff-lbl { font-size: 10px; text-align: center; color: #9eabc0; margin-top: 4px; height: 14px; }
+.ff-lbl.atual { color: var(--cream, #f1e7d6); font-weight: 700; }
+.ff-leg { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: #9eabc0; margin: 10px 0 6px; }
+.ff-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.ff-leg i.k { background: #6f8fc2; }
+.ff-leg i.e { background: repeating-linear-gradient(135deg, rgba(217,176,106,.7) 0 2px, rgba(217,176,106,.2) 2px 4px); border: 1px dashed #d9b06a; }
+.ff-row { display: block; width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid rgba(241,231,214,.1); padding: 10px 2px; color: inherit; cursor: pointer; font-family: var(--font-body); }
+.ff-row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ff-row-mes { font-weight: 600; font-size: 14px; text-transform: capitalize; }
+.ff-row-mes em { font-style: normal; font-size: 10.5px; font-weight: 600; color: #9eb8e8; margin-left: 6px; text-transform: none; }
+.ff-row-val { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ff-row-sub { font-size: 11.5px; color: #9eabc0; margin-top: 3px; line-height: 1.5; }
+.ff-parc { display: flex; justify-content: space-between; width: 100%; margin-top: 4px; padding: 11px 12px; border-radius: 12px; border: 1px solid rgba(217,176,106,.45); background: rgba(217,176,106,.08); color: var(--gold, #d9b06a); font: 600 12.5px var(--font-body); cursor: pointer; text-align: left; }
+.ff-nota { font-size: 11px; color: #9eabc0; margin-top: 8px; font-style: italic; }
+.ff-sheet-tot { font-family: var(--font-display); font-size: 30px; margin: 2px 0 14px; color: var(--cream, #f1e7d6); }
+.ff-sheet-tot small { display: block; font-family: var(--font-body); font-size: 12px; color: #9eabc0; margin-top: 4px; }
+.ff-bloco { padding: 12px 14px; margin-bottom: 10px; border-radius: 14px; background: rgba(241,231,214,.06); border: 1px solid rgba(241,231,214,.12); color: var(--cream, #f1e7d6); }
+.ff-bloco-h { display: flex; justify-content: space-between; gap: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ff-bloco-sub { font-size: 11.5px; color: #9eabc0; margin: 3px 0 6px; }
+.ff-it { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 5px 0; border-top: 1px solid rgba(241,231,214,.07); font-variant-numeric: tabular-nums; }
+.ff-it em { font-style: normal; font-size: 10.5px; color: #9eb8e8; margin-left: 4px; }
+.ff-it.est { color: #e6cf9f; }
+.ff-it.est em { color: #d9b06a; }
 </style>
 
 </head>
@@ -5793,7 +5827,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.76.1 · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.77.0 · Faturas futuras: na aba Cartões, quanto cada fatura vai custar nos próximos 12 meses (parcelas e fixos registrados + assinaturas estimadas), detalhe por mês e parcelamentos em curso com o mês em que terminam · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -18937,6 +18971,169 @@ function renderCartoes() {
   return renderCartoesHome();
 }
 
+/* ===== v0.77.0 — Faturas futuras por cartão =====
+   Quanto cada fatura vai custar nos próximos meses, com o que JÁ está registrado:
+   - fatura já importada (lançamentos com descricaoBruta, não projetados) = valor real;
+   - mês ainda sem fatura = parcelas projetadas + fixos do cartão (conhecidos)
+     + assinaturas/recorrentes da última fatura importada (estimadas, hachuradas).
+   Compras novas do ciclo em aberto só entram quando a fatura fecha e é importada. */
+const FF_MESES = 12;
+function _ffEhReal(g) { return !!g.descricaoBruta && !g.isParcelaProjetada && !g.isFixoProjetado && !g.parentFixoId; }
+function _ffDados() {
+  const ym0 = currentYM();
+  const yms = []; for (let i = 0; i < FF_MESES; i++) yms.push(ymAdd(ym0, i));
+  const gs = (state.gastos || []).filter(g => g.cardId && !g.isAjuste && !g.isPagamentoFatura);
+  const cards = (state.cards || []).filter(c => !c.arquivado).map(c => {
+    const doCard = gs.filter(g => g.cardId === c.id);
+    const realYms = new Set(doCard.filter(_ffEhReal).map(g => g.ym));
+    const ultimaReal = Array.from(realYms).sort().pop() || null;
+    const recorrentes = ultimaReal ? doCard.filter(g => g.ym === ultimaReal && _ffEhReal(g) && g.isFixo && !g.parcela) : [];
+    const porYm = {};
+    yms.forEach(y => {
+      const doMes = doCard.filter(g => g.ym === y);
+      if (realYms.has(y)) {
+        porYm[y] = { tipo: 'real', conhecido: doMes.reduce((a, g) => a + (Number(g.valor) || 0), 0), estimado: 0, itens: doMes, recorrentes: [] };
+      } else {
+        const _vistos = new Set();
+        const conhecidos = doMes.filter(g => g.parcela || g.isParcelaProjetada || g.parentFixoId || g.isFixoProjetado).filter(g => {
+          if (!g.parcela) return true;
+          const k = normNome(g.nome || g.descricaoBruta || '') + '|' + g.parcela.total + '|' + (Number(g.valor) || 0).toFixed(2);
+          if (_vistos.has(k)) return false; /* parcela repetida no mesmo mês conta uma vez */
+          _vistos.add(k); return true;
+        });
+        const nomesFixos = new Set(conhecidos.filter(g => !g.parcela).map(g => normNome(g.nome || '')));
+        const rec = (ultimaReal && y > ultimaReal) ? recorrentes.filter(r => !nomesFixos.has(normNome(r.nome || ''))) : [];
+        porYm[y] = {
+          tipo: 'previsto',
+          conhecido: conhecidos.reduce((a, g) => a + (Number(g.valor) || 0), 0),
+          estimado: rec.reduce((a, g) => a + (Number(g.valor) || 0), 0),
+          itens: conhecidos, recorrentes: rec
+        };
+      }
+    });
+    return { id: c.id, nome: c.nome, cor: c.cor || '#4f8df7', ultimaReal, porYm };
+  });
+  const tot = {};
+  yms.forEach(y => {
+    tot[y] = cards.reduce((a, c) => ({ conhecido: a.conhecido + c.porYm[y].conhecido, estimado: a.estimado + c.porYm[y].estimado, real: a.real || c.porYm[y].tipo === 'real' }), { conhecido: 0, estimado: 0, real: false });
+  });
+  return { yms, cards, tot };
+}
+
+/* parcelamentos ainda com parcelas a cobrar (do mês atual em diante) */
+function _ffParcelamentos() {
+  const ym0 = currentYM();
+  const grupos = new Map();
+  (state.gastos || []).forEach(g => {
+    if (!g.cardId || !g.parcela || g.isAjuste || g.isPagamentoFatura || !(g.ym >= ym0)) return;
+    /* chave pelo conteúdo (cartão + nome + nº de parcelas + valor): agrupa a parcela real
+       e as projetadas mesmo se a parcelaChave tiver variado entre versões */
+    const k = g.cardId + '|' + normNome(g.nome || g.descricaoBruta || '') + '|' + g.parcela.total + '|' + (Number(g.valor) || 0).toFixed(2);
+    if (!grupos.has(k)) grupos.set(k, { nome: g.nome || g.descricaoBruta || '—', cardId: g.cardId, valor: Number(g.valor) || 0, total: g.parcela.total, itens: [], _yms: new Set() });
+    const gr = grupos.get(k);
+    if (gr._yms.has(g.ym)) return; /* uma parcela por mês */
+    gr._yms.add(g.ym); gr.itens.push(g);
+  });
+  return Array.from(grupos.values()).map(p => {
+    p.itens.sort((a, b) => a.ym.localeCompare(b.ym));
+    p.restantes = p.itens.length;
+    p.termina = p.itens[p.itens.length - 1].ym;
+    p.saldo = p.itens.reduce((a, g) => a + (Number(g.valor) || 0), 0);
+    return p;
+  }).sort((a, b) => a.termina.localeCompare(b.termina) || b.saldo - a.saldo);
+}
+
+function _ffMesLbl(ym) {
+  const [a, m] = ym.split('-');
+  return MESES_PT[Number(m) - 1].slice(0, 3) + '/' + a.slice(2);
+}
+
+function _ffSecaoHtml(reveal) {
+  const d = _ffDados();
+  if (!d.cards.length) return '';
+  const v = x => reveal ? _iniFmt(x) : 'R$ ••••';
+  const max = Math.max(1, ...d.yms.map(y => d.tot[y].conhecido + d.tot[y].estimado));
+  const cols = d.yms.map((y, i) => {
+    const t = d.tot[y], tot = t.conhecido + t.estimado;
+    const hK = t.conhecido / max * 100, hE = t.estimado / max * 100;
+    return `<button class="ff-col" data-ff-mes="${y}" aria-label="${_ffMesLbl(y)}">
+      <div class="ff-val">${reveal && tot > 0 ? _colCompact(tot) : '&nbsp;'}</div>
+      <div class="ff-bar">
+        ${hE > 0 ? `<div class="ff-est" style="height:${hE.toFixed(1)}%"></div>` : ''}
+        <div class="ff-kn ${t.real ? 'real' : ''}" style="height:${Math.max(hK, tot > 0 ? 0 : 2).toFixed(1)}%"></div>
+      </div>
+      <div class="ff-lbl ${i === 0 ? 'atual' : ''}">${_ffMesLbl(y).split('/')[0]}</div>
+    </button>`;
+  }).join('');
+  const prox = d.yms.slice(0, 4).map(y => {
+    const t = d.tot[y];
+    const porCard = d.cards.filter(c => c.porYm[y].conhecido + c.porYm[y].estimado > 0)
+      .map(c => `<span style="color:${c.cor}">●</span> ${escapeHtml(c.nome)} ${v(c.porYm[y].conhecido + c.porYm[y].estimado)}`).join(' · ');
+    return `<button class="ff-row" data-ff-mes="${y}">
+      <div class="ff-row-top"><span class="ff-row-mes">${_ffMesLbl(y)}${t.real ? ' <em>fatura importada</em>' : ''}</span><span class="ff-row-val">${v(t.conhecido + t.estimado)}</span></div>
+      ${porCard ? `<div class="ff-row-sub">${porCard}</div>` : '<div class="ff-row-sub">nada registrado</div>'}
+    </button>`;
+  }).join('');
+  const parc = _ffParcelamentos();
+  const saldoParc = parc.reduce((a, p) => a + p.saldo, 0);
+  return `
+    <div class="contas-section-h"><div class="csh-title">próximas faturas</div></div>
+    <div class="ff-card">
+      <div class="ff-chart">${cols}</div>
+      <div class="ff-leg"><span><i class="k"></i>parcelas e fixos registrados</span><span><i class="e"></i>assinaturas (estimado)</span></div>
+      ${prox}
+      <button class="ff-parc" id="ffParc">
+        <span>${parc.length} parcelamento${parc.length !== 1 ? 's' : ''} em curso · ${v(saldoParc)} a cobrar</span><span>›</span>
+      </button>
+      <div class="ff-nota">Compras novas do mês só entram quando a fatura fecha e é importada.</div>
+    </div>`;
+}
+
+function _ffBind(reveal) {
+  document.querySelectorAll('[data-ff-mes]').forEach(b => b.onclick = () => _ffAbrirMes(b.dataset.ffMes, reveal));
+  const p = document.getElementById('ffParc');
+  if (p) p.onclick = () => _ffAbrirParcelamentos(reveal);
+}
+
+function _ffAbrirMes(ym, reveal) {
+  const d = _ffDados();
+  const v = x => reveal ? fmtBRL(x) : 'R$ ••••';
+  const blocos = d.cards.map(c => {
+    const m = c.porYm[ym]; if (!m) return '';
+    const tot = m.conhecido + m.estimado; if (tot <= 0) return '';
+    const itens = m.itens.slice().sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0)).map(g => `
+      <div class="ff-it"><span>${escapeHtml(g.nome || g.descricaoBruta || '—')}${g.parcela ? ` <em>${g.parcela.atual}/${g.parcela.total}</em>` : ''}</span><span>${v(Number(g.valor) || 0)}</span></div>`).join('');
+    const rec = m.recorrentes.map(g => `
+      <div class="ff-it est"><span>${escapeHtml(g.nome || '—')} <em>estimado</em></span><span>${v(Number(g.valor) || 0)}</span></div>`).join('');
+    return `<div class="ff-bloco">
+      <div class="ff-bloco-h"><span><span style="color:${c.cor}">●</span> ${escapeHtml(c.nome)}</span><span>${v(tot)}</span></div>
+      <div class="ff-bloco-sub">${m.tipo === 'real' ? 'fatura importada' : 'previsto · ' + (m.itens.length ? m.itens.length + ' registrado' + (m.itens.length !== 1 ? 's' : '') : 'sem parcelas') + (m.recorrentes.length ? ' + ' + m.recorrentes.length + ' assinatura' + (m.recorrentes.length !== 1 ? 's' : '') : '')}</div>
+      ${itens}${rec}
+    </div>`;
+  }).join('');
+  const t = d.tot[ym] || { conhecido: 0, estimado: 0 };
+  sheet.open('Fatura de ' + MESES_PT[Number(ym.split('-')[1]) - 1] + ' de ' + ym.split('-')[0], `
+    <div class="ff-sheet-tot">${v(t.conhecido + t.estimado)}${t.estimado > 0 ? `<small>${v(t.conhecido)} registrado + ${v(t.estimado)} estimado</small>` : ''}</div>
+    ${blocos || '<div class="empty" style="padding:24px;">Nada registrado para este mês.</div>'}`);
+}
+
+function _ffAbrirParcelamentos(reveal) {
+  const v = x => reveal ? fmtBRL(x) : 'R$ ••••';
+  const cards = Object.fromEntries((state.cards || []).map(c => [c.id, c]));
+  const parc = _ffParcelamentos();
+  const lista = parc.map(p => {
+    const c = cards[p.cardId] || {};
+    const ult = p.itens[p.itens.length - 1].parcela;
+    return `<div class="ff-bloco">
+      <div class="ff-bloco-h"><span>${escapeHtml(p.nome)}</span><span>${v(p.saldo)}</span></div>
+      <div class="ff-bloco-sub"><span style="color:${c.cor || '#9eabc0'}">●</span> ${escapeHtml(c.nome || '')} · ${v(p.valor)} × ${p.restantes} · última ${ult ? ult.atual + '/' + ult.total : ''} em ${_ffMesLbl(p.termina)}</div>
+    </div>`;
+  }).join('');
+  sheet.open('Parcelamentos em curso', `
+    <div class="rex-microcopy"><em>Parcelas a cobrar do mês atual em diante, das faturas já importadas. Ordem: o que termina primeiro.</em></div>
+    ${lista || '<div class="empty" style="padding:24px;">Nenhum parcelamento em curso.</div>'}`);
+}
+
 function renderCartoesHome() {
   const fab = document.getElementById('cartoesFab');
   const host = document.getElementById('cartoesContent');
@@ -19007,7 +19204,9 @@ function renderCartoesHome() {
         </button>
       `;
     }).join('')}
+    ${_ffSecaoHtml(reveal)}
   `;
+  _ffBind(reveal); /* v0.77.0 */
 
   document.getElementById('cartoesPrev').onclick = () => { cartoesCurrentYM = ymPrev(cartoesCurrentYM); renderCartoes(); };
   document.getElementById('cartoesNext').onclick = () => { cartoesCurrentYM = ymNext(cartoesCurrentYM); renderCartoes(); };
