@@ -4952,6 +4952,17 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
 .det-top .proj { font-size: 20px; font-weight: 700; margin-top: 4px; letter-spacing: -.02em; }
 .det-top .proj-pct { font-size: 12px; font-weight: 600; margin-top: 2px; }
 .det-top .r { text-align: right; }
+/* v0.82.0 — orçamento no detalhe */
+.det-orc { display: block; width: 100%; margin: 12px 0 4px; padding: 12px 14px; border-radius: 14px; background: rgba(241,231,214,.05); border: 1px solid rgba(241,231,214,.12); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.det-orc--vazio { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; color: #9eabc0; }
+.det-orc--vazio b { color: var(--gold, #d6ae6a); font-weight: 600; font-size: 12.5px; white-space: nowrap; }
+.det-orc-top { display: flex; justify-content: space-between; font-size: 13px; color: #c9d2e0; }
+.det-orc-top b { font-weight: 700; }
+.det-orc-trk { position: relative; height: 8px; border-radius: 4px; background: rgba(241,231,214,.10); margin: 8px 0 7px; }
+.det-orc-trk > div { height: 100%; border-radius: 4px; transition: width .5s ease; }
+.det-orc-trk > i { position: absolute; top: -3px; width: 2px; height: 14px; margin-left: -1px; background: #e48c77; border-radius: 1px; }
+.det-orc-nota { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: #9eabc0; }
+.det-orc-nota em { font-style: normal; color: var(--gold, #d6ae6a); white-space: nowrap; }
 .det-chart { position: relative; height: 150px; margin-top: 14px; }
 .det-media { position: absolute; left: 0; right: 0; border-top: 1.5px dashed #9eabc0; }
 .det-media-lbl { position: absolute; right: 0; font-size: 10.5px; color: #9eabc0; font-weight: 600; background: #11243f; padding: 0 4px; transform: translateY(-18px); }
@@ -4975,7 +4986,7 @@ html[data-theme="escuro"] .ini-quem { box-shadow: none; }
 .det-pessoas { display: flex; gap: 10px; }
 .det-pessoa { flex: 1; background: rgba(17,36,63,.85); border: 1px solid rgba(159,181,224,.14); border-radius: 18px; padding: 12px; min-width: 0; animation: iniRise .5s ease both; }
 .det-pessoa .n { font-size: 12px; color: #9eabc0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.det-pessoa .v { font-size: 16px; font-weight: 700; margin-top: 4px; letter-spacing: -.02em; }
+.det-pessoa .v { font-size: 16px; font-weight: 700; margin-top: 4px; letter-spacing: -.02em; color: var(--cream, #f1e7d6); }
 .det-pessoa .t { margin-top: 8px; height: 5px; border-radius: 99px; background: rgba(159,181,224,.12); overflow: hidden; }
 .det-pessoa .t div { height: 100%; border-radius: 99px; transform-origin: left; animation: iniBar .9s cubic-bezier(.2,.7,.2,1) both; }
 .det-lista { background: rgba(17,36,63,.85); border: 1px solid rgba(159,181,224,.14); border-radius: 22px; overflow: hidden; animation: iniRise .5s ease .15s both; }
@@ -5756,6 +5767,16 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-chev">›</div>
 </button>
 
+<div class="section-title">Planejamento</div>
+<button class="menu-item" data-cfg="orcamentos">
+  <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.4 6.4"/></svg></div>
+  <div class="mi-body">
+    <div class="mi-title">Orçamentos por tipo de gasto</div>
+    <div class="mi-sub" id="orcamentosSub">Nenhum definido · limite mensal da família por tipo de gasto</div>
+  </div>
+  <div class="mi-chev">›</div>
+</button>
+
 <div class="section-title">Aparência</div>
 <button class="menu-item" data-cfg="mediaDesde">
   <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg></div>
@@ -5827,7 +5848,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.81.0 · Fluxo de Caixa trata o mês em curso como parcial (sem alerta de saldo negativo, com a média de entradas como referência); tela Gastos & Saídas sem o top 10 e o top nomes repetidos, grupos e identificações só quando existem · Relatórios na identidade navy: capa navy com fios dourados, títulos em Marcellus sem emoji, valores em cor neutra (coral só para alerta), texto secundário com contraste adequado; Fluxo de Caixa abre com o Tiago incluído; coluna Média preenchida no quem gastou · Relatório da família abre com o painel do Início: total com média, projeção e pago × a pagar, colunas dos 6 meses + o mês com valores, painéis por pessoa e por tipo de gasto (com quem gastou); capa com os mesmos rótulos da tela · Projeção do mês usa as faturas: com a fatura do cartão já importada, o cartão entra pelo valor real e só o débito é projetado pela média; cartão sem fatura ainda soma a média dele · Faturas futuras: na aba Cartões, quanto cada fatura vai custar nos próximos 12 meses (parcelas e fixos registrados + assinaturas estimadas), detalhe por mês e parcelamentos em curso com o mês em que terminam · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.82.0 · Orçamento por tipo de gasto: limite mensal da família por subcategoria (Config › Planejamento, ou no detalhe do tipo de gasto), com o anel do Início mostrando quanto já foi usado e o detalhe mostrando quanto resta e se a projeção passa do limite · Fluxo de Caixa com a taxa de poupança (mês a mês e média dos meses fechados, investimento conta como poupado) e os gastos dedutíveis no IR do ano por pessoa (saúde sem teto, educação com teto de R$ 3.561,50) · v0.81.0 · Fluxo de Caixa trata o mês em curso como parcial (sem alerta de saldo negativo, com a média de entradas como referência); tela Gastos & Saídas sem o top 10 e o top nomes repetidos, grupos e identificações só quando existem · Relatórios na identidade navy: capa navy com fios dourados, títulos em Marcellus sem emoji, valores em cor neutra (coral só para alerta), texto secundário com contraste adequado; Fluxo de Caixa abre com o Tiago incluído; coluna Média preenchida no quem gastou · Relatório da família abre com o painel do Início: total com média, projeção e pago × a pagar, colunas dos 6 meses + o mês com valores, painéis por pessoa e por tipo de gasto (com quem gastou); capa com os mesmos rótulos da tela · Projeção do mês usa as faturas: com a fatura do cartão já importada, o cartão entra pelo valor real e só o débito é projetado pela média; cartão sem fatura ainda soma a média dele · Faturas futuras: na aba Cartões, quanto cada fatura vai custar nos próximos 12 meses (parcelas e fixos registrados + assinaturas estimadas), detalhe por mês e parcelamentos em curso com o mês em que terminam · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -7116,6 +7137,102 @@ const INI_DESTAQUES = [
 ];
 const INI_HIST_MESES = 6; /* média = até 6 meses fechados anteriores */
 
+/* v0.82.0 — ORÇAMENTO POR TIPO DE GASTO: limite mensal da família (sem o Tiago) por
+   subcategoria, em state.settings.orcamentos = { 'Alimentação': 3000, ... }.
+   Sem orçamento definido, a referência continua sendo a média dos meses fechados. */
+function _orcamentos() { return (state.settings && state.settings.orcamentos) || {}; }
+function _orcamentoDe(subc) { const v = Number(_orcamentos()[subc]); return v > 0 ? v : null; }
+async function _editarOrcamento(subc, sugestao) {
+  const atual = _orcamentoDe(subc);
+  const base = atual || (sugestao > 0 ? Math.round(sugestao / 50) * 50 : 0);
+  const v = await askText({
+    title: 'Orçamento · ' + subc,
+    label: 'Limite mensal da família para ' + subc + '.' +
+      (sugestao > 0 ? ' Sugestão: a média dos meses fechados, ' + _iniFmt(sugestao) + '.' : '') +
+      (atual ? ' Digite 0 para remover.' : ''),
+    defaultValue: base ? String(base) : '', placeholder: 'ex.: 3000', maxLength: 14, confirmLabel: 'Salvar'
+  });
+  if (v === null || v === undefined) return false;
+  const n = parseValor(String(v));
+  if (!(n >= 0) || isNaN(n)) { toast('Valor inválido', 'error'); return false; }
+  state.settings = state.settings || {};
+  const o = Object.assign({}, state.settings.orcamentos || {});
+  if (n > 0) o[subc] = Math.round(n * 100) / 100; else delete o[subc];
+  state.settings.orcamentos = o;
+  saveState(state);
+  _iniUltimaChave = null;
+  try { atualizarOrcamentosSub(); } catch (e) {}
+  toast(n > 0 ? 'Orçamento de ' + subc + ': ' + _iniFmt(n) : 'Orçamento de ' + subc + ' removido', 'success');
+  try { renderInicioDash(true); } catch (e) {}
+  return true;
+}
+function atualizarOrcamentosSub() {
+  const el = document.getElementById('orcamentosSub');
+  if (!el) return;
+  const n = Object.keys(_orcamentos()).filter(k => _orcamentoDe(k)).length;
+  el.textContent = n ? (n === 1 ? '1 tipo de gasto com orçamento' : n + ' tipos de gasto com orçamento') + ' · limite mensal da família'
+                     : 'Nenhum definido · limite mensal da família por tipo de gasto';
+}
+function openOrcamentosSheet() {
+  const ym = currentYM();
+  const linhas = relCalcTipoGastoPorMembro(ym, relYmsHistorico(ym, INI_HIST_MESES + 1));
+  const nomes = linhas.map(l => l.nome).filter(n => n !== '—');
+  Object.keys(_orcamentos()).forEach(k => { if (_orcamentoDe(k) && nomes.indexOf(k) < 0) nomes.push(k); });
+  nomes.sort((a, b) => ((_orcamentoDe(b) ? 1 : 0) - (_orcamentoDe(a) ? 1 : 0)) ||
+    (((linhas.find(l => l.nome === b) || {}).media || 0) - ((linhas.find(l => l.nome === a) || {}).media || 0)));
+  const mesLabel = MESES_PT[Number(ym.split('-')[1]) - 1].toLowerCase();
+  const lista = nomes.length ? nomes.map(n => {
+    const l = linhas.find(x => x.nome === n) || {};
+    const orc = _orcamentoDe(n);
+    const v = l.total || 0;
+    const pctU = orc ? v / orc : null;
+    const corU = pctU === null ? '#9eabc0' : (pctU > 1 ? '#e48c77' : (pctU > 0.85 ? '#d9b06a' : '#6cc59d'));
+    return `
+      <button data-orc-edit="${escapeHtml(n)}" style="display:flex;width:100%;align-items:center;gap:12px;padding:12px 14px;margin-bottom:8px;border-radius:14px;background:rgba(241,231,214,.06);border:1px solid rgba(241,231,214,.12);color:inherit;text-align:left;cursor:pointer;font:inherit;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;color:var(--cream,#f1e7d6);">${escapeHtml(n)}</div>
+          <div style="font-size:12px;color:#9eabc0;margin-top:2px;">${l.media ? 'média ' + _iniFmt(l.media) + ' · ' : 'sem média · '}${mesLabel} ${_iniFmt(v)}${pctU !== null ? ' · <span style="color:' + corU + '">' + Math.round(pctU * 100) + '% usado</span>' : ''}</div>
+        </div>
+        <div style="flex:none;text-align:right;font-variant-numeric:tabular-nums;">
+          ${orc ? `<div style="font-weight:700;color:var(--cream,#f1e7d6);">${_iniFmt(orc)}</div><div style="font-size:11px;color:#9eabc0;">alterar</div>`
+                : `<div style="font-size:12.5px;font-weight:600;color:var(--gold,#d6ae6a);">definir</div>`}
+        </div>
+      </button>`;
+  }).join('') : '<div class="empty" style="padding:24px;">Nenhum gasto da família ainda.</div>';
+  sheet.open('Orçamentos por tipo de gasto', `
+    <div class="rex-microcopy"><em>Limite mensal da família (sem o Tiago) para cada tipo de gasto. No Início, o anel de cada tipo passa a mostrar quanto do orçamento já foi usado; no detalhe aparecem o quanto resta e se a projeção do mês passa do limite. A sugestão ao definir é a média dos meses fechados.</em></div>
+    <div>${lista}</div>`);
+  document.querySelectorAll('#sheetBody [data-orc-edit]').forEach(b => b.addEventListener('click', async () => {
+    const n = b.dataset.orcEdit; const l = linhas.find(x => x.nome === n) || {};
+    if (await _editarOrcamento(n, l.media)) openOrcamentosSheet();
+  }));
+}
+
+/* bloco de orçamento no detalhe do tipo de gasto */
+function _detOrcamentoHtml(subc, total, proj, media, ehAtual) {
+  const orc = _orcamentoDe(subc);
+  if (!orc) {
+    return `<button class="det-orc det-orc--vazio" data-orc-det="1">
+      <span>Sem orçamento para ${escapeHtml(subc)}</span>
+      <b>definir${media ? ' · sugestão ' + _iniFmt(media) : ''}</b>
+    </button>`;
+  }
+  const usado = total / orc;
+  const resta = orc - total;
+  const cor = usado > 1 ? '#e48c77' : (usado > 0.85 ? '#d9b06a' : '#6cc59d');
+  const projPct = (ehAtual && proj) ? Math.min(100, proj / orc * 100) : null;
+  let nota;
+  if (resta < 0) nota = `<span style="color:#e48c77">passou ${_iniFmt(-resta)} do orçamento</span>`;
+  else if (ehAtual && proj && proj > orc) nota = `resta ${_iniFmt(resta)} · <span style="color:#e48c77">a projeção passa o orçamento em ${_iniFmt(proj - orc)}</span>`;
+  else if (ehAtual) nota = `resta ${_iniFmt(resta)}${proj ? ' · projeção dentro do orçamento' : ''}`;
+  else nota = `sobrou ${_iniFmt(resta)}`;
+  return `<button class="det-orc" data-orc-det="1">
+    <div class="det-orc-top"><span>Orçamento ${_iniFmt(orc)}</span><b style="color:${cor}">${Math.round(usado * 100)}% usado</b></div>
+    <div class="det-orc-trk"><div style="width:${Math.min(100, usado * 100).toFixed(1)}%;background:${cor}"></div>${projPct !== null && projPct > usado * 100 ? `<i style="left:${projPct.toFixed(1)}%"></i>` : ''}</div>
+    <div class="det-orc-nota"><span>${nota}</span><em>alterar</em></div>
+  </button>`;
+}
+
 function _iniFmt(v) { return fmtBRL(Math.round(Number(v) || 0)).replace(',00', ''); }
 function _iniDiasNoMes(ym) { const [y, m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); }
 
@@ -7247,7 +7364,7 @@ function renderInicioDash(forcar) {
       for (let i = 0; i < t.length; i++) { _sig ^= t.charCodeAt(i); _sig = Math.imul(_sig, 0x01000193); }
     }
   }
-  const chave = [ym, _n, _soma.toFixed(2), _pend.toFixed(3), _mediaDesde(), (_sig >>> 0).toString(36), !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal), temaAtual(), new Date().getDate()].join('|');
+  const chave = [ym, _n, _soma.toFixed(2), _pend.toFixed(3), _mediaDesde(), JSON.stringify(_orcamentos()), (_sig >>> 0).toString(36), !!(state.uiPrefs && state.uiPrefs.revealFamiliaTotal), temaAtual(), new Date().getDate()].join('|');
   if (!forcar && chave === _iniUltimaChave && host.firstElementChild) return;
   _iniUltimaChave = chave;
   const ymAtual = currentYM();
@@ -7340,10 +7457,14 @@ function renderInicioDash(forcar) {
     const b = linhas.find(l => l.nome === d.nome);
     const v = b ? b.total : 0;
     const m = b && b.media ? b.media : null;
-    const frac = m && m > 0 ? Math.min(1, v / m) : (v > 0 ? 1 : 0);
+    const orc = _orcamentoDe(d.nome); /* v0.82.0 */
+    const ref = orc || m;
+    const frac = ref && ref > 0 ? Math.min(1, v / ref) : (v > 0 ? 1 : 0);
     const off = Math.round(226 * (1 - frac));
     const cor = escuro ? d.corEsc : d.cor;
-    const sub = m && m > 0 ? `${Math.round(v / m * 100)}% da média${reveal ? ' · ' + _iniFmt(m) : ''}` : (v > 0 ? 'sem média ainda' : 'nada este mês');
+    const sub = orc
+      ? `<span${v > orc ? ' style="color:var(--coral)"' : ''}>${Math.round(v / orc * 100)}% do orçamento</span>${reveal ? ' · ' + _iniFmt(orc) : ''}`
+      : (m && m > 0 ? `${Math.round(v / m * 100)}% da média${reveal ? ' · ' + _iniFmt(m) : ''}` : (v > 0 ? 'sem média ainda' : 'nada este mês'));
     return `
       <button class="ini-card ini-d${i + 1}" data-ini-sub="${escapeHtml(d.nome)}">
         <div class="ini-ring">
@@ -7502,7 +7623,7 @@ function _iniAbrirSubgrupo(subc, ym) {
     <div class="det-legend">
       <span><i style="background:${corProjHex}"></i>realizado ${_iniFmt(total)}</span>
       <span><i style="border:1.5px dashed ${corProjHex};background:repeating-linear-gradient(135deg,${corProjHex}99 0 3px,${corProjHex}2e 3px 6px)"></i>projeção + ${_iniFmt(proj - total)}</span>
-      ${media ? '<span><i style="width:14px;height:0;border-top:1.5px dashed #9eabc0;border-radius:0"></i>média dos fechados ${_iniFmt(media)}</span>' : ''}
+      ${media ? '<span><i style="width:14px;height:0;border-top:1.5px dashed #9eabc0;border-radius:0"></i>média dos fechados ' + _iniFmt(media) + '</span>' : ''}
     </div>
     <div class="det-note">Projeção = o que já está lançado (inclui fixos do mês) + gastos variáveis no ritmo da média para os ${diasMes - diaHoje} dias que faltam. Coral acima da média, verde abaixo.</div>` :
     (media ? '<div class="det-legend"><span><i style="width:14px;height:0;border-top:1.5px dashed #9eabc0;border-radius:0"></i>média dos ' + fechados.length + ' meses fechados</span></div>' : '');
@@ -7527,6 +7648,7 @@ function _iniAbrirSubgrupo(subc, ym) {
       </div>
       ${legenda}
     </div>
+    ${_detOrcamentoHtml(subc, total, proj, media, ehAtual)}
     <div class="det-sec"><h3>Quem gastou</h3><span>${ordem.map(k => escapeHtml((state.members[k] || {}).nome || k)).join(' + ') || 'ninguém este mês'}</span></div>
     ${ordem.length ? `<div class="det-pessoas">${pessoas}</div>` : ''}
     <div class="det-sec"><h3>Lançamentos do mês</h3><span>${gastosMes.length} ${gastosMes.length === 1 ? 'item' : 'itens'}</span></div>
@@ -7534,6 +7656,8 @@ function _iniAbrirSubgrupo(subc, ym) {
 
   sheet.el.classList.add('sheet--navy');
   sheet.open(subc, html);
+  const _bo = document.querySelector('#sheetBody [data-orc-det]'); /* v0.82.0 */
+  if (_bo) _bo.onclick = async () => { if (await _editarOrcamento(subc, media)) _iniAbrirSubgrupo(subc, ym); };
 }
 
 /* =========================================================================
@@ -7542,6 +7666,7 @@ function _iniAbrirSubgrupo(subc, ym) {
 
 function renderConfigCounts() {
   try { atualizarMediaDesdeSub(); } catch (e) {}
+  try { atualizarOrcamentosSub(); } catch (e) {}
   /* Membros */
   const cm = document.getElementById('cfgMembers');
   cm.innerHTML = Object.entries(state.members).map(([key, m]) => `
@@ -7664,6 +7789,7 @@ function onConfigClick(btn) {
     case 'member':    openMemberSheet(btn.dataset.key); break;
     case 'tema':      escolherTema(); break;
     case 'mediaDesde': escolherMediaDesde(); break;
+    case 'orcamentos': openOrcamentosSheet(); break;
     case 'subcats':   openSubcatsSheet(cat); break;
     case 'grupos':    openGruposSheet(cat); break;
     case 'cards':     openCardsSheet(); break;
@@ -10417,6 +10543,11 @@ function relCalcSubcatsConsolidadas(ym, cats, limit) {
    (regra canônica); tendência = mês escolhido vs média (±5% = estável).
    Mesmo filtro de consumo do resto do relatório (_relGastoConta). */
 const REL_TIPO_CATS = ['casa', 'marina', 'heitor', 'juliana'];
+/* v0.82.0 — deduções do IR (Fluxo de Caixa). Teto anual de educação por pessoa
+   (titular, dependente ou alimentando): R$ 3.561,50 — conferir a cada ano. */
+const IR_TETO_EDUCACAO = 3561.50;
+const IR_SUBCATS_SAUDE = ['Saúde', 'Plano de saúde familiar'];
+const IR_SUBCATS_EDUCACAO = ['Escola', 'Escola/Cursos', 'Educação'];
 function relCalcTipoGastoPorMembro(ym, ymsHist) {
   const ymAtual = (typeof currentYM === 'function') ? currentYM() : null;
   const fechados = (ymsHist || []).filter(y => (!ymAtual || y < ymAtual) && _ymNaMedia(y)); /* v0.76.0 */
@@ -11970,10 +12101,81 @@ window.relatorioElegante = {
     const secTop = this._secaoTopGastos(d.topGastos);
     const secLista = this._secaoFluxoDetalhado(d.listaFluxo, d.entradas, d.saidas + d.invest, d.saldo);
     const secAlertas = this._secaoAlertas(d.alertas);
+    let secIR = '';
+    try { secIR = this._secaoDedutiveisIR(ctx.ym); } catch (e) { console.error('[IR]', e); } /* v0.82.0 */
 
-    const body = capa + secFluxo + secEntFoco + secSaidas + secTop + secLista + secAlertas;
+    const body = capa + secFluxo + secEntFoco + secSaidas + secIR + secTop + secLista + secAlertas;
     this._corpoRel2Cache = body;
     return this._documento(ctx, body);
+  },
+
+  /* v0.82.0 — GASTOS DEDUTÍVEIS NO IR: saúde (sem teto) e educação (teto anual por
+     pessoa), pagos de janeiro até o mês do relatório, por pessoa (Tiago incluído).
+     Regime de caixa da declaração: cartão conta no mês da fatura. É estimativa —
+     só vale o que tiver recibo/nota com CPF ou CNPJ do prestador. */
+  _dadosIR(ymRef) {
+    const ano = ymRef.slice(0, 4);
+    const ymFim = ymRef < currentYM() ? ymRef : currentYM();
+    const cats = ['tiago', 'juliana', 'marina', 'heitor', 'casa'];
+    const linhas = {};
+    cats.forEach(k => { linhas[k] = { key: k, saude: 0, edu: 0, n: 0 }; });
+    (state.gastos || []).forEach(g => {
+      if (!g.ym || g.ym.slice(0, 4) !== ano || g.ym > ymFim) return;
+      if (!linhas[g.categoria] || !_relGastoConta(g) || g.pago === false) return;
+      const sc = g.subcategoria || '';
+      const v = Number(g.valor) || 0;
+      if (IR_SUBCATS_SAUDE.indexOf(sc) >= 0) { linhas[g.categoria].saude += v; linhas[g.categoria].n++; }
+      else if (IR_SUBCATS_EDUCACAO.indexOf(sc) >= 0) { linhas[g.categoria].edu += v; linhas[g.categoria].n++; }
+    });
+    const out = cats.map(k => {
+      const l = linhas[k];
+      const m = (state.members && state.members[k]) || {};
+      /* "Casa" não é uma pessoa: o teto de educação só se aplica a quem é titular ou dependente */
+      const eduDed = k === 'casa' ? 0 : Math.min(l.edu, IR_TETO_EDUCACAO);
+      return { key: k, nome: k === 'casa' ? 'Casa (família)' : (m.nome || k), cor: m.cor || '#888',
+               saude: l.saude, edu: l.edu, eduDed, total: l.saude + eduDed, n: l.n };
+    }).filter(l => l.saude > 0 || l.edu > 0);
+    return { ano, ymFim, linhas: out };
+  },
+
+  _secaoDedutiveisIR(ymRef) {
+    const d = this._dadosIR(ymRef);
+    const mesFim = MESES_PT[Number(d.ymFim.split('-')[1]) - 1];
+    const periodo = d.ymFim.slice(5) === '01' ? 'janeiro de ' + d.ano : 'janeiro a ' + mesFim.toLowerCase() + ' de ' + d.ano;
+    if (!d.linhas.length) {
+      return this._secao('', 'Gastos dedutíveis no IR · ' + d.ano,
+        `<div class="pdf-card no-break"><div class="rel-empty">Nenhum gasto de saúde ou educação pago de ${this._esc(periodo)}.</div></div>`);
+    }
+    const tS = d.linhas.reduce((a, l) => a + l.saude, 0);
+    const tE = d.linhas.reduce((a, l) => a + l.edu, 0);
+    const tED = d.linhas.reduce((a, l) => a + l.eduDed, 0);
+    const tT = tS + tED;
+    const teto = this._fmt(IR_TETO_EDUCACAO);
+    const corpo = d.linhas.map(l => {
+      const passou = l.key !== 'casa' && l.edu > IR_TETO_EDUCACAO;
+      return `<tr>
+        <td><span class="ent-dot" style="background:${l.cor}"></span>${this._esc(l.nome)}</td>
+        <td class="tg-val">${l.saude > 0 ? this._fmt(l.saude) : '—'}</td>
+        <td class="tg-val">${l.edu > 0 ? this._fmt(l.edu) : '—'}</td>
+        <td class="tg-val">${l.key === 'casa' ? (l.edu > 0 ? 'atribuir *' : '—') : (l.edu > 0 ? this._fmt(l.eduDed) + (passou ? ' ▲' : '') : '—')}</td>
+        <td class="tg-val" style="font-weight:700;">${this._fmt(l.total)}</td>
+      </tr>`;
+    }).join('');
+    const temCasaEdu = d.linhas.some(l => l.key === 'casa' && l.edu > 0);
+    const algumTeto = d.linhas.some(l => l.key !== 'casa' && l.edu > IR_TETO_EDUCACAO);
+    return this._secao('', 'Gastos dedutíveis no IR · ' + d.ano,
+      `<div class="pdf-card no-break ent-block">
+        ${this._totLinha('Dedução estimada de ' + periodo, tT, '')}
+        <div class="ent-desc">Saúde (${this._esc(IR_SUBCATS_SAUDE.join(', '))}) não tem teto. Educação (${this._esc(IR_SUBCATS_EDUCACAO.join(', '))}) tem teto de ${teto} por pessoa no ano${algumTeto ? ' — ▲ marca quem já passou do teto' : ''}. Conta o que foi pago no ano; no cartão, o mês da fatura.</div>
+        <div class="ent-tabela-wrap no-break"><table class="tg-table ent-tabela">
+          <thead><tr><th>PESSOA</th><th class="tg-th-val">SAÚDE</th><th class="tg-th-val">EDUCAÇÃO</th><th class="tg-th-val">EDUC. DEDUTÍVEL</th><th class="tg-th-val">TOTAL</th></tr></thead>
+          <tbody>${corpo}</tbody>
+          <tfoot><tr class="ent-tfoot"><td class="fx-foot-lbl">Total</td><td class="tg-val">${this._fmt(tS)}</td><td class="tg-val">${this._fmt(tE)}</td><td class="tg-val">${this._fmt(tED)}</td><td class="tg-val">${this._fmt(tT)}</td></tr></tfoot>
+        </table></div>
+        <div class="tax-callout no-break" style="margin-top:12px;">
+          <div class="tax-tx"><b>Estimativa, confira antes de declarar.</b> Só deduz o que tiver recibo ou nota com o CPF/CNPJ do prestador. Farmácia, academia, cursos livres, idiomas e material escolar não são dedutíveis — se estiverem nessas subcategorias, o valor real é menor. Juliana, Marina e Heitor só entram se forem seus dependentes na declaração. As deduções valem no modelo completo: compare com o desconto simplificado.${temCasaEdu ? ' * Educação lançada em Casa não tem pessoa: o teto é por aluno, então lance na pessoa.' : ''}</div>
+        </div>
+      </div>`);
   },
 
   /* mesmo corpo do PDF, mas como documento para embutir na tela (sem barra de
@@ -12940,29 +13142,60 @@ window.relatorioElegante = {
           <span class="ent-lg"><span class="ent-dot" style="background:#A8462C;"></span>Saídas + invest.</span>
           <span class="ent-lg"><span class="ent-dot" style="background:#1C1A15;"></span>Saldo (E − S)</span>
         </div>
+        ${this._taxaPoupancaHtml(d.historico)}
         ${this._tabelaFluxoMes(d.historico)}</div>`);
+  },
+
+  /* v0.82.0 — taxa de poupança = (entradas − consumo) ÷ entradas. Investimento conta
+     como poupado. Só meses fechados e dentro do período das médias; o mês em curso
+     fica de fora (as entradas do resto do mês ainda não chegaram). */
+  _taxaPoupanca(h) { return h && h.entradas > 0 ? (h.entradas - h.saidas) / h.entradas : null; },
+  _taxaFechados(historico) {
+    const ymH = currentYM();
+    return (historico || []).filter(h => h.ym < ymH && _ymNaMedia(h.ym) && h.entradas > 0);
+  },
+  _fmtTaxa(t) { return t === null || t === undefined ? '—' : (t < 0 ? '−' : '') + Math.round(Math.abs(t) * 100) + '%'; },
+  _taxaPoupancaHtml(historico) {
+    const fech = this._taxaFechados(historico);
+    if (!fech.length) return '';
+    const ult = fech[fech.length - 1];
+    const tUlt = this._taxaPoupanca(ult);
+    const sE = fech.reduce((a, h) => a + h.entradas, 0), sS = fech.reduce((a, h) => a + h.saidas, 0);
+    const tMed = sE > 0 ? (sE - sS) / sE : null;
+    const sI = fech.reduce((a, h) => a + h.invest, 0);
+    const cor = (t) => t === null ? 'var(--pdf-ink)' : (t < 0 ? '#C4553B' : (t >= 0.2 ? '#2F7D57' : 'var(--pdf-ink)'));
+    return `<div class="tax-callout poup-callout no-break">
+      <div class="poup-col"><div class="poup-lbl">Taxa de poupança · ${this._esc(this._mesAbbr(ult.ym))}</div><div class="poup-val" style="color:${cor(tUlt)}">${this._fmtTaxa(tUlt)}</div><div class="poup-sub">último mês fechado</div></div>
+      <div class="poup-col"><div class="poup-lbl">Média dos fechados</div><div class="poup-val" style="color:${cor(tMed)}">${this._fmtTaxa(tMed)}</div><div class="poup-sub">${fech.length} ${fech.length === 1 ? 'mês' : 'meses'} · ${this._fmt((sE - sS) / fech.length)}/mês não consumidos${sI > 0 ? ', dos quais ' + this._fmt(sI / fech.length) + ' investidos' : ''}</div></div>
+      <div class="poup-tx">Quanto da renda não virou consumo: (entradas − saídas) ÷ entradas. O que foi investido conta como poupado. Referência usual para uma família: 20% ou mais. O mês em curso fica fora, porque as entradas do resto do mês ainda não chegaram.</div>
+    </div>`;
   },
 
   /* tabela mês a mês do fluxo: Entradas · Saídas+Inv · Saldo + linha Período */
   _tabelaFluxoMes(historico) {
     if (!historico || !historico.length) return '';
-    const linha = (label, e, s, isTot, parcial) => {
+    const linha = (label, e, s, isTot, parcial, taxa) => {
       const saldo = e - s;
       return `<tr${isTot ? ' class="ent-tfoot"' : ''}>
         <td${isTot ? ' class="fx-foot-lbl"' : ''}>${this._esc(label)}</td>
         <td class="tg-val" style="color:#2F7D57;">${this._fmt(e)}</td>
         <td class="tg-val" style="color:#C4553B;">${this._fmt(s)}</td>
         <td class="tg-val" style="color:${saldo >= 0 ? '#2F7D57' : (parcial ? '#5E6676' : '#C4553B')};">${this._fmt(saldo)}</td>
+        <td class="tg-val" style="color:${taxa !== null && taxa < 0 ? '#C4553B' : '#5E6676'};">${this._fmtTaxa(taxa)}</td>
       </tr>`;
     };
     const _ymH = currentYM();
-    const body = historico.map(d => linha(this._mesAbbr(d.ym) + (d.ym === _ymH ? ' ○ parcial' : ''), d.entradas, (d.saidas + d.invest), false, d.ym === _ymH)).join('');
+    const _okTx = (d) => d.ym < _ymH && _ymNaMedia(d.ym); /* v0.82.0 */
+    const body = historico.map(d => linha(this._mesAbbr(d.ym) + (d.ym === _ymH ? ' ○ parcial' : ''), d.entradas, (d.saidas + d.invest), false, d.ym === _ymH,
+      _okTx(d) ? this._taxaPoupanca(d) : null)).join('');
     const tE = historico.reduce((a, d) => a + d.entradas, 0);
     const tS = historico.reduce((a, d) => a + d.saidas + d.invest, 0);
+    const _f = this._taxaFechados(historico);
+    const _fE = _f.reduce((a, h) => a + h.entradas, 0), _fS = _f.reduce((a, h) => a + h.saidas, 0);
     return `<div class="ent-tabela-wrap no-break"><table class="tg-table ent-tabela">
-      <thead><tr><th>MÊS</th><th class="tg-th-val">ENTRADAS</th><th class="tg-th-val">SAÍDAS + INV.</th><th class="tg-th-val">SALDO</th></tr></thead>
+      <thead><tr><th>MÊS</th><th class="tg-th-val">ENTRADAS</th><th class="tg-th-val">SAÍDAS + INV.</th><th class="tg-th-val">SALDO</th><th class="tg-th-val">POUPANÇA</th></tr></thead>
       <tbody>${body}</tbody>
-      <tfoot>${linha('Período', tE, tS, true)}</tfoot>
+      <tfoot>${linha('Período', tE, tS, true, false, _fE > 0 ? (_fE - _fS) / _fE : null)}</tfoot>
     </table></div>`;
   },
 
@@ -13271,6 +13504,13 @@ text{font-family:'Montserrat',sans-serif;}
 .tax-tt{font-weight:700;font-size:11px;color:#9A6526;margin-bottom:2px;}
 .tax-tx{font-size:10.5px;color:var(--pdf-ink-soft);line-height:1.45;}
 .tax-tx b{color:var(--pdf-ink);}
+/* v0.82.0 — taxa de poupança */
+.poup-callout{flex-wrap:wrap;gap:8px 22px;border-color:rgba(47,125,87,0.30);background:rgba(47,125,87,0.06);}
+.poup-col{min-width:120px;}
+.poup-lbl{font-size:8.5px;font-weight:600;color:var(--pdf-ink-soft);letter-spacing:.02em;}
+.poup-val{font-size:20px;font-weight:700;line-height:1.15;margin-top:2px;font-variant-numeric:tabular-nums;}
+.poup-sub{font-size:9px;color:var(--pdf-ink-soft);margin-top:1px;}
+.poup-tx{flex-basis:100%;font-size:9.5px;color:var(--pdf-ink-soft);line-height:1.45;}
 
 /* tabelas mês a mês (entradas e reserva de imposto) */
 .ent-tabela-wrap{margin-top:14px;overflow-x:auto;}
