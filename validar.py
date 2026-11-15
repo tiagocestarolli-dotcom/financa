@@ -41,6 +41,15 @@ def main(caminho):
             erros.append(f'erro de sintaxe no bloco <script> {n}: {msg[:300]}')
     if n == 0:
         erros.append('nenhum bloco <script> encontrado')
+    # testes automáticos (tests/run.js): leitores de extrato/fatura e sincronização
+    testes = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tests', 'run.js')
+    if os.path.exists(testes):
+        r = subprocess.run(['node', testes, caminho], capture_output=True, text=True)
+        saida = (r.stdout + r.stderr).strip().splitlines()
+        if r.returncode != 0:
+            erros.append('testes automáticos falharam: ' + ' | '.join(l for l in saida if 'FALHOU' in l or 'Error' in l)[:600])
+        elif saida:
+            print('  ' + saida[-1])
     if erros:
         print('✗ DEPLOY BLOQUEADO — o app no ar continua na versão anterior:')
         for e in erros:
