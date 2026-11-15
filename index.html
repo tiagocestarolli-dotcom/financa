@@ -48,7 +48,7 @@
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, doc, setDoc, getDoc, getDocFromServer, onSnapshot, serverTimestamp,
-    enableIndexedDbPersistence, deleteDoc
+    enableIndexedDbPersistence, deleteDoc, writeBatch
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   /* Config do projeto Tiago */
@@ -80,7 +80,7 @@
     app: fbApp, auth: fbAuth, db: fbDb,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
     signOut, onAuthStateChanged,
-    doc, setDoc, getDoc, getDocFromServer, onSnapshot, serverTimestamp, deleteDoc
+    doc, setDoc, getDoc, getDocFromServer, onSnapshot, serverTimestamp, deleteDoc, writeBatch
   };
 
   /* Sinaliza que Firebase está pronto */
@@ -5815,7 +5815,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
   <div class="mi-ico mi-ico--svg"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.2 4.5 4.5 0 0 0 7 18z"/><path d="M12 15V10"/><path d="M9.5 12.5L12 10l2.5 2.5"/></svg></div>
   <div class="mi-body">
     <div class="mi-title">Cópias de segurança na nuvem</div>
-    <div class="mi-sub" id="backupNuvemSub">Cópia automática semanal · últimas 8</div>
+    <div class="mi-sub" id="backupNuvemSub">Cópia automática diária · últimas 14</div>
   </div>
   <div class="mi-chev">›</div>
 </button>
@@ -5863,7 +5863,7 @@ html:not([data-theme="escuro"]) .cat-empty, html:not([data-theme="escuro"]) .emp
 
 <div style="height: 28px;"></div>
 <div class="center muted" id="appVersionTag" style="font-size:12px;">
-  Finança · v0.83.0 · Sincronização: quando os dois aparelhos mudam o mesmo item, fica a versão gravada por último (antes ficava a do aparelho que abria depois, mesmo desatualizado); diário de cada sincronização e Auditoria de sincronização em Config › Backup & dados, com saldo por conta, item a item (sumiu, novo, mudou) e restaurar; tamanho dos dados na nuvem com o limite de 1 MB · v0.82.4 · Classificar (fila do extrato): o miolo rola e os botões salvar e cancelar ficam sempre visíveis · v0.82.3 · Extrato Itaú no layout novo (nov/2026): saldo do dia não vira mais entrada, descrições em várias linhas são lidas (antes sumiam), PIX agendados e linhas do mês anterior ficam fora, rendimento reconhecido, aplicação/resgate e transferência para você mesmo ignorados por padrão, conciliação de saldo · v0.82.2 · Listas de Configurações legíveis no celular (gastos fixos, grupos, subcategorias, fontes, investimentos): nome inteiro em até duas linhas, valor ao lado e botões numa linha própria; títulos dos quadros de explicação visíveis · v0.82.1 · IR no Fluxo de Caixa: Marina e Heitor como seus dependentes; a Juliana aparece à parte, fora do total da sua declaração · v0.82.0 · Orçamento por tipo de gasto: limite mensal da família por subcategoria (Config › Planejamento, ou no detalhe do tipo de gasto), com o anel do Início mostrando quanto já foi usado e o detalhe mostrando quanto resta e se a projeção passa do limite · Fluxo de Caixa com a taxa de poupança (mês a mês e média dos meses fechados, investimento conta como poupado) e os gastos dedutíveis no IR do ano por pessoa (saúde sem teto, educação com teto de R$ 3.561,50) · v0.81.0 · Fluxo de Caixa trata o mês em curso como parcial (sem alerta de saldo negativo, com a média de entradas como referência); tela Gastos & Saídas sem o top 10 e o top nomes repetidos, grupos e identificações só quando existem · Relatórios na identidade navy: capa navy com fios dourados, títulos em Marcellus sem emoji, valores em cor neutra (coral só para alerta), texto secundário com contraste adequado; Fluxo de Caixa abre com o Tiago incluído; coluna Média preenchida no quem gastou · Relatório da família abre com o painel do Início: total com média, projeção e pago × a pagar, colunas dos 6 meses + o mês com valores, painéis por pessoa e por tipo de gasto (com quem gastou); capa com os mesmos rótulos da tela · Projeção do mês usa as faturas: com a fatura do cartão já importada, o cartão entra pelo valor real e só o débito é projetado pela média; cartão sem fatura ainda soma a média dele · Faturas futuras: na aba Cartões, quanto cada fatura vai custar nos próximos 12 meses (parcelas e fixos registrados + assinaturas estimadas), detalhe por mês e parcelamentos em curso com o mês em que terminam · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
+  Finança · v0.84.0 · Dados divididos por mês na nuvem (gastos, entradas e transferências num documento por mês; o limite de 1 MB passa a valer para cada um), com cópia completa automática antes da divisão; cópia na nuvem diária e antes de cada importação de extrato ou fatura, últimas 14, guardada em pedaços · v0.83.0 · Sincronização: quando os dois aparelhos mudam o mesmo item, fica a versão gravada por último (antes ficava a do aparelho que abria depois, mesmo desatualizado); diário de cada sincronização e Auditoria de sincronização em Config › Backup & dados, com saldo por conta, item a item (sumiu, novo, mudou) e restaurar; tamanho dos dados na nuvem com o limite de 1 MB · v0.82.4 · Classificar (fila do extrato): o miolo rola e os botões salvar e cancelar ficam sempre visíveis · v0.82.3 · Extrato Itaú no layout novo (nov/2026): saldo do dia não vira mais entrada, descrições em várias linhas são lidas (antes sumiam), PIX agendados e linhas do mês anterior ficam fora, rendimento reconhecido, aplicação/resgate e transferência para você mesmo ignorados por padrão, conciliação de saldo · v0.82.2 · Listas de Configurações legíveis no celular (gastos fixos, grupos, subcategorias, fontes, investimentos): nome inteiro em até duas linhas, valor ao lado e botões numa linha própria; títulos dos quadros de explicação visíveis · v0.82.1 · IR no Fluxo de Caixa: Marina e Heitor como seus dependentes; a Juliana aparece à parte, fora do total da sua declaração · v0.82.0 · Orçamento por tipo de gasto: limite mensal da família por subcategoria (Config › Planejamento, ou no detalhe do tipo de gasto), com o anel do Início mostrando quanto já foi usado e o detalhe mostrando quanto resta e se a projeção passa do limite · Fluxo de Caixa com a taxa de poupança (mês a mês e média dos meses fechados, investimento conta como poupado) e os gastos dedutíveis no IR do ano por pessoa (saúde sem teto, educação com teto de R$ 3.561,50) · v0.81.0 · Fluxo de Caixa trata o mês em curso como parcial (sem alerta de saldo negativo, com a média de entradas como referência); tela Gastos & Saídas sem o top 10 e o top nomes repetidos, grupos e identificações só quando existem · Relatórios na identidade navy: capa navy com fios dourados, títulos em Marcellus sem emoji, valores em cor neutra (coral só para alerta), texto secundário com contraste adequado; Fluxo de Caixa abre com o Tiago incluído; coluna Média preenchida no quem gastou · Relatório da família abre com o painel do Início: total com média, projeção e pago × a pagar, colunas dos 6 meses + o mês com valores, painéis por pessoa e por tipo de gasto (com quem gastou); capa com os mesmos rótulos da tela · Projeção do mês usa as faturas: com a fatura do cartão já importada, o cartão entra pelo valor real e só o débito é projetado pela média; cartão sem fatura ainda soma a média dele · Faturas futuras: na aba Cartões, quanto cada fatura vai custar nos próximos 12 meses (parcelas e fixos registrados + assinaturas estimadas), detalhe por mês e parcelamentos em curso com o mês em que terminam · Olho único no topo do Início: esconde e mostra todos os valores da família de uma vez (total, colunas, cartões, pessoa, listas) e fica sempre visível · Médias a partir de maio/2026: meses anteriores (só entradas de IR e gastos de teste) continuam nos gráficos mas ficam fora de médias, tendências e projeções — ajustável em Config · Cópias de segurança na nuvem: cópia automática semanal dos dados na sua conta (últimas 8), "fazer uma cópia agora" e restaurar em Config › Backup & dados · Correções da auditoria: estornos pareados no Sicoob e BTG, ano certo nas faturas de janeiro, Início atualiza ao reclassificar, app mais leve (sem Chart.js, PDF.js sob demanda), textos do regime do cartão · Início: total separado em pago × a pagar (toque abre as contas do mês) · cartão "Contas a vencer" com atrasadas, vence hoje e próximos 3 dias, e botão pagar · Sincronização: fim do loop "Dados atualizados de outro dispositivo" (comparação canônica, eco da própria gravação reconhecido) e baixa de pagamento que não pegava · projeção não conta mais os fixos duas vezes · Valores nas colunas dos gráficos do Início (rótulo curto em cima de cada coluna; tocar ou passar o mouse mostra o valor cheio, e no mês atual realizado + projeção) · Início: colunas dos últimos meses da pessoa selecionada (Casa, Marina, Heitor, Juliana) abaixo das abas, com realizado, projeção e média, animadas a cada troca · Início: linha de tendência substituída por colunas dos últimos 6 meses + atual (realizado sólido, projeção hachurada, média tracejada) · extrato e listas cronológicas legíveis nos sheets, com logos dos bancos e ícones de traço · Listas por subcategoria em caixas escuras (Início e Meus Gastos) · abertura em navy com barras da paleta · Logos do Itaú, Sicoob e BTG nas contas (lista, detalhe, chips de conta e resumo de importação) · Sheets e formulários em navy: campos escuros com foco dourado, chips e subcategorias com as cores da paleta (seleção na cor da pessoa, invest em azul), botão principal dourado · chip "— sem grupo —" legível · ícones de pessoa no formulário de gasto</div>
 
   </section>
 
@@ -6191,7 +6191,11 @@ const SyncGuard = {
     }
     out._updatedAt = Math.max(tsL, tsR);
     if (remote._syncBaseTs != null) out._syncBaseTs = remote._syncBaseTs;
-    const semTs = (o) => { const c = Object.assign({}, o); delete c._updatedAt; delete c._syncBaseTs; return this._canon(c); };
+    /* v0.84.0: listas comparadas em ordem de id — com os dados divididos por mês, a nuvem
+       devolve os itens agrupados por mês, numa ordem diferente da do aparelho */
+    const semTs = (o) => { const c = Object.assign({}, o); delete c._updatedAt; delete c._syncBaseTs;
+      for (const k in c) { if (this._isColl(c[k])) c[k] = c[k].slice().sort((a, b) => String(a.id) < String(b.id) ? -1 : (String(a.id) > String(b.id) ? 1 : 0)); }
+      return this._canon(c); };
     const igualRemoto = semTs(out) === semTs(remote);
     const igualLocal = semTs(out) === semTs(local);
     return { state: out, igualRemoto, igualLocal, stats, log };
@@ -6241,6 +6245,76 @@ const StorageAdapter = {
   lastStateString: null,   /* última versão enviada com sucesso pra nuvem */
   serverFresh: false,      /* v0.58.1: já vimos a versão do servidor desde que o app abriu/voltou do segundo plano? */
   inflightTs: null,        /* v0.58.1: carimbo da escrita em andamento (para reconhecer o próprio eco) */
+
+  /* ===== v0.84.0 — DADOS DIVIDIDOS POR MÊS NA NUVEM =====
+     O documento users/{uid} tinha tudo e o Firestore limita cada documento a 1 MB
+     (em 15/11/2026 estava em 71%). Agora gastos, entradas e transferências ficam
+     num documento por mês (users/{uid}/backups/m_AAAA-MM — a subcoleção que as regras
+     já liberam) e o principal guarda o resto em `state2`, com o mapa {mês: hash}
+     em `partes`. Na memória do aparelho o estado continua um só: nada muda nas telas.
+     Gravação em lote atômico (principal + meses que mudaram). O campo antigo `state`
+     deixa de existir: versões antigas do app passam a ver a nuvem como vazia e não
+     leem pela metade. */
+  PARTES_COLS: ['gastos', 'entradas', 'transferencias'],
+  _partesCache: {},          /* ym → { h, d } */
+  _partesNuvem: null,        /* ym → h confirmados na nuvem (lidos ou gravados) */
+  _formatoNuvem: null,       /* 'mono' | 'partes' | null */
+  _backupDivisaoFeito: false,
+  _seqRt: 0,
+  _refParte(ym) { return window.FB.doc(window.FB.db, 'users', this.userId, 'backups', 'm_' + ym); },
+  _ymDe(x) {
+    const v = x && (x.ym || (typeof x.data === 'string' ? x.data.slice(0, 7) : ''));
+    return /^\d{4}-\d{2}$/.test(v || '') ? v : 'sem-data';
+  },
+  _dividir(s) {
+    const principal = {};
+    for (const k in s) { if (this.PARTES_COLS.indexOf(k) < 0) principal[k] = s[k]; }
+    const partes = {};
+    this.PARTES_COLS.forEach(k => (s[k] || []).forEach(x => {
+      const ym = this._ymDe(x);
+      if (!partes[ym]) partes[ym] = { gastos: [], entradas: [], transferencias: [] };
+      partes[ym][k].push(x);
+    }));
+    return { principal, partes };
+  },
+  /* monta o estado completo a partir do documento principal (lança erro se faltar parte) */
+  async _montar(d, doServidor) {
+    if (!d) return null;
+    if (d.state2) {
+      const mapa = d.partes || {};
+      const yms = Object.keys(mapa).sort();
+      await Promise.all(yms.map(async ym => {
+        const c = this._partesCache[ym];
+        if (c && c.h === mapa[ym]) return;
+        const ref = this._refParte(ym);
+        let snap;
+        if (doServidor && window.FB.getDocFromServer) {
+          try { snap = await window.FB.getDocFromServer(ref); } catch (e) { snap = await window.FB.getDoc(ref); }
+        } else snap = await window.FB.getDoc(ref);
+        if (!snap.exists()) throw new Error('parte ' + ym + ' dos dados não encontrada na nuvem');
+        const pd = snap.data();
+        this._partesCache[ym] = { h: pd.h, d: { gastos: pd.gastos || [], entradas: pd.entradas || [], transferencias: pd.transferencias || [] } };
+      }));
+      const st = Object.assign({}, d.state2);
+      this.PARTES_COLS.forEach(k => { st[k] = []; });
+      yms.forEach(ym => { const c = this._partesCache[ym]; this.PARTES_COLS.forEach(k => { st[k] = st[k].concat(c.d[k]); }); });
+      this._partesNuvem = Object.assign({}, mapa);
+      this._formatoNuvem = 'partes';
+      return st;
+    }
+    if (d.state) { this._formatoNuvem = 'mono'; this._partesNuvem = null; return d.state; }
+    return null;
+  },
+  /* tamanho do documento principal e da maior parte, em KB (para o medidor) */
+  tamanhosNuvem(s) {
+    try {
+      const { principal, partes } = this._dividir(s || state);
+      const kb = (o) => Math.round(new Blob([JSON.stringify(o)]).size / 1024);
+      let maior = 0, maiorYm = null;
+      Object.keys(partes).forEach(ym => { const k = kb(partes[ym]); if (k > maior) { maior = k; maiorYm = ym; } });
+      return { principal: kb(principal), maiorParte: maior, maiorYm, nPartes: Object.keys(partes).length, total: kb(s || state) };
+    } catch (e) { return null; }
+  },
 
   /* Lê o estado, aplicando migrações */
   load() {
@@ -6324,6 +6398,14 @@ const StorageAdapter = {
       this._setStatus('offline');
       return;
     }
+    /* v0.84.0: uma gravação por vez — a seguinte espera (a primeira pode estar fazendo a cópia antes de dividir) */
+    if (this._gravando) {
+      if (this.saveTimer) clearTimeout(this.saveTimer);
+      this.pendingWrite = true;
+      this.saveTimer = setTimeout(() => this._cloudSave(s), 1500);
+      return;
+    }
+    this._gravando = true;
     this._setStatus('saving');
     try {
       const ref = window.FB.doc(window.FB.db, 'users', this.userId);
@@ -6339,9 +6421,18 @@ const StorageAdapter = {
           this._setStatus('offline');
           return;
         }
+        let _stSrv = null;
+        try { _stSrv = snapSrv.exists() ? await this._montar(snapSrv.data(), true) : null; }
+        catch (eMont) {
+          /* v0.84.0: faltou uma parte — não grava às cegas */
+          console.warn('[sync] não montou os dados da nuvem antes de gravar', eMont);
+          this.pendingChanges = Math.max(this.pendingChanges, 1);
+          this._setStatus('error');
+          return;
+        }
         this.serverFresh = true;
-        if (snapSrv.exists() && snapSrv.data().state) {
-          const remoto = this._migrate(snapSrv.data().state);
+        if (_stSrv) {
+          const remoto = this._migrate(_stSrv);
           const r = this.mesclarRemoto(remoto, { origem: 'antes de gravar', semPush: true });
           s = r.state;
         }
@@ -6352,15 +6443,50 @@ const StorageAdapter = {
       this.inflightTs = Number(s._updatedAt) || 0;
       /* sem { merge: true }: o merge raso do Firestore ressuscitava chaves
          apagadas dentro de mapas (ex.: fila do extrato já concluída) */
-      await window.FB.setDoc(ref, {
-        state: s,
-        meta: {
-          email: this.userEmail || null,
-          updatedAt: window.FB.serverTimestamp(),
-          appVersion: 'v0.58.1'
-        }
-      });
+      /* v0.84.0: grava dividido por mês. Na primeira vez (nuvem ainda num documento só)
+         guarda antes uma cópia completa; se a cópia falhar, continua no formato antigo. */
+      let _dividir = !!window.FB.writeBatch;
+      if (_dividir && this._formatoNuvem !== 'partes' && !this._backupDivisaoFeito) {
+        try { await BackupNuvem.criar('antes de dividir os dados por mês'); this._backupDivisaoFeito = true; }
+        catch (eBk) { console.warn('[sync] cópia antes de dividir falhou — segue no formato de documento único', eBk); _dividir = false; }
+      }
+      if (_dividir) {
+        const { principal, partes } = this._dividir(s);
+        const mapa = {};
+        Object.keys(partes).forEach(ym => { mapa[ym] = SyncGuard._hash(partes[ym]); });
+        const ant = (this._formatoNuvem === 'partes' && this._partesNuvem) ? this._partesNuvem : {};
+        const lote = window.FB.writeBatch(window.FB.db);
+        Object.keys(mapa).forEach(ym => {
+          if (ant[ym] !== mapa[ym]) lote.set(this._refParte(ym), Object.assign({ h: mapa[ym], em: Date.now() }, partes[ym]));
+        });
+        Object.keys(ant).forEach(ym => { if (!(ym in mapa)) lote.delete(this._refParte(ym)); });
+        lote.set(ref, {
+          state2: principal,
+          partes: mapa,
+          meta: {
+            email: this.userEmail || null,
+            updatedAt: window.FB.serverTimestamp(),
+            appVersion: _appVersionShort(),
+            formato: 'partes-mensais'
+          }
+        });
+        await lote.commit();
+        Object.keys(mapa).forEach(ym => { this._partesCache[ym] = { h: mapa[ym], d: partes[ym] }; });
+        this._partesNuvem = mapa;
+        this._formatoNuvem = 'partes';
+      } else {
+        await window.FB.setDoc(ref, {
+          state: s,
+          meta: {
+            email: this.userEmail || null,
+            updatedAt: window.FB.serverTimestamp(),
+            appVersion: 'v0.58.1'
+          }
+        });
+        this._formatoNuvem = 'mono';
+      }
       SyncGuard.setBaseSnap(this.userId, snapEscrito);
+      this._gravando = false;
       this.lastWrittenTs = this.inflightTs; /* v0.73.0: reconhece o eco mesmo se chegar depois */
       this.inflightTs = null;
       this.pendingWrite = false;
@@ -6370,9 +6496,11 @@ const StorageAdapter = {
       /* v0.50.0 (Fatia A): vigia do teto de 1 MB do Firestore. Avisa uma vez
          por sessão quando os dados passam de 700 KB — margem pra planejar a
          divisão estrutural (Etapa 7) sem sermos pegos de surpresa. */
-      if (!this._avisouTamanho && this.lastStateString.length > 700 * 1024) {
+      const _tam = this._formatoNuvem === 'partes' ? this.tamanhosNuvem(s) : null; /* v0.84.0 */
+      const _maiorKb = _tam ? Math.max(_tam.principal, _tam.maiorParte) : Math.round(this.lastStateString.length / 1024);
+      if (!this._avisouTamanho && _maiorKb > 700) {
         this._avisouTamanho = true;
-        const kb = Math.round(this.lastStateString.length / 1024);
+        const kb = _maiorKb;
         console.warn('[sync] estado com ' + kb + ' KB — teto do Firestore é ~1024 KB');
         if (typeof toast === 'function') {
           toast('Seus dados chegaram a ' + kb + ' KB (limite da nuvem: 1024 KB). Avise o Claude para planejar a divisão.', 'info');
@@ -6381,10 +6509,13 @@ const StorageAdapter = {
       this._setStatus('idle');
     } catch (e) {
       this.inflightTs = null;
+      this._gravando = false;
       console.error('Falha sync nuvem:', e);
       const isOffline = (typeof navigator !== 'undefined' && navigator.onLine === false);
       this.pendingChanges = Math.max(this.pendingChanges, 1);
       this._setStatus(isOffline ? 'offline' : 'error');
+    } finally {
+      this._gravando = false; /* v0.84.0: também nas saídas antecipadas (sem rede, parte faltando) */
     }
   },
 
@@ -6450,17 +6581,17 @@ const StorageAdapter = {
     try {
       const ref = window.FB.doc(window.FB.db, 'users', this.userId);
       /* v0.58.1: servidor primeiro (o cache local pode estar atrasado) */
-      let snap;
+      let snap, doSrv = false;
       try {
         snap = await window.FB.getDocFromServer(ref);
-        this.serverFresh = true;
+        doSrv = true;
       } catch (eSrv) {
         snap = await window.FB.getDoc(ref);
       }
-      if (snap.exists() && snap.data().state) {
-        return this._migrate(snap.data().state);
-      }
-      return null;
+      if (!snap.exists()) return null;
+      const st = await this._montar(snap.data(), doSrv); /* v0.84.0: documento único ou dividido por mês */
+      if (doSrv) this.serverFresh = true;
+      return st ? this._migrate(st) : null;
     } catch (e) {
       console.error('Falha pull nuvem:', e);
       return null;
@@ -6476,10 +6607,15 @@ const StorageAdapter = {
       /* Ignora updates locais (que vieram do próprio cliente) */
       if (snap.metadata.hasPendingWrites) return;
       if (snap.metadata.fromCache) return;
-      if (snap.exists() && snap.data().state) {
-        const remote = this._migrate(snap.data().state);
-        onRemoteChange(remote);
-      }
+      if (!snap.exists()) return;
+      const d = snap.data();
+      if (!d.state && !d.state2) return;
+      /* v0.84.0: monta (busca só os meses que mudaram); ignora resposta atrasada */
+      const seq = ++this._seqRt;
+      this._montar(d, true).then(st => {
+        if (seq !== this._seqRt || !st) return;
+        onRemoteChange(this._migrate(st));
+      }).catch(e => console.warn('[sync] não montou a versão de outro aparelho', e));
     }, (err) => console.warn('Listener erro:', err));
   },
 
@@ -9243,8 +9379,9 @@ function openRemindersSheet() {
    cópia da semana. Mantém as últimas 8. Automática: no boot logado, se a última
    tiver mais de 7 dias. Precisa da regra de backups no Firestore (firestore.rules). */
 const BackupNuvem = {
-  MAX: 8,
-  DIAS: 7,
+  MAX: 14,    /* v0.84.0: cópia diária, últimas 14 */
+  DIAS: 1,
+  PEDACO: 300000, /* caracteres por documento de cópia (folga para o limite de 1 MB) */
   _status: null,          /* null | 'ok' | 'sem-permissao' | 'erro' */
   _indice: null,
   _rodando: false,
@@ -9275,17 +9412,50 @@ const BackupNuvem = {
     const id = 'b' + agora.toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
     const dados = JSON.stringify(state);
     const kb = Math.round(new Blob([dados]).size / 1024);
-    if (kb > 1000) throw new Error(`Os dados (${kb} KB) passaram do limite de uma cópia (1 MB).`);
+    /* v0.84.0: a cópia é guardada em pedaços (id, id_p1, id_p2…) — sem limite de tamanho */
+    const pedacos = [];
+    for (let i = 0; i < dados.length; i += this.PEDACO) pedacos.push(dados.slice(i, i + this.PEDACO));
     const itens = await this.lerIndice();
-    await window.FB.setDoc(this._ref(id), { em: agora.toISOString(), origem, kb, versao: _appVersionShort(), dados });
-    const novo = [{ id, em: agora.toISOString(), origem, kb }].concat(itens.filter(i => i.id !== id));
+    for (let i = pedacos.length - 1; i >= 1; i--) await window.FB.setDoc(this._ref(id + '_p' + i), { dados: pedacos[i] });
+    await window.FB.setDoc(this._ref(id), { em: agora.toISOString(), origem, kb, versao: _appVersionShort(), dados: pedacos[0] || '', pedacos: pedacos.length });
+    const novo = [{ id, em: agora.toISOString(), origem, kb, pedacos: pedacos.length }].concat(itens.filter(i => i.id !== id));
     const manter = novo.slice(0, this.MAX), sobra = novo.slice(this.MAX);
     await window.FB.setDoc(this._ref('indice'), { itens: manter });
     this._indice = manter;
-    for (const v of sobra) { try { await window.FB.deleteDoc(this._ref(v.id)); } catch (e) { console.warn('[backup] não apagou cópia antiga', v.id, e); } }
+    for (const v of sobra) {
+      try {
+        for (let i = 1; i < (Number(v.pedacos) || 1); i++) await window.FB.deleteDoc(this._ref(v.id + '_p' + i));
+        await window.FB.deleteDoc(this._ref(v.id));
+      } catch (e) { console.warn('[backup] não apagou cópia antiga', v.id, e); }
+    }
     this._status = 'ok';
     this.atualizarSub();
     return manter[0];
+  },
+
+  /* v0.84.0: lê uma cópia inteira (juntando os pedaços) */
+  async lerDados(id) {
+    const snap = await window.FB.getDoc(this._ref(id));
+    if (!snap.exists()) throw new Error('Cópia não encontrada');
+    const d = snap.data();
+    let txt = d.dados || '';
+    for (let i = 1; i < (Number(d.pedacos) || 1); i++) {
+      const p = await window.FB.getDoc(this._ref(id + '_p' + i));
+      if (!p.exists()) throw new Error('Pedaço ' + i + ' da cópia não encontrado');
+      txt += p.data().dados || '';
+    }
+    return { em: d.em, origem: d.origem, state: JSON.parse(txt || 'null') };
+  },
+
+  /* v0.84.0: antes de importar extrato ou fatura — no máximo uma por hora; não bloqueia */
+  antesDeImportar() {
+    try {
+      if (!this.disponivel() || this._rodando) return;
+      const u = this.ultima();
+      if (u && (Date.now() - new Date(u.em).getTime()) < 3600000) return;
+      this._rodando = true;
+      this.criar('antes de importar').catch(e => console.warn('[backup] antes de importar falhou', e)).finally(() => { this._rodando = false; });
+    } catch (e) {}
   },
 
   /* chamada no boot logado; silenciosa, nunca bloqueia o app */
@@ -9296,7 +9466,9 @@ const BackupNuvem = {
       await this.lerIndice();
       const d = this.diasDesdeUltima();
       this._status = 'ok';
-      if (d === null || d >= this.DIAS) {
+      const _u = this.ultima();
+      const _outroDia = !_u || new Date(_u.em).toDateString() !== new Date().toDateString(); /* v0.84.0: uma por dia */
+      if (d === null || d >= this.DIAS || _outroDia) {
         await this.criar('automática');
         console.info('[backup] cópia semanal criada');
       }
@@ -9315,11 +9487,11 @@ const BackupNuvem = {
     if (this._status === 'sem-permissao') { el.textContent = 'Inativo: falta atualizar as regras do Firestore'; el.style.color = 'var(--coral, #e07a5f)'; return; }
     el.style.color = '';
     const d = this.diasDesdeUltima();
-    if (d === null) { el.textContent = this._indice ? 'Nenhuma cópia ainda' : 'Cópia automática semanal · últimas 8'; return; }
+    if (d === null) { el.textContent = this._indice ? 'Nenhuma cópia ainda' : 'Cópia automática diária · últimas 14'; return; }
     const quando = d === 0 ? 'hoje' : (d === 1 ? 'ontem' : `há ${d} dias`);
-    const _kb = SyncAudit.tamanhoKb(); /* v0.83.0 */
-    el.textContent = `Última cópia ${quando} · ${this._indice.length} guardada${this._indice.length !== 1 ? 's' : ''}` + (_kb ? ` · dados: ${_kb} KB de 1024 (${Math.round(_kb / 1024 * 100)}%)` : '');
-    if (d > this.DIAS + 3 || (_kb && _kb > 717)) el.style.color = 'var(--coral, #e07a5f)';
+    const _kb = SyncAudit.maiorDocKb(); /* v0.84.0: maior documento na nuvem */
+    el.textContent = `Última cópia ${quando} · ${this._indice.length} guardada${this._indice.length !== 1 ? 's' : ''}` + (_kb ? ` · maior documento: ${_kb} KB de 1024 (${Math.round(_kb / 1024 * 100)}%)` : '');
+    if (d > 3 || (_kb && _kb > 717)) el.style.color = 'var(--coral, #e07a5f)';
   },
 
   async abrir() {
@@ -9345,7 +9517,7 @@ const BackupNuvem = {
         <button data-bk-restaurar="${escapeHtml(i.id)}" style="flex:none;width:auto;padding:8px 14px;font-size:12.5px;font-weight:600;border-radius:10px;background:transparent;color:var(--gold,#d6ae6a);border:1px solid var(--gold,#d6ae6a);cursor:pointer;">restaurar</button>
       </div>`).join('') : '<div class="empty" style="padding:24px;">Nenhuma cópia ainda.</div>';
     sheet.open('Cópias de segurança', `
-      <div class="rex-microcopy"><em>O app guarda sozinho uma cópia completa dos dados por semana, na sua conta, e mantém as últimas ${this.MAX}. Restaurar substitui os dados atuais — antes disso, o app guarda uma cópia do estado atual, então dá para voltar atrás.</em></div>
+      <div class="rex-microcopy"><em>O app guarda sozinho uma cópia completa dos dados por dia (no primeiro uso) e antes de cada importação de extrato ou fatura, na sua conta, e mantém as últimas ${this.MAX}. Restaurar substitui os dados atuais — antes disso, o app guarda uma cópia do estado atual, então dá para voltar atrás.</em></div>
       <button class="btn btn-primary" id="bkCriarAgora" style="width:100%;margin:6px 0 8px;">fazer uma cópia agora</button>
       <button class="btn btn-secondary" id="bkAuditar" style="width:100%;margin:0 0 14px;">auditar sincronização</button>
       <div>${lista}</div>`);
@@ -9368,9 +9540,7 @@ const BackupNuvem = {
     });
     if (!ok) return;
     try {
-      const snap = await window.FB.getDoc(this._ref(id));
-      if (!snap.exists()) throw new Error('Cópia não encontrada');
-      const parsed = JSON.parse(snap.data().dados || 'null');
+      const parsed = (await this.lerDados(id)).state; /* v0.84.0: cópia em pedaços */
       if (!parsed || !parsed.members) throw new Error('Cópia inválida');
       await this.criar('antes de restaurar');
       state = Object.assign(defaultState(), parsed);
@@ -9393,6 +9563,12 @@ const SyncAudit = {
   _copia: null, _copiaLabel: '',
 
   tamanhoKb() { try { return Math.round(new Blob([JSON.stringify(state)]).size / 1024); } catch (e) { return null; } },
+  /* v0.84.0: o limite de 1 MB vale por documento — com os dados divididos, conta o maior */
+  maiorDocKb() {
+    const t = StorageAdapter.tamanhosNuvem();
+    if (!t) return this.tamanhoKb();
+    return StorageAdapter._formatoNuvem === 'mono' ? t.total : Math.max(t.principal, t.maiorParte);
+  },
 
   _saldos(st) {
     const prev = state; const out = {};
@@ -9437,7 +9613,9 @@ const SyncAudit = {
     try { bkLocal = uid ? JSON.parse(localStorage.getItem(`financa.v1.user.${uid}.backup`) || 'null') : null; } catch (e) {}
     let nuvem = [];
     try { if (BackupNuvem.disponivel()) nuvem = await BackupNuvem.lerIndice(); } catch (e) {}
-    const kb = this.tamanhoKb();
+    const kb = this.maiorDocKb(); /* v0.84.0 */
+    const _t = StorageAdapter.tamanhosNuvem();
+    const _div = StorageAdapter._formatoNuvem === 'partes';
     const pct = kb ? Math.round(kb / 1024 * 100) : null;
     const corPct = pct === null ? '#9eabc0' : (pct >= 85 ? '#e48c77' : (pct >= 70 ? '#d9b06a' : '#6cc59d'));
     const fonte = (val, t, sub) => `<button data-aud-fonte="${escapeHtml(val)}" style="display:flex;width:100%;align-items:center;gap:12px;padding:12px 14px;margin-bottom:8px;border-radius:14px;background:rgba(241,231,214,.06);border:1px solid rgba(241,231,214,.12);color:inherit;text-align:left;cursor:pointer;font:inherit;">
@@ -9458,9 +9636,11 @@ const SyncAudit = {
     sheet.open('Auditoria de sincronização', `
       <div class="rex-microcopy"><em>Compare os dados de agora com uma cópia guardada para ver, item a item, o que sumiu, o que entrou e o que mudou, e o saldo de cada conta nos dois momentos. Itens que sumiram ou mudaram podem ser restaurados um a um.</em></div>
       <div style="padding:12px 14px;margin:6px 0 14px;border-radius:14px;background:rgba(241,231,214,.05);border:1px solid rgba(241,231,214,.10);">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:#c9d2e0;"><span>Tamanho dos dados na nuvem</span><b style="color:${corPct}">${kb === null ? '—' : kb + ' KB de 1024 KB · ' + pct + '%'}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#c9d2e0;"><span>${_div ? 'Maior documento na nuvem' : 'Tamanho dos dados na nuvem'}</span><b style="color:${corPct}">${kb === null ? '—' : kb + ' KB de 1024 KB · ' + pct + '%'}</b></div>
         <div style="height:7px;border-radius:4px;background:rgba(241,231,214,.10);margin-top:8px;"><div style="height:100%;width:${Math.min(100, pct || 0)}%;border-radius:4px;background:${corPct};"></div></div>
-        <div style="font-size:11.5px;color:#9eabc0;margin-top:6px;">O limite de um documento do Firestore é 1 MB. A partir de 70% é hora de dividir os dados por ano.</div>
+        <div style="font-size:11.5px;color:#9eabc0;margin-top:6px;">${_div && _t
+          ? `Dados divididos por mês: ${_t.nPartes} documentos de mês (o maior, ${_t.maiorYm}, com ${_t.maiorParte} KB) + o principal com ${_t.principal} KB. Total: ${_t.total} KB. O limite de 1 MB vale para cada documento.`
+          : 'O limite de um documento do Firestore é 1 MB. Os dados passam a ser divididos por mês na próxima gravação.'}</div>
       </div>
       <div class="section-title" style="padding-top:2px;">Comparar com</div>
       ${fontes || '<div class="empty" style="padding:16px;">Nenhuma cópia disponível. Faça uma cópia na nuvem em Config › Backup & dados.</div>'}
@@ -9476,10 +9656,9 @@ const SyncAudit = {
       else {
         const id = fonte.slice(2);
         sheet.open('Auditoria de sincronização', '<div class="empty" style="padding:28px;">Lendo a cópia…</div>');
-        const snap = await window.FB.getDoc(BackupNuvem._ref(id));
-        if (!snap.exists()) throw new Error('Cópia não encontrada');
-        copia = JSON.parse(snap.data().dados || 'null');
-        label = 'cópia na nuvem de ' + _fmtDataHora(snap.data().em);
+        const lida = await BackupNuvem.lerDados(id); /* v0.84.0: cópia em pedaços */
+        copia = lida.state;
+        label = 'cópia na nuvem de ' + _fmtDataHora(lida.em);
       }
       if (!copia || !copia.members) throw new Error('Cópia inválida');
     } catch (e) { toast(e.message || 'Não foi possível ler a cópia', 'error'); return; }
@@ -20362,6 +20541,7 @@ function openImportarFaturaSheet(cardId) {
     `;
 
     try {
+      try { BackupNuvem.antesDeImportar(); } catch (e) {} /* v0.84.0 */
       const { textoBruto: texto, items: pdfItems } = await extrairTextoDoPDF(file);
       const banco = detectarBancoFatura(texto);
       const bancoLabel = BANCO_LABELS[banco] || banco;
@@ -23393,6 +23573,7 @@ function _unirPeriodosExtrato(a, b) {
 /* --- Pipeline completo de importação do extrato ----------------------- */
 async function importarExtratoBancario(file, contaId) {
   if (!file) return;
+  try { BackupNuvem.antesDeImportar(); } catch (e) {} /* v0.84.0 */
   const conta = (state.contas || []).find(c => c.id === contaId);
   if (!conta) {
     toast('Conta não encontrada', 'error');
@@ -25049,7 +25230,8 @@ async function initFirebaseAuth() {
         localStorage.setItem(_localKey, JSON.stringify(cloudState));
         SyncGuard.setBase(user.uid, cloudState);
       } else if (localPrev) {
-        /* nuvem vazia: o aparelho sobe a cópia dele */
+        /* nuvem vazia: o aparelho sobe a cópia dele. v0.84.0: se a nuvem não foi lida
+           (sem rede ou parte faltando), serverFresh fica falso e a gravação lê e mescla antes */
         StorageAdapter.save(localPrev);
       } else {
         const fresh = defaultState();

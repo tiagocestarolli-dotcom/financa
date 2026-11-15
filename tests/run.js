@@ -96,6 +96,10 @@ const perto = (a, b) => Math.abs(a - b) < 0.005;
   const atrasada = Object.assign({}, R, { _syncBaseTs: 50 });
   r = SyncGuard.merge(base, A, atrasada);
   t(r.state.gastos.some(x => x.id === 'g3'), 'sync: cópia atrasada não apaga nada');
+  /* v0.84.0: a nuvem dividida por mês devolve os itens em outra ordem — não pode virar gravação de ida e volta */
+  const L2 = { _updatedAt: 500, gastos: [{ id: 'g2', valor: 20 }, { id: 'g1', valor: 11 }, { id: 'g4', valor: 40 }] };
+  r = SyncGuard.merge(SyncGuard.snapshot(R), L2, R);
+  t(r.igualRemoto && r.igualLocal, 'sync: mesma lista em outra ordem é igual');
 }
 
 console.log(`testes: ${ok} ok, ${falhas} falha(s)`);
